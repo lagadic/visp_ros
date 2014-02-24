@@ -55,8 +55,9 @@ include_directories(
 
 ## Declare a cpp library
 add_library(visp_ros
-  include/visp_ros/vpROSGrabber.h
   src/device/framegrabber/vpROSGrabber.cpp
+  src/robot/vpROSRobot.cpp
+  src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
 )
 
 add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
