@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(visp_ros)
 
-# By default set RelWithDebInfo configuration
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE String "Choose the type of build, options are: None Debug Release" FORCE)
-endif()
-
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
@@ -14,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   visp_bridge
   cv_bridge
   image_geometry
+  rospy
 )
 
 find_package(VISP REQUIRED)

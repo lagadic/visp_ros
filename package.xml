@@ -7,13 +7,13 @@
   <author>François Pasteau</author>
   <license>GPLv2</license>
   <url>http://ros.org/wiki/visp_ros</url>
-<maintainer email="francois.pasteau@irisa.fr">Francois Pasteau</maintainer>
+  <maintainer email="francois.pasteau@irisa.fr">Francois Pasteau</maintainer>
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
 
-  <build_depend>visp</build_depend>
+  <!-- build_depend>visp</build_depend -->
   <build_depend>std_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
