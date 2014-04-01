@@ -10,11 +10,12 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_geometry
   rospy
+  tf
 )
 
 find_package(VISP REQUIRED)
 # Add package definitions
-add_definitions(${VISP_DEFINITIONS})
+#add_definitions(${VISP_DEFINITIONS})
 
 ###################################
 ## catkin specific configuration ##
@@ -39,9 +40,9 @@ catkin_package(
     VISP
 )
 
-###########
-## Build ##
-###########
+###################
+## Build library ##
+###################
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -58,12 +59,27 @@ add_library(visp_ros
 
 add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
 
+#################
+## Build nodes ##
+#################
+## Declare a cpp executable
+add_executable(visp_ros_biclops_node nodes/biclops.cpp)
+add_executable(visp_ros_afma6_node nodes/afma6.cpp)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############
 
 ## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME}
+install(
+  TARGETS 
+    visp_ros
+    visp_ros_biclops_node
+    visp_ros_afma6_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -75,3 +91,9 @@ install(DIRECTORY include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
 )
+
+# Mark launch files for installation
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+

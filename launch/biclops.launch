@@ -1,0 +1,12 @@
+<launch>
+  <!-- 
+    Launch the biclops node that allows to control the Biclops pan/tilt head. 
+    Parameters are set in /usr/share/BiclopsDefault.cfg file.
+    Default serial link is: /dev/ttyUSB0
+    To set /dev/ttyUSB rights change /lib/udev/rules.d/50-udev-default.rules
+
+    % rosrun visp_ros visp_ros_biclops_node 
+  -->
+  <node pkg="visp_ros" type="visp_ros_biclops_node" name="visp_ros_biclops_node">
+  </node>
+</launch>
