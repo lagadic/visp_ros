@@ -24,14 +24,14 @@ class RosBiclopsNode
   public:
     RosBiclopsNode(ros::NodeHandle n);
     virtual ~RosBiclopsNode();
-    
+
   public:
     int setup();
     void setJointVel( const geometry_msgs::TwistConstPtr &);
     void setJointPos( const geometry_msgs::PoseConstPtr &);
     void spin();
     void publish();
- 
+
   protected:
     ros::NodeHandle n;
     ros::Publisher pose_pub;
@@ -45,10 +45,10 @@ class RosBiclopsNode
 
     vpRobotBiclops *robot;
     geometry_msgs::PoseStamped position;
-    		
-		//for odom->base_link transform
-		tf::TransformBroadcaster odom_broadcaster;
-		geometry_msgs::TransformStamped odom_trans;
+
+    //for odom->base_link transform
+    tf::TransformBroadcaster odom_broadcaster;
+    geometry_msgs::TransformStamped odom_trans;
     //for resolving tf names.
     std::string tf_prefix;
     std::string frame_id_odom;
@@ -57,7 +57,7 @@ class RosBiclopsNode
     vpHomogeneousMatrix wMc; // world to camera transformation
     vpColVector q; // measured joint position
 
- };
+};
 
 
 RosBiclopsNode::RosBiclopsNode(ros::NodeHandle nh)
@@ -79,8 +79,8 @@ RosBiclopsNode::RosBiclopsNode(ros::NodeHandle nh)
    * See ROS Wiki for further details.
    */
   tf_prefix = tf::getPrefixParam(n);
-//  frame_id_odom = tf::resolve(tf_prefix, "odom");
-//  frame_id_base_link = tf::resolve(tf_prefix, "base_link");
+  //  frame_id_odom = tf::resolve(tf_prefix, "odom");
+  //  frame_id_base_link = tf::resolve(tf_prefix, "base_link");
 
   // advertise services
   pose_pub = n.advertise<geometry_msgs::PoseStamped>("biclops/odom", 1000);
@@ -118,12 +118,12 @@ int RosBiclopsNode::setup()
 void RosBiclopsNode::spin()
 {
   ros::Rate loop_rate(15);
-	while(ros::ok()){
-		this->publish();
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
-//  ros::spin();
+  while(ros::ok()){
+    this->publish();
+    ros::spinOnce();
+    loop_rate.sleep();
+  }
+  //  ros::spin();
 }
 
 void RosBiclopsNode::publish()
@@ -140,11 +140,11 @@ void RosBiclopsNode::publish()
 
   position.header.stamp = ros::Time::now();
 
-	//  ROS_INFO( "Biclops publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
-	//            position.header.stamp.toSec(),
-	//            position.pose.position.x, position.pose.position.y, position.pose.position.z,
-	//            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y, position.pose.orientation.z);
-	pose_pub.publish(position);
+  //  ROS_INFO( "Biclops publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
+  //            position.header.stamp.toSec(),
+  //            position.pose.position.x, position.pose.position.y, position.pose.position.z,
+  //            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y, position.pose.orientation.z);
+  pose_pub.publish(position);
 }
 
 void

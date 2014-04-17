@@ -52,6 +52,9 @@ include_directories(
 
 ## Declare a cpp library
 add_library(visp_ros
+  include/visp_ros/vpROSGrabber.h
+  include/visp_ros/vpROSRobot.h
+  include/visp_ros/vpROSRobotPioneer.h
   src/device/framegrabber/vpROSGrabber.cpp
   src/robot/vpROSRobot.cpp
   src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp

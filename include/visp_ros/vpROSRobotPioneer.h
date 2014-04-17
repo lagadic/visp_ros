@@ -43,8 +43,10 @@
 
 #include <visp/vpConfig.h>
 #include <visp/vpRobot.h>
-#include <visp_ros/vpROSRobot.h>
+#include <visp/vpRobotException.h>
 #include <visp/vpPioneer.h>
+
+#include <visp_ros/vpROSRobot.h>
 
 /*!
 
@@ -61,17 +63,10 @@
 */
 class VISP_EXPORT vpROSRobotPioneer: public vpROSRobot, public vpPioneer
 {
-private: /* Not allowed functions. */
+  public:
+    vpROSRobotPioneer();
 
-  /*!
-    Copy constructor not allowed.
-   */
-  vpROSRobotPioneer(const vpROSRobotPioneer &robot);
-
-public:
-  vpROSRobotPioneer();
-
-  /*!
+    /*!
     Get the robot Jacobian expressed at point E, the point located at the
     middle between the two wheels.
 
@@ -82,48 +77,52 @@ public:
     \sa get_eJe()
 
   */
-  void get_eJe(vpMatrix & eJe)
-  {
-    eJe = vpUnicycle::get_eJe();
-  }
+    void get_eJe(vpMatrix & eJe)
+    {
+      eJe = vpUnicycle::get_eJe();
+    }
 
-private: // Set as private since not implemented
-  /*!
+    void getVelocity (const vpRobot::vpControlFrameType frame, vpColVector & velocity)
+    {
+      throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
+    }
+    vpColVector getVelocity (const vpRobot::vpControlFrameType frame)
+    {
+      throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
+    }
+
+    void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
+
+    /*!
+    Enable or disable sonar device usage.
+    */
+    void useSonar(bool usage)
+    {
+      throw (vpRobotException(vpRobotException::notImplementedError, "useSonar not implemented with ROS") );
+    }
+
+  private: /* Not allowed functions. */
+
+    /*!
+    Copy constructor not allowed.
+   */
+    vpROSRobotPioneer(const vpROSRobotPioneer &robot);
+
+  private: // Set as private since not implemented
+    /*!
     Get the robot Jacobian expressed in the robot reference (or world) frame.
     \warning Not implemented.
   */
-  void get_fJe(vpMatrix & /*fJe*/) {} ;
+    void get_fJe(vpMatrix & /*fJe*/) {} ;
 
-public:
-  void getVelocity (const vpRobot::vpControlFrameType frame, vpColVector & velocity)  
-  {
-	throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
-  }
-  vpColVector getVelocity (const vpRobot::vpControlFrameType frame)
-  {
-	throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
-  }
-
-private: // Set as private since not implemented
-  /*!
+    /*!
     Set a displacement (frame has to be specified) in position control.
     \warning Not implemented.
   */
-  void setPosition(const vpRobot::vpControlFrameType /*frame*/, const vpColVector &/*q*/) {};
+    void setPosition(const vpRobot::vpControlFrameType /*frame*/, const vpColVector &/*q*/) {};
 
-public:
-  void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
-
-  /*!
-    Enable or disable sonar device usage.
-    */
-  void useSonar(bool usage)
-  {
-	throw (vpRobotException(vpRobotException::notImplementedError, "useSonar not implemented with ROS") );
-  }
-
-protected:
-  bool isInitialized;
+  protected:
+    bool isInitialized;
 };
 
 #endif // vpROSRobotPioneer_H
