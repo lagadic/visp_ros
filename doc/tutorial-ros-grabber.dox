@@ -1,0 +1,78 @@
+/**
+
+\page tutorial-ros-grabber Tutorial: How to use ros grabber
+\tableofcontents
+
+\section intro Introduction
+
+Let us consider the following classical ViSP example provided in tutorial-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in ViSP it allows to grab images from a firewire camera.
+
+\include tutorial-grabber-1394.cpp
+
+This example is described in <a href="http://www.irisa.fr/lagadic/visp/publication.html#tutorial">ViSP image frame grabbing tutorial</a> pages.
+ 
+To build this example ViSP should be installed. If not, depending on your ROS distro it could be done like: 
+
+\code
+sudo apt-get install ros-hydro-visp
+\endcode
+
+Now to build, this example just run the following commands in a terminal:
+
+\code
+cd ~/catkin_ws/src/visp_ros/tutorial/grabber/visp
+cmake .
+make
+\endcode
+
+To run this example, hit in the same terminal:
+
+\code
+./tutorial-grabber-1394
+\endcode
+
+This example works only if you have a firewire camera. If you wanted to use an usb camera, you need to modify the previous source by introduction vpV4l2Grabber class. This may be fastidious in same case. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber.
+
+\section ros-grabber How to grab images from ROS
+
+\b vips_ros package provides vpROSGrabber class that is able to handle any images published on a ROS topic. To be able to display these images, the previous example need to me modified as in tutorial-ros-grabber.cpp given below:
+ 
+\include tutorial-ros-grabber.cpp
+
+Install visp_ros catkin package and setup the environment
+
+\code
+source ~/catkin_ws/install/setup.bash
+\endcode
+
+Build the example by entering the following commans in a terminal:
+\code
+cd ~/catkin_ws/src/visp_ros/tutorial/grabber/ros
+cmake .
+make
+\endcode
+
+Now run the example:
+\code
+./tutorial-ros-grabber
+[ERROR] [1397815271.796496797]: [registerPublisher] Failed to contact master at [127.0.0.1:11311].  Retrying...
+\endcode
+
+The grabber is waiting for images published on topic /camera/image_raw. To this end let us consider the following launch file camera-firewire.launch.
+
+\code
+<launch>
+  <!-- Launch the firewire camera acquisition node -->
+  <node pkg="camera1394" type="camera1394_node" name="my_camera1394_node" args="_video_mode:=640x480_rgb8" >
+  </node>
+</launch>
+\endcode
+
+When launched, you will see the images:
+\code
+cd ~/catkin_ws/src/visp_ros/tutorial/grabber/ros
+roslaunch camera-firewire.launch
+\endcode
+
+
+*/

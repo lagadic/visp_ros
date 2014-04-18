@@ -1,0 +1,4 @@
+ - builder: doxygen
+   name: C++ API
+   file_patterns: '*.c *.cpp *.h *.cc *.hh *.dox'
+   predefined: VISP_HAVE_OPENCV

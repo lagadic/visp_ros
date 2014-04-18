@@ -1,0 +1,16 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+
+\section intro Introduction
+
+\b visp_ros is a library that allows to consider some ROS based classes as ViSP traditional classes. 
+\b visp_ros contains also a collection of nodes that allow to control robots that are interfaced in ViSP.
+
+
+\section tutorial Tutorials
+
+- \ref tutorial-ros-grabber <br>In this first tutorial you will learn how to use images published by ROS nodes in a classical ViSP development.
+
+*/
