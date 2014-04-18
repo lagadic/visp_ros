@@ -36,6 +36,7 @@
  *
  * Authors:
  * Francois Pasteau
+ * Fabien Spindler
  *
  *****************************************************************************/
 
@@ -116,31 +117,33 @@ void vpROSGrabber::open(int argc, char **argv){
         ros::param::set("~image_transport", "raw");
       }
     }
-    if(_image_transport == "raw")
+    if(_image_transport == "raw") {
+      std::cout << "Subscribe to raw image on " << _nodespace + _topic_image << " topic" << std::endl;
       image_data = n->subscribe(_nodespace + _topic_image, 1, &vpROSGrabber::imageCallbackRaw,this,ros::TransportHints().tcpNoDelay());
-    else
+    }
+    else {
+      std::cout << "Subscribe to image on " << _nodespace + _topic_image << " topic" << std::endl;
       image_data = n->subscribe(_nodespace + _topic_image, 1, &vpROSGrabber::imageCallback,this,ros::TransportHints().tcpNoDelay());
+    }
 
+    std::cout << "Subscribe to camera_info on " << _nodespace + _topic_info << " topic" << std::endl;
     image_info = n->subscribe(_nodespace + _topic_info, 1, &vpROSGrabber::paramCallback,this,ros::TransportHints().tcpNoDelay());
 
     spinner = new ros::AsyncSpinner(1);
     spinner->start();
-    usWidth = 640;
-    usHeight = 480;
+    usWidth = -1;
+    usHeight = -1;
     isInitialized = true;
   }
 }
 
 
-
-
-
 /*!
   Initialization of the grabber.
 
-    Generic initialization of the grabber.
+  Generic initialization of the grabber.
 
-    \exception vpFrameGrabberException::initializationError If ROS has already been initialised with a different master_URI.
+  \exception vpFrameGrabberException::initializationError If ROS has already been initialised with a different master_URI.
 
 */
 
@@ -148,16 +151,25 @@ void vpROSGrabber::open(){
   if(ros::isInitialized() && ros::master::getURI() != _master_uri){
     close();
     throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "ROS already initialised with a different master_URI (" + ros::master::getURI() +" != " + _master_uri + ")") );
+                                   "ROS grabber already initialised with a different master_URI (" + ros::master::getURI() +" != " + _master_uri + ")") );
   }
   if(!isInitialized){
     int argc = 2;
     char *argv[2];
+    argv[0] = new char [255];
+    argv[1] = new char [255];
+
     std::string exe = "ros.exe", arg1 = "__master:=";
     strcpy(argv[0], exe.c_str());
     arg1.append(_master_uri);
     strcpy(argv[1], arg1.c_str());
     open(argc, argv);
+
+    // Wait for a first image
+    while( !first_img_received) vpTime::wait(40);
+
+    delete [] argv[0];
+    delete [] argv[1];
   }
 }
 
@@ -174,6 +186,7 @@ void vpROSGrabber::open(){
 void vpROSGrabber::open(vpImage<unsigned char> &I)
 {
   open();
+  acquire(I);
 }
 
 
@@ -189,6 +202,7 @@ void vpROSGrabber::open(vpImage<unsigned char> &I)
 void vpROSGrabber::open(vpImage<vpRGBa> &I)
 {
   open();
+  acquire(I);
 }
 
 
@@ -206,12 +220,10 @@ void vpROSGrabber::open(vpImage<vpRGBa> &I)
   initialization of the grabber was not done previously.
 */
 void vpROSGrabber::acquire(vpImage<unsigned char> &I, struct timespec &timestamp)
-{
-  if (isInitialized==false)
-  {
+{  
+  if (isInitialized==false) {
     close();
-    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "Initialization not done") );
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
   }
   while(!mutex_image || !first_img_received);
   mutex_image = false;
@@ -232,7 +244,7 @@ void vpROSGrabber::acquire(vpImage<unsigned char> &I, struct timespec &timestamp
 
     \param timestamp : timestamp of the acquired image.
 
-    \return true if a new image was acquired
+    \return true if a new image was acquired or false if the image is the same than the previous one.
 
     \exception vpFrameGrabberException::initializationError If the
 
@@ -241,11 +253,9 @@ void vpROSGrabber::acquire(vpImage<unsigned char> &I, struct timespec &timestamp
 bool vpROSGrabber::acquireNoWait(vpImage<unsigned char> &I, struct timespec &timestamp)
 {
   bool new_image = false;
-  if (isInitialized==false)
-  {
+  if (isInitialized==false) {
     close();
-    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "Initialization not done") );
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
   }
   while(!mutex_image);
   mutex_image = false;
@@ -272,11 +282,9 @@ bool vpROSGrabber::acquireNoWait(vpImage<unsigned char> &I, struct timespec &tim
 */
 void vpROSGrabber::acquire(vpImage<vpRGBa> &I, struct timespec &timestamp)
 {
-  if (isInitialized==false)
-  {
+  if (isInitialized==false) {
     close();
-    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "Initialization not done") );
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
   }
   while(!mutex_image || !first_img_received);
   mutex_image = false;
@@ -297,7 +305,7 @@ void vpROSGrabber::acquire(vpImage<vpRGBa> &I, struct timespec &timestamp)
 
     \param timestamp : timestamp of the acquired image.
 
-    \return true if a new image was acquired
+    \return true if a new image was acquired or false if the image is the same than the previous one.
 
     \exception vpFrameGrabberException::initializationError If the
 
@@ -306,11 +314,9 @@ void vpROSGrabber::acquire(vpImage<vpRGBa> &I, struct timespec &timestamp)
 bool vpROSGrabber::acquireNoWait(vpImage<vpRGBa> &I, struct timespec &timestamp)
 {
   bool new_image = false;
-  if (isInitialized==false)
-  {
+  if (isInitialized==false) {
     close();
-    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "Initialization not done") );
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
   }
   while(!mutex_image);
   mutex_image = false;
@@ -338,11 +344,9 @@ bool vpROSGrabber::acquireNoWait(vpImage<vpRGBa> &I, struct timespec &timestamp)
 cv::Mat vpROSGrabber::acquire(struct timespec &timestamp)
 {
   cv::Mat retour;
-  if (isInitialized==false)
-  {
+  if (isInitialized==false) {
     close();
-    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError,
-                                   "Initialization not done") );
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
   }
   while(!mutex_image || !first_img_received);
   mutex_image = false;
@@ -376,14 +380,13 @@ void vpROSGrabber::acquire(vpImage<unsigned char> &I)
 /*!
     Grab a gray level image without waiting.
 
-
     \param I : Acquired gray level image.
 
-    \return true if a new image was acquired
+    \return true if a new image was acquired or false if the image is the same than the previous one.
 
     \exception vpFrameGrabberException::initializationError If the
 
-    initialization of the grabber was not done previously.
+    Initialization of the grabber was not done previously.
 */
 bool vpROSGrabber::acquireNoWait(vpImage<unsigned char> &I)
 {
@@ -414,7 +417,7 @@ void vpROSGrabber::acquire(vpImage<vpRGBa> &I)
 
     \param I : Acquired color image.
 
-    \return true if a new image was acquired
+    \return true if a new image was acquired or false if the image is the same than the previous one.
 
     \exception vpFrameGrabberException::initializationError If the
 
@@ -584,7 +587,9 @@ void setImageTransport(std::string image_transport);
 
 /*!
 
-    Set the image_transport type of the image topic
+    Set the image_transport type of the image topic. Values should be :
+    - "raw" if images are not compressed
+    - any other value if the images are compressed (ie "jpeg",...).
 
     \param image_transport type of transport of the image topic
 
@@ -599,13 +604,24 @@ void vpROSGrabber::setImageTransport(std::string image_transport)
 
   \param cam parameter of the camera
 
+  \return true if the parameters are available, false otherwise.
 */
 
-void vpROSGrabber::getCameraInfo(vpCameraParameters &cam){
+bool vpROSGrabber::getCameraInfo(vpCameraParameters &cam){
+  if (! isInitialized) {
+    close();
+    throw (vpFrameGrabberException(vpFrameGrabberException::initializationError, "Grabber not initialized.") );
+  }
+
+  // Test: if we get an image (first_img_received=true) we should have the camera parameters (first_param_received=true) if they are available
+  if (first_img_received && !first_param_received)
+    return false;
   while(!mutex_param || !first_param_received);
   mutex_param = false;
   cam = _cam;
   mutex_param = true;
+
+  return true;
 }
 
 
@@ -658,12 +674,14 @@ void vpROSGrabber::imageCallbackRaw(const sensor_msgs::Image::ConstPtr& msg){
 }
 
 void vpROSGrabber::paramCallback(const sensor_msgs::CameraInfo::ConstPtr& msg){
-  while(!mutex_param);
-  mutex_param = false;
-  _cam = visp_bridge::toVispCameraParameters(*msg);
-  p.fromCameraInfo(msg);
-  first_param_received = true;
-  mutex_param = true;
+  if (_rectify) {
+    while(!mutex_param);
+    mutex_param = false;
+    _cam = visp_bridge::toVispCameraParameters(*msg);
+    p.fromCameraInfo(msg);
+    first_param_received = true;
+    mutex_param = true;
+  }
 }
 
 #endif

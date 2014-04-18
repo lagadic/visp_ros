@@ -54,26 +54,6 @@
 #include <ros/time.h>
 #include <sstream>
 
-/**
- * \def MIN(x,y)
- * \brief Minimum of x and y
- */
-//#define MIN(X,Y) ((X)>(Y)?(Y):(X))
-
-/**
- * \def MAX(x,y)
- * \brief Maximum of x and y
- */
-//#define MAX(X,Y) ((X)<(Y)?(Y):(X))
-
-/**
- * \def CLIP(X,A,B)
- * \brief Clip X value so that A<X<B
- */
-//#define CLIP(X,A,B) (MIN(MAX(X,A),B))
-
-
-
 //! constructor
 vpROSRobot::vpROSRobot():
   isInitialized(false),
@@ -98,7 +78,6 @@ vpROSRobot::vpROSRobot():
 vpROSRobot::~vpROSRobot()
 {
   if(isInitialized){
-    stopMotion();
     isInitialized = false;
     spinner->stop();
     delete spinner;
@@ -113,6 +92,7 @@ vpROSRobot::~vpROSRobot()
   */
 void vpROSRobot::init(int argc, char **argv)
 {
+  std::cout << "ici 1\n";
   if(!isInitialized){
     if(!ros::isInitialized()) ros::init(argc, argv, "visp_node", ros::init_options::AnonymousName);
     n = new ros::NodeHandle;
@@ -121,6 +101,7 @@ void vpROSRobot::init(int argc, char **argv)
     spinner = new ros::AsyncSpinner(1);
     spinner->start();
     isInitialized = true;
+    std::cout << "ici 2\n";
   }
 }
 
@@ -131,16 +112,21 @@ void vpROSRobot::init(int argc, char **argv)
 void vpROSRobot::init(){
   if(ros::isInitialized() && ros::master::getURI() != _master_uri){
     throw (vpRobotException(vpRobotException::constructionError,
-                            "ROS already initialised with a different master_URI (" + ros::master::getURI() +" != " + _master_uri + ")") );
+                            "ROS robot already initialised with a different master_URI (" + ros::master::getURI() +" != " + _master_uri + ")") );
   }
   if(!isInitialized){
     int argc = 2;
     char *argv[2];
+    argv[0] = new char [255];
+    argv[1] = new char [255];
+
     std::string exe = "ros.exe", arg1 = "__master:=";
     strcpy(argv[0], exe.c_str());
     arg1.append(_master_uri);
     strcpy(argv[1], arg1.c_str());
     init(argc, argv);
+    delete [] argv[0];
+    delete [] argv[1];
   }
 }
 
@@ -286,4 +272,55 @@ void vpROSRobot::stopMotion()
   msg.angular.y = 0;
   msg.angular.z = 0;
   cmdvel.publish(msg);
+}
+
+
+/*!
+
+  Set the ROS topic name for cmdvel
+
+  \param topic_name name of the topic.
+
+*/
+void vpROSRobot::setCmdVelTopic(std::string topic_name)
+{
+  _topic_cmd = topic_name;
+}
+
+
+/*!
+
+    Set the ROS topic name for odom
+
+    \param topic_name name of the topic.
+
+*/
+void vpROSRobot::setOdomTopic(std::string topic_name)
+{
+  _topic_odom = topic_name;
+}
+
+
+/*!
+
+    Set the URI for ROS Master
+
+    \param master_uri URI of the master ("http://127.0.0.1:11311")
+
+*/
+void vpROSRobot::setMasterURI(std::string master_uri)
+{
+  _master_uri = master_uri;
+}
+
+/*!
+
+    Set the nodespace
+
+    \param nodespace Namespace of the connected camera (nodespace is appended to the all topic names)
+
+*/
+void vpROSRobot::setNodespace(std::string nodespace)
+{
+  _nodespace = nodespace;
 }

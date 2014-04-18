@@ -36,6 +36,7 @@
  *
  * Authors:
  * Francois Pasteau
+ * Fabien Spindler
  *
  *****************************************************************************/
 
@@ -52,21 +53,20 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
+
 /*!
 \class vpROSRobot
-\brief vpRobot implementation for Quickie Salsa M wheelchair with ROS.
+\brief Interface for robots based on ROS.
 */
 
 class VISP_EXPORT vpROSRobot : public vpRobot
 {
-
-  private:
+  protected:
     ros::NodeHandle *n;
     ros::Publisher cmdvel;
     ros::Subscriber odom;
     ros::AsyncSpinner *spinner;
 
-  protected:
     bool isInitialized;
 
     vpQuaternionVector q;
@@ -124,14 +124,13 @@ class VISP_EXPORT vpROSRobot : public vpRobot
 
     void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
     void stopMotion();
+    void setCmdVelTopic(std::string topic_name);
+    void setOdomTopic(std::string topic_name);
+    void setMasterURI(std::string master_uri);
+    void setNodespace(std::string nodespace);
 } ;
 
 #endif
 
-/*
-* Local variables:
-* c-basic-offset: 2
-* End:
-*/
 
 

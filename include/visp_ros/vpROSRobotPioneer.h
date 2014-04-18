@@ -58,13 +58,17 @@
 
   This class provides a position and speed control interface for Pioneer mobile robots.
   It inherits from the vpROSRobot class. For more information about the model of the robot,
-  see vpPioneer documentation.
+  see vpPioneer documentation on ViSP website http:://team.inria.fr/visp.
 
 */
 class VISP_EXPORT vpROSRobotPioneer: public vpROSRobot, public vpPioneer
 {
   public:
     vpROSRobotPioneer();
+    ~vpROSRobotPioneer();
+
+    void disableMotors();
+    void enableMotors();
 
     /*!
     Get the robot Jacobian expressed at point E, the point located at the
@@ -90,6 +94,10 @@ class VISP_EXPORT vpROSRobotPioneer: public vpROSRobot, public vpPioneer
     {
       throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
     }
+
+    //! basic initialization
+    void init() ;
+    void init(int argc, char **argv) ;
 
     void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
 
@@ -121,8 +129,6 @@ class VISP_EXPORT vpROSRobotPioneer: public vpROSRobot, public vpPioneer
   */
     void setPosition(const vpRobot::vpControlFrameType /*frame*/, const vpColVector &/*q*/) {};
 
-  protected:
-    bool isInitialized;
 };
 
 #endif // vpROSRobotPioneer_H

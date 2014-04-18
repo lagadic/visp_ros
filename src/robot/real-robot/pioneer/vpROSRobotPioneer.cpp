@@ -42,6 +42,7 @@
 #include <visp/vpConfig.h>
 #include <visp/vpMath.h>
 #include <visp/vpRobotException.h>
+#include <std_srvs/Empty.h>
 #include <visp_ros/vpROSRobotPioneer.h>
 
 
@@ -53,6 +54,25 @@ vpROSRobotPioneer::vpROSRobotPioneer() : vpPioneer()
 
 }
 
+//! destructor
+vpROSRobotPioneer::~vpROSRobotPioneer()
+{
+  stopMotion();
+  disableMotors();
+}
+
+//! basic initialization
+void vpROSRobotPioneer::init()
+{
+  vpROSRobot::init();
+  enableMotors();
+}
+
+void vpROSRobotPioneer::init(int argc, char **argv)
+{
+  vpROSRobot::init(argc, argv);
+  enableMotors();
+}
 
 /*!
   Set the velocity (frame has to be specified) that will be applied to the robot.
@@ -73,7 +93,10 @@ vpROSRobotPioneer::vpROSRobotPioneer() : vpPioneer()
   */
 void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel)
 {
-  init();
+  if (! isInitialized) {
+    throw (vpRobotException(vpRobotException::notInitialized,
+                            "ROS robot pioneer is not initialized") );
+  }
 
   if (vel.size() != 2)
   {
@@ -84,6 +107,7 @@ void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, con
   vpColVector vel_sat;
   vpColVector vel_robot(6);
 
+  std::cout << "vel recu: " << vel << std::endl;
   if (frame == vpRobot::REFERENCE_FRAME)
   {
     vel_max[0] = getMaxTranslationVelocity();
@@ -91,17 +115,38 @@ void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, con
 
     vel_sat = vpRobot::saturateVelocities(vel, vel_max, true);
     vel_robot[0] = vel_sat[0];
-    vel_robot[0] = 0;
-    vel_robot[0] = 0;
-    vel_robot[0] = 0;
-    vel_robot[0] = 0;
-    vel_robot[0] = vel_sat[1];
+    vel_robot[1] = 0;
+    vel_robot[2] = 0;
+    vel_robot[3] = 0;
+    vel_robot[4] = 0;
+    vel_robot[5] = vel_sat[1];
+    std::cout << "vel envoye: " << vel_robot << std::endl;
     vpROSRobot::setVelocity(frame, vel_robot);
   }
   else
   {
     throw vpRobotException (vpRobotException::wrongStateError,
                             "Cannot send the robot velocity in the specified control frame");
+  }
+}
+
+void vpROSRobotPioneer::enableMotors()
+{
+  ros::ServiceClient client = n->serviceClient<std_srvs::Empty>("/RosAria/enable_motors");
+  std_srvs::Empty srv;
+  if (!client.call(srv))
+  {
+    ROS_ERROR("Unable to enable motors");
+  }
+}
+
+void vpROSRobotPioneer::disableMotors()
+{
+  ros::ServiceClient client = n->serviceClient<std_srvs::Empty>("/RosAria/disable_motors");
+  std_srvs::Empty srv;
+  if (!client.call(srv))
+  {
+    ROS_ERROR("Unable to disable motors");
   }
 }
 

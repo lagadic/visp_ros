@@ -36,6 +36,7 @@
  *
  * Authors:
  * Francois Pasteau
+ * Fabien Spindler
  *
  *****************************************************************************/
 
@@ -49,7 +50,7 @@
 
 #include <visp/vpConfig.h>
 
-#if defined(VISP_HAVE_OPENCV) 
+#if defined(VISP_HAVE_OPENCV)
 
 #include <cv.h>
 #include <visp/vpImage.h>
@@ -67,7 +68,7 @@
 #  include <highgui.h>
 #endif
 
-/*! A modifier
+/*!
   \class vpROSGrabber
 
   \ingroup Framegrabber CameraDriver
@@ -79,10 +80,9 @@
   
   The code below shows how to use this class.
   \code
-#include <visp/vpConfig.h>
 #include <visp/vpImage.h>
 #include <visp/vpImageIo.h>
-#include <visp_bridge/vpROSGrabber.h>
+#include <visp_ros/vpROSGrabber.h>
 
 int main()
 {
@@ -157,7 +157,7 @@ class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
     void setFlip(bool flipType);
     void setRectify(bool rectify);
 
-    void getCameraInfo(vpCameraParameters &cam);
+    bool getCameraInfo(vpCameraParameters &cam);
     void getWidth(unsigned short &width) const;
     void getHeight(unsigned short &height) const;
     unsigned short getWidth() const;
