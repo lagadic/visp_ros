@@ -11,6 +11,6 @@
 
 \section tutorial Tutorials
 
-- \ref tutorial-ros-grabber <br>In this first tutorial you will learn how to use images published by ROS nodes in a classical ViSP development.
+- \ref tutorial-ros-grabber <br>In this first tutorial you will learn how to use images published by ROS nodes in a classical ViSP development thanks to vpROSGrabber class.
 
 */

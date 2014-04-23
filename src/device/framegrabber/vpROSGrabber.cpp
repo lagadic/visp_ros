@@ -58,7 +58,7 @@
 #include <math.h>
 
 /*!
-  Basic Constructor.
+  Basic Constructor that subscribes to the "image" and "camera_info" ROS topics.
 */
 vpROSGrabber::vpROSGrabber() :
   isInitialized(false),

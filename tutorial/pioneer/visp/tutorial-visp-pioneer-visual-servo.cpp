@@ -1,43 +1,23 @@
-/****************************************************************************
- *
- * $Id: servoPioneerPoint2DDepth.cpp 4574 2014-01-09 08:48:51Z fspindle $
- *
- * This file is part of the ViSP software.
- * Copyright (C) 2005 - 2014 by INRIA. All rights reserved.
- *
- * This software is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * ("GPL") version 2 as published by the Free Software Foundation.
- * See the file LICENSE.txt at the root directory of this source
- * distribution for additional information about the GNU GPL.
- *
- * For using ViSP with software that can not be combined with the GNU
- * GPL, please contact INRIA about acquiring a ViSP Professional
- * Edition License.
- *
- * See http://www.irisa.fr/lagadic/visp/visp.html for more information.
- *
- * This software was developed at:
- * INRIA Rennes - Bretagne Atlantique
- * Campus Universitaire de Beaulieu
- * 35042 Rennes Cedex
- * France
- * http://www.irisa.fr/lagadic
- *
- * If you have questions regarding the use of this file, please contact
- * INRIA at visp@inria.fr
- *
- * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
- * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- *
- * Description:
- * IBVS on Pioneer P3DX mobile platform
- *
- * Authors:
- * Fabien Spindler
- *
- *****************************************************************************/
+/*!
+  \example tutorial-visp-pioneer-visual-servo.cpp
+
+  Example that shows how to control the Pioneer mobile robot by IBVS visual servoing with respect to a blob.
+  The current visual features that are used are s = (x, log(Z/Z*)). The desired one are s* = (x*, 0), with:
+  - x the abscisse of the point corresponding to the blob center of gravity measured at each iteration,
+  - x* the desired abscisse position of the point (x* = 0)
+  - Z the depth of the point measured at each iteration
+  - Z* the desired depth of the point equal to the initial one.
+
+  The degrees of freedom that are controlled are (vx, wz), where wz is the rotational velocity
+  and vx the translational velocity of the mobile platform at point M located at the middle
+  between the two wheels.
+
+  The feature x allows to control wy, while log(Z/Z*) allows to control vz.
+  The value of x is measured thanks to a blob tracker.
+  The value of Z is estimated from the surface of the blob that is proportional to the depth Z.
+
+  */
+
 #include <iostream>
 
 #include <visp/vpRobotPioneer.h>
@@ -59,25 +39,6 @@
 #endif
 
 
-/*!
-  \example servoPioneerPoint2DDepth.cpp
-
-  Example that shows how to control the Pioneer mobile robot by IBVS visual servoing with respect to a blob.
-  The current visual features that are used are s = (x, log(Z/Z*)). The desired one are s* = (x*, 0), with:
-  - x the abscisse of the point corresponding to the blob center of gravity measured at each iteration,
-  - x* the desired abscisse position of the point (x* = 0)
-  - Z the depth of the point measured at each iteration
-  - Z* the desired depth of the point equal to the initial one.
-
-  The degrees of freedom that are controlled are (vx, wz), where wz is the rotational velocity
-  and vx the translational velocity of the mobile platform at point M located at the middle
-  between the two wheels.
-
-  The feature x allows to control wy, while log(Z/Z*) allows to control vz.
-  The value of x is measured thanks to a blob tracker.
-  The value of Z is estimated from the surface of the blob that is proportional to the depth Z.
-
-  */
 #ifdef TEST_COULD_BE_ACHIEVED
 int main(int argc, char **argv)
 {

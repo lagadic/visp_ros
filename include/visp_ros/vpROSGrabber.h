@@ -89,6 +89,9 @@ int main()
 #if defined(VISP_HAVE_OPENCV)
   vpImage<unsigned char> I; // Create a gray level image container
   vpROSGrabber g;        // Create a grabber for ROS
+  g.setCameraInfoTopic("/camera/camera_info");
+  g.setImageTopic("/camera/image_raw");
+  g.setRectify(true);
 
   g.open(I);                           // Open the framegrabber
   g.acquire(I);                        // Acquire an image

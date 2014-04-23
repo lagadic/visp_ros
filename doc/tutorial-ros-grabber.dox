@@ -1,13 +1,13 @@
 /**
 
-\page tutorial-ros-grabber Tutorial: How to use ros grabber
+\page tutorial-ros-grabber Tutorial: How to use ROS grabber
 \tableofcontents
 
 \section intro Introduction
 
-Let us consider the following classical ViSP example provided in tutorial-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in ViSP it allows to grab images from a firewire camera.
+Let us consider the following classical ViSP example provided in tutorial-visp-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in <a href="http://team.inria.fr/lagadic/visp">ViSP library</a> it allows to grab images from a firewire camera.
 
-\include tutorial-grabber-1394.cpp
+\include tutorial-visp-grabber-1394.cpp
 
 This example is described in <a href="http://www.irisa.fr/lagadic/visp/publication.html#tutorial">ViSP image frame grabbing tutorial</a> pages.
  
@@ -17,7 +17,7 @@ To build this example ViSP should be installed. If not, depending on your ROS di
 sudo apt-get install ros-hydro-visp
 \endcode
 
-Now to build, this example just run the following commands in a terminal:
+Now to build this example, just run the following commands in a terminal:
 
 \code
 cd ~/catkin_ws/src/visp_ros/tutorial/grabber/visp
@@ -28,24 +28,42 @@ make
 To run this example, hit in the same terminal:
 
 \code
-./tutorial-grabber-1394
+./tutorial-visp-grabber-1394
 \endcode
 
-This example works only if you have a firewire camera. If you wanted to use an usb camera, you need to modify the previous source by introduction vpV4l2Grabber class. This may be fastidious in same case. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber.
+This example works only if you have a firewire camera. If you want to use an usb camera, you need to modify the previous source by introducing vpV4l2Grabber class. This may be fastidious. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber.
 
 \section ros-grabber How to grab images from ROS
 
-\b vips_ros package provides vpROSGrabber class that is able to handle any images published on a ROS topic. To be able to display these images, the previous example need to me modified as in tutorial-ros-grabber.cpp given below:
+\b visp_ros package provides vpROSGrabber class that is able to handle any images published on a ROS topic. To be able to display these images, the previous example need to me modified as in tutorial-ros-grabber.cpp given below:
  
 \include tutorial-ros-grabber.cpp
 
-Install visp_ros catkin package and setup the environment
+Compared to the example based fully on ViSP and given in the \ref intro, once declared we simply indicate which are the camera_info and image topics:
+
+\code
+vpROSGrabber g;
+g.setCameraInfoTopic("/camera/camera_info");
+g.setImageTopic("/camera/image_raw");
+\endcode
+
+If camera_info parameters are provided including distorsion, the image is rectified:
+\code
+g.setRectify(true);
+\endcode
+
+Next as usual with ViSP, a new image is acquired using:
+\code
+g.acquire(I);
+\endcode
+  
+Now to build this example, install visp_ros catkin package and setup the environment as described in the <a href="http://wiki.ros.org/visp_ros/Tutorials/Howto_install_visp_ros">tutorial: Howto build and install visp_ros</a>.
 
 \code
 source ~/catkin_ws/install/setup.bash
 \endcode
 
-Build the example by entering the following commans in a terminal:
+Build the example by entering the following commands in a terminal:
 \code
 cd ~/catkin_ws/src/visp_ros/tutorial/grabber/ros
 cmake .
