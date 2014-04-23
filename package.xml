@@ -2,7 +2,7 @@
   <name>visp_ros</name>
   <version>1.0.0</version>
     <description>
-     A basket of generic ros nodes based on ViSP library
+     An extension of ViSP library that interfaces ROS into usual ViSP classes and a basket of generic ros nodes based on ViSP.
   </description>
   <author>Francois Pasteau</author>
   <author>Fabien Spindler</author>
