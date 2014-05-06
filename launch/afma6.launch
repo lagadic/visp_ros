@@ -1,0 +1,6 @@
+<launch>
+	<!-- Robot -->
+	<node pkg="visp_ros" type="visp_ros_afma6_node" name="afma6">
+	</node>
+</launch>
+
