@@ -13,7 +13,6 @@
 #include <tf/transform_datatypes.h>
 
 #include <visp/vpRobotAfma6.h> // visp
-#include <visp/vpRingLight.h>
 
 #include <visp_bridge/3dpose.h> // visp_bridge
 
@@ -179,9 +178,6 @@ int main( int argc, char** argv )
   ros::init(argc,argv, "RosAfma6");
   ros::NodeHandle n(std::string("~"));
 
-  vpRingLight light;
-  light.on();
-
   RosAfma6Node *node = new RosAfma6Node(n);
 
   if( node->setup() != 0 )
@@ -193,8 +189,6 @@ int main( int argc, char** argv )
   node->spin();
 
   delete node;
-
-  light.off();
 
   printf( "\nQuitting... \n" );
 #else
