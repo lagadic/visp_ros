@@ -60,6 +60,8 @@ add_library(visp_ros
   src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
 )
 
+target_link_libraries(visp_ros ${catkin_LIBRARIES})
+
 add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
 
 #################
