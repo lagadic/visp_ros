@@ -5,7 +5,14 @@
 
 \section intro Introduction
 
-Let us consider the following classical ViSP example provided in tutorial-visp-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in <a href="http://team.inria.fr/lagadic/visp">ViSP library</a> it allows to grab images from a firewire camera.
+<a href="http://team.inria.fr/lagadic/visp">ViSP library</a> allows to grab images from cameras using specific classes depending on the underlaying camera drivers. Thus it allows to grab images from firewire or usb cameras using either vp1394TwoGrabber or vpV4l2Grabber classes.
+
+In the next section \ref visp, we recall how ViSP can be used to grab images. Then in section \ref ros we introduce vpROSGrabber that can be used to grab images published by a ROS camera node.
+
+\section visp Image grabbing using ViSP
+\subsection visp_1394 Working with firewire cameras
+
+Let us consider the following classical ViSP example provided in tutorial-visp-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in <a href="http://team.inria.fr/lagadic/visp">ViSP library</a> we are able to grab images from a firewire camera.
 
 \include tutorial-visp-grabber-1394.cpp
 
@@ -14,7 +21,12 @@ This example is described in <a href="http://www.irisa.fr/lagadic/visp/publicati
 To build this example ViSP should be installed. If not, depending on your ROS distro it could be done like: 
 
 \code
-sudo apt-get install ros-hydro-visp
+sudo apt-get install ros-<distro>-visp
+\endcode
+
+ViSP could also be installed from Debian package:
+\code
+sudo apt-get install libvisp-dev
 \endcode
 
 Now to build this example, just run the following commands in a terminal:
@@ -25,37 +37,54 @@ cmake .
 make
 \endcode
 
-To run this example, hit in the same terminal:
+To run this example, connect a firewire camera hit in the same terminal:
 
 \code
 ./tutorial-visp-grabber-1394
 \endcode
 
-This example works only if you have a firewire camera. If you want to use an usb camera, you need to modify the previous source by introducing vpV4l2Grabber class. This may be fastidious. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber.
+\subsection visp_v4l2 Working with usb cameras
+
+Let us consider this other ViSP example provided in tutorial-visp-grabber-v4l2.cpp and given here after. Thanks to the vpV4l2Grabber class we are able this time to grab images from an usb camera.
+
+\include tutorial-visp-grabber-v4l2.cpp
+
+To run this example, connect an usb camera and hit in the same terminal:
+
+\code
+./tutorial-visp-grabber-v4l2
+\endcode
+
+\subsection visp_conclusion Conclusion
+
+Depending on the camera that is used, you may adapt your code to use the right camera driver. This may be fastidious. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber. It just subscribes to a camera topic. 
+
+
 
 \section ros-grabber How to grab images from ROS
 
-\b visp_ros package provides vpROSGrabber class that is able to handle any images published on a ROS topic. To be able to display these images, the previous example need to me modified as in tutorial-ros-grabber.cpp given below:
+\b visp_ros package provides vpROSGrabber class that is able to handle any images published on a ROS topic.
+This class is interesting since it can be used as a classical ViSP class without knowing ROS very well since it makes ROS transparent for the user.
+
+
+To be able to grab images published by a ROS camera node and display these images, the previous example need to be modified as in tutorial-ros-grabber.cpp given below:
  
 \include tutorial-ros-grabber.cpp
 
-Compared to the example based fully on ViSP and given in the \ref intro, once declared we simply indicate which are the camera_info and image topics:
+Compared to the example based fully on ViSP and given in the \ref visp, once declared :
+\snippet tutorial-ros-grabber.cpp Construction
 
-\code
-vpROSGrabber g;
-g.setCameraInfoTopic("/camera/camera_info");
-g.setImageTopic("/camera/image_raw");
-\endcode
+we simply indicate which is the image topic name:
+\snippet tutorial-ros-grabber.cpp Setting camera topic
 
 If camera_info parameters are provided including distorsion, the image is rectified:
-\code
-g.setRectify(true);
-\endcode
+\snippet tutorial-ros-grabber.cpp Setting camera info
 
-Next as usual with ViSP, a new image is acquired using:
-\code
-g.acquire(I);
-\endcode
+Next as usual with ViSP, the device is opened
+\snippet tutorial-ros-grabber.cpp Opening
+and a new image is acquired using:
+\snippet tutorial-ros-grabber.cpp Acquisition
+
   
 Now to build this example, install visp_ros catkin package and setup the environment as described in the <a href="http://wiki.ros.org/visp_ros/Tutorials/Howto_install_visp_ros">tutorial: Howto build and install visp_ros</a>.
 
@@ -70,18 +99,17 @@ cmake .
 make
 \endcode
 
-Now run the example:
-\code
-./tutorial-ros-grabber
-[ERROR] [1397815271.796496797]: [registerPublisher] Failed to contact master at [127.0.0.1:11311].  Retrying...
-\endcode
+\subsection ros_1394 Working with firewire cameras
 
-The grabber is waiting for images published on topic /camera/image_raw. To this end let us consider the following launch file camera-firewire.launch.
+The previous example can work with images published by camera1394 node. To this end let us consider the following launch file named "camera-firewire.launch" where images are published on topic /camera/image_raw and camera parameters on topic /camera/camera_info. 
+
+\note The camera parameters are read from cam_parameters.yml file provided with the source code.
 
 \code
-<launch>
+<launch>		
   <!-- Launch the firewire camera acquisition node -->
   <node pkg="camera1394" type="camera1394_node" name="my_camera1394_node" args="_video_mode:=640x480_rgb8" >
+    <param name="camera_info_url" value="package://visp_ros/tutorial/grabber/ros/cam_parameters.yml" />
   </node>
 </launch>
 \endcode
@@ -90,6 +118,32 @@ When launched, you will see the images:
 \code
 cd ~/catkin_ws/src/visp_ros/tutorial/grabber/ros
 roslaunch camera-firewire.launch
+./tutorial-ros-grabber --use-camera-info
+\endcode
+
+\subsection ros_v4l2 Working with usb cameras
+
+The previous example can also work with images published by usb_cam node. To this end let us consider the following launch file named "camera-usb.launch" where images are published on topic /camera/image_raw and camera parameters on topic /camera/camera_info. 
+
+\code
+<launch>
+  <!-- % rosrun usb_cam usb_cam_node _video_device:="/dev/video0" _pixel_format:="yuyv" _io_method:="mmap" _image_height:=640 _image_height:=480 -->
+  <node pkg="usb_cam" type="usb_cam_node" name="camera" output="screen" >
+        <param name="video_device" value="/dev/video0" />
+        <param name="image_width" value="640" />
+        <param name="image_height" value="480" />
+	<param name="pixel_format" value="yuyv" /> 
+	<param name="io_method" value="mmap"/>
+	<param name="camera_info_url" value="package://visp_ros/tutorial/grabber/ros/cam_parameters.yml" />
+  </node>
+</launch>
+\endcode
+
+When launched, you will see the images:
+\code
+cd ~/catkin_ws/src/visp_ros/tutorial/grabber/ros
+roslaunch camera-usb.launch --use-camera-info
+./tutorial-ros-grabber
 \endcode
 
 
