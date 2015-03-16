@@ -70,7 +70,7 @@ vpROSGrabber::vpROSGrabber() :
   flip(false),
   _topic_image("image"),
   _topic_info("camera_info"),
-  _master_uri("http://127.0.0.1:11311"),
+  _master_uri("http://localhost:11311"),
   _nodespace(""),
   _image_transport("raw"),
   _sec(0),
