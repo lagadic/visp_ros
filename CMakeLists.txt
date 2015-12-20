@@ -69,10 +69,12 @@ add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
 ## Declare a cpp executable
 add_executable(visp_ros_biclops_node nodes/biclops.cpp)
 add_executable(visp_ros_afma6_node nodes/afma6.cpp)
+add_executable(visp_ros_viper650_node nodes/viper650.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -84,6 +86,7 @@ install(
     visp_ros
     visp_ros_biclops_node
     visp_ros_afma6_node
+    visp_ros_viper650_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
