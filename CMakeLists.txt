@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 2.8.3)
 project(visp_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   geometry_msgs
+  image_geometry
   roscpp
+  rospy
   sensor_msgs
   std_msgs
-  visp_bridge
-  cv_bridge
-  image_geometry
-  rospy
   tf
+  visp_bridge
 )
 
 find_package(VISP REQUIRED)
@@ -28,13 +28,13 @@ catkin_package(
     ${PROJECT_NAME}
  
   CATKIN_DEPENDS
+    cv_bridge
     geometry_msgs
+    image_geometry
     roscpp
     sensor_msgs
     std_msgs
     visp_bridge
-    cv_bridge
-    image_geometry
 
   DEPENDS
     VISP
@@ -56,8 +56,8 @@ add_library(visp_ros
   include/visp_ros/vpROSRobot.h
   include/visp_ros/vpROSRobotPioneer.h
   src/device/framegrabber/vpROSGrabber.cpp
-  src/robot/vpROSRobot.cpp
   src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
+  src/robot/vpROSRobot.cpp
 )
 
 target_link_libraries(visp_ros ${catkin_LIBRARIES})
@@ -84,8 +84,8 @@ target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 install(
   TARGETS 
     visp_ros
-    visp_ros_biclops_node
     visp_ros_afma6_node
+    visp_ros_biclops_node
     visp_ros_viper650_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
