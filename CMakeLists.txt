@@ -26,7 +26,7 @@ catkin_package(
   INCLUDE_DIRS
     include
 
-  LIBRARIES ${PROJECT_NAME}
+  LIBRARIES ${PROJECT_NAME} libvisp_ros_bebop2_visual_servo_nodelet
  
   CATKIN_DEPENDS
     cv_bridge
@@ -63,7 +63,7 @@ add_library(visp_ros
   src/robot/vpROSRobot.cpp
 )
 
-add_library(visp_ros_visual_servo_nodelet
+add_library(visp_ros_bebop2_visual_servo_nodelet
   tutorial/bebop2/visual_servo_nodelet.cpp
 )
 
@@ -87,7 +87,7 @@ target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper850_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
 
-target_link_libraries(visp_ros_visual_servo_nodelet ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
 
 #############
 ## Install ##

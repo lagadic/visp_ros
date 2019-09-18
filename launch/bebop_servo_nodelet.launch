@@ -31,8 +31,8 @@ You have can then make the drone take off or land by publishing corresponding me
     <param name="cameraTilt" type="double" value="-15.0"/>
     <param name="cameraPan" type="double" value="0.0"/>
 
-    <node pkg="nodelet" type="nodelet" name="visual_servo_nodelet"
-    args="load visp_ros_visual_servo_nodelet /$(arg namespace_bebop)/bebop_nodelet_manager">
+    <node pkg="nodelet" type="nodelet" name="visp_ros_bebop2_visual_servo_nodelet"
+    args="load visp_ros_bebop2_visual_servo_nodelet /$(arg namespace_bebop)/bebop_nodelet_manager">
       <remap from="cmd_moveby" to="/$(arg namespace_bebop)/moveby"/>
       <remap from="image_raw" to="/$(arg namespace_bebop)/image_raw"/>          
       <remap from="camera_control" to="/$(arg namespace_bebop)/camera_control"/>
