@@ -5,6 +5,8 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   geometry_msgs
   image_geometry
+  image_transport
+  nodelet
   roscpp
   rospy
   sensor_msgs
@@ -24,13 +26,14 @@ catkin_package(
   INCLUDE_DIRS
     include
 
-  LIBRARIES
-    ${PROJECT_NAME}
+  LIBRARIES ${PROJECT_NAME}
  
   CATKIN_DEPENDS
     cv_bridge
     geometry_msgs
     image_geometry
+    message_runtime
+    nodelet
     roscpp
     sensor_msgs
     std_msgs
@@ -60,6 +63,10 @@ add_library(visp_ros
   src/robot/vpROSRobot.cpp
 )
 
+add_library(visp_ros_visual_servo_nodelet
+  tutorial/bebop2/visual_servo_nodelet.cpp
+)
+
 target_link_libraries(visp_ros ${catkin_LIBRARIES})
 add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
 
@@ -71,12 +78,16 @@ add_executable(visp_ros_biclops_node nodes/biclops.cpp)
 add_executable(visp_ros_afma6_node nodes/afma6.cpp)
 add_executable(visp_ros_viper650_node nodes/viper650.cpp)
 add_executable(visp_ros_viper850_node nodes/viper850.cpp)
+add_executable(visp_ros_bebop2_visual_servo_node tutorial/bebop2/visual_servo_node.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper850_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
+
+target_link_libraries(visp_ros_visual_servo_nodelet ${catkin_LIBRARIES})
 
 #############
 ## Install ##

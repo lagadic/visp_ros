@@ -1,0 +1,5 @@
+<library path="lib/libvisp_ros_visual_servo_nodelet">
+  <class name="visp_ros_visual_servo_nodelet" type="bebopVSNodelet" base_class_type="nodelet::Nodelet">
+    <description>Nodelet implementation of visual_servo_node.</description>
+  </class>
+</library>
