@@ -15,7 +15,7 @@ You have can then make the drone take off or land by publishing corresponding me
   <!-- Parameters for the drone -->
   <param name="/$(arg namespace_bebop)/bebop_nodelet/SpeedSettingsOutdoorOutdoor" type="int" value="0"/>
   <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoResolutionsType" type="int" value="0"/>
-  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoStabilizationModeMode" type="int" value="0"/>
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoStabilizationModeMode" type="int" value="3"/>
 
   <!-- Nodelet launch file from bebop_driver -->
   <include file="$(find bebop_driver)/launch/bebop_nodelet.launch">
