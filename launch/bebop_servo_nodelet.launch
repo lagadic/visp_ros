@@ -1,0 +1,43 @@
+
+<!-- This file launches drone driver and visual servoing nodelets
+You have can then make the drone take off or land by publishing corresponding messages :
+
+"rostopic pub -\-once /bebop/takeoff std_msgs/Empty" for takeoff
+"rostopic pub -\-once /bebop/land std_msgs/Empty" for landing
+(without "\")
+-->
+
+<launch>
+
+  <arg name="namespace_bebop" default="bebop" />
+  <arg name="ip" default="192.168.42.1" />
+
+  <!-- Parameters for the drone -->
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/SpeedSettingsOutdoorOutdoor" type="int" value="0"/>
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoResolutionsType" type="int" value="0"/>
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoStabilizationModeMode" type="int" value="3"/>
+
+  <!-- Nodelet launch file from bebop_driver -->
+  <include file="$(find bebop_driver)/launch/bebop_nodelet.launch">
+    <arg name="namespace" value="$(arg namespace_bebop)" />
+    <arg name="ip" value="$(arg ip)" />
+  </include>
+
+  <!-- Visual servoing nodelet -->
+  <group ns="vs">
+
+    <param name="tagSize" type="double" value="0.14"/>
+    <param name="distanceToTag" type="double" value="1.5"/>
+    <param name="cameraTilt" type="double" value="-15.0"/>
+    <param name="cameraPan" type="double" value="0.0"/>
+
+    <node pkg="nodelet" type="nodelet" name="visp_ros_bebop2_visual_servo_nodelet"
+    args="load visp_ros_bebop2_visual_servo_nodelet /$(arg namespace_bebop)/bebop_nodelet_manager">
+      <remap from="cmd_moveby" to="/$(arg namespace_bebop)/moveby"/>
+      <remap from="image_raw" to="/$(arg namespace_bebop)/image_raw"/>          
+      <remap from="camera_control" to="/$(arg namespace_bebop)/camera_control"/>
+    </node>
+  
+  </group>
+  
+</launch>
