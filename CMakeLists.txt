@@ -63,9 +63,11 @@ add_library(visp_ros
   src/robot/vpROSRobot.cpp
 )
 
-add_library(visp_ros_bebop2_visual_servo_nodelet
-  tutorial/bebop2/visual_servo_nodelet.cpp
-)
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
+  add_library(visp_ros_bebop2_visual_servo_nodelet
+    tutorial/bebop2/visual_servo_nodelet.cpp
+  )
+endif()
 
 target_link_libraries(visp_ros ${catkin_LIBRARIES})
 add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
@@ -78,16 +80,19 @@ add_executable(visp_ros_biclops_node nodes/biclops.cpp)
 add_executable(visp_ros_afma6_node nodes/afma6.cpp)
 add_executable(visp_ros_viper650_node nodes/viper650.cpp)
 add_executable(visp_ros_viper850_node nodes/viper850.cpp)
-add_executable(visp_ros_bebop2_visual_servo_node tutorial/bebop2/visual_servo_node.cpp)
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
+  add_executable(visp_ros_bebop2_visual_servo_node tutorial/bebop2/visual_servo_node.cpp)
+endif()
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper850_node ${catkin_LIBRARIES})
-target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
-
-target_link_libraries(visp_ros_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
+  target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
+  target_link_libraries(visp_ros_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
+endif()
 
 #############
 ## Install ##
