@@ -22,11 +22,16 @@ find_package(VISP REQUIRED)
 ###################################
 ## catkin specific configuration ##
 ###################################
+set(PROJECT_LIBRARIES ${PROJECT_NAME})
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
+  list(APPEND PROJECT_LIBRARIES "libvisp_ros_bebop2_visual_servo_nodelet")
+endif()
+
 catkin_package(
   INCLUDE_DIRS
     include
 
-  LIBRARIES ${PROJECT_NAME} libvisp_ros_bebop2_visual_servo_nodelet
+  LIBRARIES ${PROJECT_LIBRARIES}
  
   CATKIN_DEPENDS
     cv_bridge
