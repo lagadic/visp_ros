@@ -75,6 +75,8 @@
 #include <iostream>
 #include <string>
 
+#if VISP_VERSION_INT > VP_VERSION_INT(3,2,0) // ViSP >= 3.0.0
+
 static double getTagSize(ros::NodeHandle nh)
 {
     double res = 0;
@@ -392,22 +394,6 @@ void bebopVSNodelet::imageCallback(const sensor_msgs::ImageConstPtr &msg)
         out_cmd_pos.angular.y = 0;
         out_cmd_pos.angular.z = 0;
         m_pubTwist.publish(out_cmd_pos);
-        
-    }
-
-    if (vpDisplay::getClick(I, false)) {
-        //Stoping drone movement
-        out_cmd_pos.linear.x = 0;
-        out_cmd_pos.linear.y = 0;
-        out_cmd_pos.linear.z = 0;
-        out_cmd_pos.angular.x = 0;
-        out_cmd_pos.angular.y = 0;
-        out_cmd_pos.angular.z = 0;
-        m_pubTwist.publish(out_cmd_pos);
-
-        m_pubTwist.shutdown();
-        m_subImg.shutdown();
-        vpDisplay::close(I);
     }
 }
 
@@ -558,3 +544,8 @@ vpColVector bebopVSNodelet::velocityToPosition(vpColVector &vel_cmd, double delt
     res << t[0], t[1], t[2], dThetaZ;
     return res;
 }
+
+#else
+
+#endif
+

@@ -44,8 +44,11 @@
 #include <ros/ros.h>
 #include <nodelet/loader.h>
 
+#include <visp3/core/vpConfig.h>
+
 int main(int argc, char* argv[])
 {
+#if VISP_VERSION_INT > VP_VERSION_INT(3,2,0) // ViSP >= 3.0.0
   ros::init(argc, argv, "bebop_vs", ros::init_options::NoSigintHandler);
   nodelet::Loader nll;
 
@@ -67,5 +70,9 @@ int main(int argc, char* argv[])
   // It reaches here when OnInit() succeeds
   ROS_INFO("Visual servo nodelet loaded.");
   ros::spin();
+#else
+  ROS_INFO("This node needs ViSP > 3.2.0. Exit...");
+#endif
+
   return 0;
 }

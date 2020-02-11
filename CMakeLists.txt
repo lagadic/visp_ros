@@ -111,6 +111,8 @@ install(
     visp_ros_biclops_node
     visp_ros_viper650_node
     visp_ros_viper850_node
+    visp_ros_bebop2_visual_servo_node
+    visp_ros_bebop2_visual_servo_nodelet
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
