@@ -1,0 +1,35 @@
+
+<!-- This file launches drone driver and visual servoing nodelets
+You have can then make the drone take off or land by publishing corresponding messages :
+
+"rostopic pub -\-once /bebop/takeoff std_msgs/Empty" for takeoff
+"rostopic pub -\-once /bebop/land std_msgs/Empty" for landing
+(without "\")
+-->
+
+<launch>
+
+  <arg name="namespace_bebop" default="bebop" />
+  <arg name="ip" default="192.168.42.1" />
+
+  <!-- Parameters for the drone -->
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/SpeedSettingsOutdoorOutdoor" type="int" value="0"/><!-- 0:Indoor, 1:Outdoor -->
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoResolutionsType" type="int" value="0"/><!-- Video resolution (0:480p, 1:720p) -->
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PictureSettingsVideoStabilizationModeMode" type="int" value="3"/><!-- Stabilization mode (0:full, 3:none) -->
+  <param name="/$(arg namespace_bebop)/bebop_nodelet/PilotingSettingsMaxTiltCurrent" type="double" value="10"/><!-- Max tilt (reduce to have smoother movement - between 10 and 35, not sure) -->
+
+  <!-- Include launch file to start drone nodelet and image view -->
+  <include file="$(find bebop_tools)/launch/bebop_nodelet_iv.launch">
+    <arg name="namespace" value="$(arg namespace_bebop)" />
+    <arg name="ip" value="$(arg ip)" />
+  </include>
+
+  <!-- Nodelet launch file from bebop_driver -->
+  <include file="$(find bebop_tools)/launch/joy_teleop.launch">
+    <arg name="namespace" value="$(arg namespace_bebop)" />
+    <arg name="joy_dev" default="/dev/input/js0" />
+    <arg name="joy_config" default="log710" />
+  </include>
+
+
+</launch>
