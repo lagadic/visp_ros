@@ -105,7 +105,7 @@ endif()
 
 ## Mark executables and/or libraries for installation
 install(
-  TARGETS 
+  TARGETS
     visp_ros
     visp_ros_afma6_node
     visp_ros_biclops_node
@@ -129,4 +129,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
+
+install(FILES nodelet_plugins.xml
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
