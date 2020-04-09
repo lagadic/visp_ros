@@ -24,7 +24,7 @@ find_package(VISP REQUIRED)
 ###################################
 set(PROJECT_LIBRARIES ${PROJECT_NAME})
 if(${VISP_VERSION} VERSION_GREATER "3.2.0")
-  list(APPEND PROJECT_LIBRARIES "libvisp_ros_bebop2_visual_servo_nodelet")
+  list(APPEND PROJECT_LIBRARIES "visp_ros_bebop2_visual_servo_nodelet")
 endif()
 
 catkin_package(
