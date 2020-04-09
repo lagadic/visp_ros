@@ -111,12 +111,21 @@ install(
     visp_ros_biclops_node
     visp_ros_viper650_node
     visp_ros_viper850_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
+install(
+  TARGETS
     visp_ros_bebop2_visual_servo_node
     visp_ros_bebop2_visual_servo_nodelet
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+endif()
 
 # Mark cpp header files for installation
 install(DIRECTORY include/${PROJECT_NAME}/
@@ -130,6 +139,8 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
+if(${VISP_VERSION} VERSION_GREATER "3.2.0")
 install(FILES nodelet_plugins.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+endif()
 
