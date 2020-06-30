@@ -101,6 +101,9 @@ int RosAfma6Node::setup()
   robot = new vpRobotAfma6;
 
   robot->init(vpAfma6::TOOL_CCMOP, vpCameraParameters::perspectiveProjWithDistortion);
+  vpCameraParameters cam;
+  robot->getCameraParameters(cam, 640, 480);
+  std::cout << "Camera parameters (640 x 480):\n" << cam << std::endl;
 
   robot->setRobotState(vpRobot::STATE_VELOCITY_CONTROL);
 
