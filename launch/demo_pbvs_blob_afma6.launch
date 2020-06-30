@@ -1,0 +1,46 @@
+<!-- -*- xml -*- -->
+<launch>
+  <!-- Square size in [m] corresponding to the distance between blobs center -->
+  <param name="square_size" type="double" value="0.12"/>
+  
+  <!-- Camera parameters -->
+  <param name="cam_px"  type="double" value="1090.226754"/>   <!-- Intrinsic camera parameter px -->
+  <param name="cam_py"  type="double" value="1089.611269"/>   <!-- Intrinsic camera parameter py -->
+  <param name="cam_u0"  type="double" value="327.9110396"/>   <!-- Intrinsic camera parameter u0 -->
+  <param name="cam_v0"  type="double" value="237.7445507"/>   <!-- Intrinsic camera parameter v0 -->
+  <param name="cam_kud" type="double" value="-0.2139581957"/> <!-- Intrinsic camera parameter kud -->
+  <param name="cam_kdu" type="double" value="0.2239815272"/>  <!-- Intrinsic camera parameter kdu -->
+
+  <!-- Desired pose -->
+  <param name="tx_d"  type="double" value="0"/>   <!-- Translation along X axis in [m] -->
+  <param name="ty_d"  type="double" value="0"/>   <!-- Translation along Y axis in [m] -->
+  <param name="tz_d"  type="double" value="0.7"/> <!-- Translation along Z axis in [m] -->
+  <param name="tux_d" type="double" value="0"/>   <!-- Rotation along X axis in [deg] (axis-angle representation) -->
+  <param name="tuy_d" type="double" value="0"/>   <!-- Rotation along Y axis in [deg] (axis-angle representation) -->
+  <param name="tuz_d" type="double" value="0"/>   <!-- Rotation along Z axis in [deg] (axis-angle representation) -->
+
+  <!-- Firewire image acquisition -->
+  <node name="camera1394" pkg="camera1394" type="camera1394_node" output="screen" >
+  </node>
+  
+  <!-- Image viewer -->
+  <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/camera/image_raw"/>
+    <param name="autosize" value="true" />
+  </node>
+
+  <!-- Blob_tracker -->
+  <node pkg="visp_ros" type="visp_ros_blob_tracker_node" name="blob_tracker" output="screen">
+  </node>
+
+  <!-- pbvs -->
+  <node pkg="visp_ros" type="visp_ros_pbvs_blob_node" name="pbvs_blob" output="screen">
+  </node>
+  
+  <!-- Afma6 robot -->
+  <node pkg="visp_ros" type="visp_ros_afma6_node" name="afma6" output="screen">
+    <remap from="afma6/cmd_camvel" to="pbvs/cmd_camvel"/>
+  </node>
+
+</launch>
+

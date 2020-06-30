@@ -15,6 +15,26 @@ find_package(catkin REQUIRED COMPONENTS
   visp_bridge
 )
 
+## Declare ROS messages and services
+## Generate messages in the 'msg' folder
+add_message_files(
+  DIRECTORY
+    msg
+  FILES
+    PoseStampedStatus.msg
+    BlobTracker.msg
+    ImagePoint.msg
+    ProjectedPoint.msg
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+    std_msgs
+    sensor_msgs
+    geometry_msgs
+)
+
 find_package(VISP REQUIRED)
 # Add package definitions
 #add_definitions(${VISP_DEFINITIONS})
@@ -85,6 +105,8 @@ add_executable(visp_ros_biclops_node nodes/biclops.cpp)
 add_executable(visp_ros_afma6_node nodes/afma6.cpp)
 add_executable(visp_ros_viper650_node nodes/viper650.cpp)
 add_executable(visp_ros_viper850_node nodes/viper850.cpp)
+add_executable(visp_ros_blob_tracker_node nodes/blob_tracker.cpp)
+add_executable(visp_ros_pbvs_blob_node nodes/pbvs_blob.cpp)
 if(${VISP_VERSION} VERSION_GREATER "3.2.0")
   add_executable(visp_ros_bebop2_visual_servo_node tutorial/bebop2/visual_servo_node.cpp)
 endif()
@@ -94,6 +116,8 @@ target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper850_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_blob_tracker_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_pbvs_blob_node ${catkin_LIBRARIES})
 if(${VISP_VERSION} VERSION_GREATER "3.2.0")
   target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
   target_link_libraries(visp_ros_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
@@ -111,6 +135,8 @@ install(
     visp_ros_biclops_node
     visp_ros_viper650_node
     visp_ros_viper850_node
+    visp_ros_blob_tracker_node
+    visp_ros_pbvs_blob_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
