@@ -52,7 +52,6 @@
 
 #if defined(VISP_HAVE_OPENCV)
 
-#include <cv.h>
 #include <visp/vpImage.h>
 #include <visp/vpFrameGrabber.h>
 #include <visp/vpRGBa.h>
