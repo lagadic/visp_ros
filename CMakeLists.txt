@@ -95,7 +95,7 @@ if(${VISP_VERSION} VERSION_GREATER "3.2.0")
 endif()
 
 target_link_libraries(visp_ros ${catkin_LIBRARIES})
-add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS})
+add_dependencies(visp_ros ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages)
 
 #################
 ## Build nodes ##
@@ -116,8 +116,8 @@ target_link_libraries(visp_ros_biclops_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_afma6_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper650_node ${catkin_LIBRARIES})
 target_link_libraries(visp_ros_viper850_node ${catkin_LIBRARIES})
-target_link_libraries(visp_ros_blob_tracker_node ${catkin_LIBRARIES})
-target_link_libraries(visp_ros_pbvs_blob_node ${catkin_LIBRARIES})
+target_link_libraries(visp_ros_blob_tracker_node ${catkin_LIBRARIES} visp_ros)
+target_link_libraries(visp_ros_pbvs_blob_node ${catkin_LIBRARIES} visp_ros)
 if(${VISP_VERSION} VERSION_GREATER "3.2.0")
   target_link_libraries(visp_ros_bebop2_visual_servo_node ${catkin_LIBRARIES})
   target_link_libraries(visp_ros_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
