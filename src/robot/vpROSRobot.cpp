@@ -72,8 +72,6 @@ vpROSRobot::vpROSRobot():
 
 }
 
-
-
 //! destructor
 vpROSRobot::~vpROSRobot()
 {
@@ -92,7 +90,6 @@ vpROSRobot::~vpROSRobot()
   */
 void vpROSRobot::init(int argc, char **argv)
 {
-  std::cout << "ici 1\n";
   if(!isInitialized){
     if(!ros::isInitialized()) ros::init(argc, argv, "visp_node", ros::init_options::AnonymousName);
     n = new ros::NodeHandle;
@@ -101,7 +98,6 @@ void vpROSRobot::init(int argc, char **argv)
     spinner = new ros::AsyncSpinner(1);
     spinner->start();
     isInitialized = true;
-    std::cout << "ici 2\n";
   }
 }
 
