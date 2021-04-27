@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- * $Id: vpROSGrabber.cpp 3530 2012-01-03 10:52:12Z fpasteau $
- *
  * This file is part of the ViSP software.
- * Copyright (C) 2005 - 2012 by INRIA. All rights reserved.
+ * Copyright (C) 2005 - 2021 by INRIA. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,7 +27,6 @@
  *
  * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
  *
  * Description:
  * Camera video capture for ROS image_transort_compressed.

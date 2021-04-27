@@ -126,6 +126,7 @@ class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
     std::string _nodespace;
     std::string _image_transport;
     vpCameraParameters _cam;
+
   public:
 
     vpROSGrabber();
