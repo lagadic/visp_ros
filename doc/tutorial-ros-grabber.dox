@@ -3,14 +3,14 @@
 \page tutorial-ros-grabber Tutorial: How to use ROS grabber
 \tableofcontents
 
-\section intro Introduction
+\section ros-grabber-intro Introduction
 
 <a href="http://team.inria.fr/lagadic/visp">ViSP library</a> allows to grab images from cameras using specific classes depending on the underlaying camera drivers. Thus it allows to grab images from firewire or usb cameras using either vp1394TwoGrabber or vpV4l2Grabber classes.
 
 In the next section \ref visp, we recall how ViSP can be used to grab images. Then in section \ref ros we introduce vpROSGrabber that can be used to grab images published by a ROS camera node.
 
-\section visp Image grabbing using ViSP
-\subsection visp_1394 Working with firewire cameras
+\section ros-grabber-visp Image grabbing using ViSP
+\subsection ros-grabber-visp-1394 Working with firewire cameras
 
 Let us consider the following classical ViSP example provided in tutorial-visp-grabber-1394.cpp and given here after. Thanks to the vp1394TwoGrabber class provided in <a href="http://team.inria.fr/lagadic/visp">ViSP library</a> we are able to grab images from a firewire camera.
 
@@ -43,7 +43,7 @@ To run this example, connect a firewire camera hit in the same terminal:
 ./tutorial-visp-grabber-1394
 \endcode
 
-\subsection visp_v4l2 Working with usb cameras
+\subsection ros-grabber-visp-v4l2 Working with usb cameras
 
 Let us consider this other ViSP example provided in tutorial-visp-grabber-v4l2.cpp and given here after. Thanks to the vpV4l2Grabber class we are able this time to grab images from an usb camera.
 
@@ -55,7 +55,7 @@ To run this example, connect an usb camera and hit in the same terminal:
 ./tutorial-visp-grabber-v4l2
 \endcode
 
-\subsection visp_conclusion Conclusion
+\subsection ros-grabber-visp-conclusion Conclusion
 
 Depending on the camera that is used, you may adapt your code to use the right camera driver. This may be fastidious. That is why, in the next section we show how to use a more generic grabber class based on ROS and called vpROSGrabber. It just subscribes to a camera topic. 
 
@@ -99,7 +99,7 @@ cmake .
 make
 \endcode
 
-\subsection ros_1394 Working with firewire cameras
+\subsection ros-grabber-ros-1394 Working with firewire cameras
 
 The previous example can work with images published by camera1394 node. To this end let us consider the following launch file named "camera-firewire.launch" where images are published on topic /camera/image_raw and camera parameters on topic /camera/camera_info. 
 
@@ -121,7 +121,7 @@ roslaunch camera-firewire.launch
 ./tutorial-ros-grabber --use-camera-info
 \endcode
 
-\subsection ros_v4l2 Working with usb cameras
+\subsection ros-grabber-ros-v4l2 Working with usb cameras
 
 The previous example can also work with images published by usb_cam node. To this end let us consider the following launch file named "camera-usb.launch" where images are published on topic /camera/image_raw and camera parameters on topic /camera/camera_info. 
 
