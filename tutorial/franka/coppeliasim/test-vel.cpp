@@ -98,6 +98,8 @@ int main(int argc, char **argv)
     s_mutex_ros.unlock();
     t_init_prev = vpTime::measureTimeMs();
 
+    vpColVector q_init, q_final;
+    robot.getPosition(vpRobot::JOINT_STATE, q_init);
 
     while (vpTime::measureTimeSecond() - t_start < 5) {
       ros::spinOnce();
@@ -119,6 +121,10 @@ int main(int argc, char **argv)
 
     }
     std::cout << "Elapsed time: " << vpTime::measureTimeSecond() - t_start << " seconds - " << t_simTime - t_simTime_start << std::endl;
+
+    robot.getPosition(vpRobot::JOINT_STATE, q_final);
+    std::cout << "Joint displacement: " << 180*M_PI*(q_final - q_init).t() << " deg" << std::endl;
+
 
     stopSimTrigger_pub.publish(startStopSim);
   }
