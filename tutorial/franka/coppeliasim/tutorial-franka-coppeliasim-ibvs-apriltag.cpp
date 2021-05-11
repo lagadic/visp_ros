@@ -3,7 +3,6 @@
  */
 
 #include <iostream>
-#include <mutex>
 
 #include <visp3/core/vpCameraParameters.h>
 #include <visp3/core/vpImagePoint.h>
@@ -16,21 +15,8 @@
 #include <visp3/vs/vpServoDisplay.h>
 #include <visp3/gui/vpPlot.h>
 
-#include <ros/ros.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <geometry_msgs/WrenchStamped.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Float32.h>
-
 #include <visp_ros/vpROSGrabber.h>
-#include <visp_ros/vpROSRobotFrankaSim.h>
-
-static bool s_simStepDone = true;
-static std::mutex s_mutex_ros;
-static float s_simTime = 0;
+#include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 void display_point_trajectory(const vpImage<unsigned char> &I, const std::vector<vpImagePoint> &vip,
                               std::vector<vpImagePoint> *traj_vip)
@@ -53,17 +39,6 @@ void display_point_trajectory(const vpImage<unsigned char> &I, const std::vector
   }
 }
 
-void simStepDone_callback(const std_msgs::Bool &msg) {
-  std::lock_guard<std::mutex> lock(s_mutex_ros);
-  s_simStepDone = msg.data;
-}
-
-void simTime_callback(const std_msgs::Float32& msg)
-{
-  std::lock_guard<std::mutex> lock(s_mutex_ros);
-  s_simTime = msg.data;
-}
-
 int main(int argc, char **argv)
 {
   double opt_tagSize = 0.08;
@@ -74,6 +49,7 @@ int main(int argc, char **argv)
   bool opt_adaptive_gain = false;
   bool opt_task_sequencing = false;
   double convergence_threshold = 0.0005;
+  bool opt_coppeliasim_sync_mode = false;
 
   for (int i = 1; i < argc; i++) {
     if (std::string(argv[i]) == "--tag_size" && i + 1 < argc) {
@@ -97,6 +73,9 @@ int main(int argc, char **argv)
     else if (std::string(argv[i]) == "--no-convergence-threshold") {
       convergence_threshold = 0.;
     }
+    else if (std::string(argv[i]) == "--enable-coppeliasim-sync-mode") {
+      opt_coppeliasim_sync_mode = true;
+    }
     else if (std::string(argv[i]) == "--help" || std::string(argv[i]) == "-h") {
       std::cout << argv[0]
           << "[--tag_size <marker size in meter; default " << opt_tagSize << ">] "
@@ -105,13 +84,14 @@ int main(int argc, char **argv)
           << "[--plot] "
           << "[--task_sequencing] "
           << "[--no-convergence-threshold] "
+          << "[--enable-coppeliasim-sync-mode] "
           << "[--verbose] "
           << "[--help] [-h]" << std::endl;;
       return EXIT_SUCCESS;
     }
   }
 
-  try {   
+  try {
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
     // ROS node
@@ -120,42 +100,23 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(1000);
     ros::spinOnce();
 
-    vpROSRobotFrankaSim robot;
+    vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose(true);
-    robot.setJointStateTopic("/vrep/franka/joint_state");
-    robot.seteMcTopic("/vrep/franka/eMc");
     robot.connect();
 
-    ros::Publisher enableSyncMode_pub = n->advertise<std_msgs::Bool>("/enableSyncMode", 1);
-    ros::Publisher startSimTrigger_pub = n->advertise<std_msgs::Bool>("/startSimulation", 1);
-    ros::Publisher stopSimTrigger_pub = n->advertise<std_msgs::Bool>("/stopSimulation", 1);
-    std_msgs::Bool trigger;
-    std_msgs::Bool syncMode;
-    std_msgs::Bool startStopSim;
+    std::cout << "Coppeliasim sync mode enabled: " << (opt_coppeliasim_sync_mode ? "yes" : "no") << std::endl;
+    robot.coppeliasimStopSimulation(); // Allows to reset simulation, moving the robot to initial position
+    robot.setCoppeliasimSyncMode(false);
+    robot.coppeliasimStartSimulation();
 
-    std::string simulationStepDone_topic_name = "/simulationStepDone";
-    std::cout << "Subscribe to " << simulationStepDone_topic_name << std::endl;
-    ros::Subscriber sub_simStepDone = n->subscribe(simulationStepDone_topic_name, 1, simStepDone_callback);
-    std::string simulationTime_topic_name = "/simulationTime";
-    std::cout << "Subscribe to " << simulationTime_topic_name << std::endl;
-    ros::Subscriber sub_simulationTime = n->subscribe(simulationTime_topic_name, 1, simTime_callback);
-
-    startStopSim.data = true;
-    startSimTrigger_pub.publish(startStopSim);
-    vpTime::wait(1000);
-    stopSimTrigger_pub.publish(startStopSim);
-    vpTime::wait(1000);
-    syncMode.data = true;
-    enableSyncMode_pub.publish(trigger);
-    startSimTrigger_pub.publish(startStopSim);
-    vpTime::wait(1000);
-
-    if (0) {
-      std::cout << "Move to modified initial position" << std::endl;
+    if (1) {
       robot.setRobotState(vpRobot::STATE_POSITION_CONTROL);
       vpColVector q;
       robot.getPosition(vpRobot::JOINT_STATE, q);
+      std::cout << "Initial joint position: " << q.t() << std::endl;
+
       q[0] += vpMath::rad(10); // Add 10 deg axis 1
+      std::cout << "Move to joint position: " << q.t() << std::endl;
       robot.setPosition(vpRobot::JOINT_STATE, q);
     }
 
@@ -245,11 +206,10 @@ int main(int argc, char **argv)
     bool servo_started = false;
     std::vector<vpImagePoint> *traj_corners = nullptr; // To memorize point trajectory
 
-    static double t_init_servo = vpTime::measureTimeMs();
-
-    float t_simTime = s_simTime, t_simTime_prev = s_simTime;
-    double t_init = vpTime::measureTimeMs();
-    double t_init_prev = t_init;
+    double sim_time = robot.getCoppeliasimSimulationTime();
+    double sim_time_prev = sim_time;
+    double sim_time_init_servo = sim_time;
+    double sim_time_img = sim_time;
 
     if (0) {
       // Instead of setting eMc from /vrep/franka/eMc topic, we can set its value to introduce noise for example
@@ -263,153 +223,145 @@ int main(int argc, char **argv)
 
     robot.setRobotState(vpRobot::STATE_VELOCITY_CONTROL);
 
+    robot.setCoppeliasimSyncMode(opt_coppeliasim_sync_mode);
+
     while (!final_quit) {
       ros::spinOnce();
-      if (s_simStepDone){
-        t_init = vpTime::measureTimeMs();
-        s_mutex_ros.lock();
-        s_simStepDone = false;
-        t_simTime = s_simTime;
-        s_mutex_ros.unlock();
 
-        g.acquire(I);
-        vpDisplay::display(I);
+      sim_time = robot.getCoppeliasimSimulationTime();
 
-        std::vector<vpHomogeneousMatrix> cMo_vec;
-        detector.detect(I, opt_tagSize, cam, cMo_vec);
+      g.acquire(I, sim_time_img);
+      vpDisplay::display(I);
 
-        {
-          std::stringstream ss;
-          ss << "Left click to " << (send_velocities ? "stop the robot" : "servo the robot") << ", right click to quit.";
-          vpDisplay::displayText(I, 20, 20, ss.str(), vpColor::red);
-        }
+      std::vector<vpHomogeneousMatrix> cMo_vec;
+      detector.detect(I, opt_tagSize, cam, cMo_vec);
 
-        // Only one tag is detected
-        if (cMo_vec.size() == 1) {
-          cMo = cMo_vec[0];
+      {
+        std::stringstream ss;
+        ss << "Left click to " << (send_velocities ? "stop the robot" : "servo the robot") << ", right click to quit.";
+        vpDisplay::displayText(I, 20, 20, ss.str(), vpColor::red);
+      }
 
-          static bool first_time = true;
-          if (first_time) {
-            // Introduce security wrt tag positionning in order to avoid PI rotation
-            std::vector<vpHomogeneousMatrix> v_oMo(2), v_cdMc(2);
-            v_oMo[1].buildFrom(0, 0, 0, 0, 0, M_PI);
-            for (size_t i = 0; i < 2; i++) {
-              v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
-            }
-            if (std::fabs(v_cdMc[0].getThetaUVector().getTheta()) < std::fabs(v_cdMc[1].getThetaUVector().getTheta())) {
-              oMo = v_oMo[0];
-            }
-            else {
-              std::cout << "Desired frame modified to avoid PI rotation of the camera" << std::endl;
-              oMo = v_oMo[1];   // Introduce PI rotation
-            }
+      // Only one tag is detected
+      if (cMo_vec.size() == 1) {
+        cMo = cMo_vec[0];
 
-            // Compute the desired position of the features from the desired pose
-            std::cout << "Initializing desired pose" << std::endl;
-            for (size_t i = 0; i < point.size(); i++) {
-              vpColVector cP, p_;
-              point[i].changeFrame(cdMo * oMo, cP);
-              point[i].projection(cP, p_);
-
-              pd[i].set_x(p_[0]);
-              pd[i].set_y(p_[1]);
-              pd[i].set_Z(cP[2]);
-            }
-          } // end first_time
-
-          // Get tag corners
-          std::vector<vpImagePoint> corners = detector.getPolygon(0);
-
-          // Update visual features
-          for (size_t i = 0; i < corners.size(); i++) {
-            // Update the point feature from the tag corners location
-            vpFeatureBuilder::create(p[i], cam, corners[i]);
-            // Set the feature Z coordinate from the pose
-            vpColVector cP;
-            point[i].changeFrame(cMo, cP);
-
-            p[i].set_Z(cP[2]);
+        static bool first_time = true;
+        if (first_time) {
+          // Introduce security wrt tag positionning in order to avoid PI rotation
+          std::vector<vpHomogeneousMatrix> v_oMo(2), v_cdMc(2);
+          v_oMo[1].buildFrom(0, 0, 0, 0, 0, M_PI);
+          for (size_t i = 0; i < 2; i++) {
+            v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
           }
-
-          if (opt_task_sequencing) {
-            if (! servo_started) {
-              if (send_velocities) {
-                servo_started = true;
-              }
-              t_init_servo = vpTime::measureTimeMs();
-            }
-            v_c = task.computeControlLaw((vpTime::measureTimeMs() - t_init_servo)/1000.);
+          if (std::fabs(v_cdMc[0].getThetaUVector().getTheta()) < std::fabs(v_cdMc[1].getThetaUVector().getTheta())) {
+            oMo = v_oMo[0];
           }
           else {
-            v_c = task.computeControlLaw();
+            std::cout << "Desired frame modified to avoid PI rotation of the camera" << std::endl;
+            oMo = v_oMo[1];   // Introduce PI rotation
           }
 
-          // Display the current and desired feature points in the image display
-          vpServoDisplay::display(task, cam, I);
-          for (size_t i = 0; i < corners.size(); i++) {
-            std::stringstream ss;
-            ss << i;
-            // Display current point indexes
-            vpDisplay::displayText(I, corners[i]+vpImagePoint(15, 15), ss.str(), vpColor::red);
-            // Display desired point indexes
-            vpImagePoint ip;
-            vpMeterPixelConversion::convertPoint(cam, pd[i].get_x(), pd[i].get_y(), ip);
-            vpDisplay::displayText(I, ip+vpImagePoint(15, 15), ss.str(), vpColor::red);
-          }
-          if (first_time) {
-            traj_corners = new std::vector<vpImagePoint> [corners.size()];
-          }
-          // Display the trajectory of the points used as features
-          display_point_trajectory(I, corners, traj_corners);
+          // Compute the desired position of the features from the desired pose
+          std::cout << "Initializing desired pose" << std::endl;
+          for (size_t i = 0; i < point.size(); i++) {
+            vpColVector cP, p_;
+            point[i].changeFrame(cdMo * oMo, cP);
+            point[i].projection(cP, p_);
 
-          if (opt_plot) {
-            plotter->plot(0, t_simTime, task.getError());
-            plotter->plot(1, t_simTime, v_c);
+            pd[i].set_x(p_[0]);
+            pd[i].set_y(p_[1]);
+            pd[i].set_Z(cP[2]);
           }
+        } // end first_time
 
-          if (opt_verbose) {
-            std::cout << "v_c: " << v_c.t() << std::endl;
+        // Get tag corners
+        std::vector<vpImagePoint> corners = detector.getPolygon(0);
+
+        // Update visual features
+        for (size_t i = 0; i < corners.size(); i++) {
+          // Update the point feature from the tag corners location
+          vpFeatureBuilder::create(p[i], cam, corners[i]);
+          // Set the feature Z coordinate from the pose
+          vpColVector cP;
+          point[i].changeFrame(cMo, cP);
+
+          p[i].set_Z(cP[2]);
+        }
+
+        if (opt_task_sequencing) {
+          if (! servo_started) {
+            if (send_velocities) {
+              servo_started = true;
+            }
+            sim_time_init_servo = robot.getCoppeliasimSimulationTime();
           }
-
-          double error = task.getError().sumSquare();
-          std::stringstream ss;
-          ss << "||error||: " << error;
-          vpDisplay::displayText(I, 20, static_cast<int>(I.getWidth()) - 150, ss.str(), vpColor::red);
-
-          if (opt_verbose)
-            std::cout << "error: " << error << std::endl;
-
-          if (!has_converged && error < convergence_threshold) {
-            has_converged = true;
-            std::cout << "Servo task has converged" << "\n";
-            vpDisplay::displayText(I, 100, 20, "Servo task has converged", vpColor::red);
-          }
-
-          if (first_time) {
-            first_time = false;
-          }
-        } // end if (cMo_vec.size() == 1)
+          v_c = task.computeControlLaw(robot.getCoppeliasimSimulationTime() - sim_time_init_servo);
+        }
         else {
-          v_c = 0; // Stop the robot
+          v_c = task.computeControlLaw();
         }
 
-        if (!send_velocities) {
-          v_c = 0; // Stop the robot
+        // Display the current and desired feature points in the image display
+        vpServoDisplay::display(task, cam, I);
+        for (size_t i = 0; i < corners.size(); i++) {
+          std::stringstream ss;
+          ss << i;
+          // Display current point indexes
+          vpDisplay::displayText(I, corners[i]+vpImagePoint(15, 15), ss.str(), vpColor::red);
+          // Display desired point indexes
+          vpImagePoint ip;
+          vpMeterPixelConversion::convertPoint(cam, pd[i].get_x(), pd[i].get_y(), ip);
+          vpDisplay::displayText(I, ip+vpImagePoint(15, 15), ss.str(), vpColor::red);
+        }
+        if (first_time) {
+          traj_corners = new std::vector<vpImagePoint> [corners.size()];
+        }
+        // Display the trajectory of the points used as features
+        display_point_trajectory(I, corners, traj_corners);
+
+        if (opt_plot) {
+          plotter->plot(0, static_cast<double>(sim_time), task.getError());
+          plotter->plot(1, static_cast<double>(sim_time), v_c);
         }
 
-        robot.setVelocity(vpRobot::CAMERA_FRAME, v_c);
+        if (opt_verbose) {
+          std::cout << "v_c: " << v_c.t() << std::endl;
+        }
 
-        trigger.data = true;
+        double error = task.getError().sumSquare();
         std::stringstream ss;
-        ss << "Loop time: " << t_init - t_init_prev << " - " << t_simTime - t_simTime_prev << " ms";
-        t_init_prev = t_init;
-        t_simTime_prev = t_simTime;
-        vpDisplay::displayText(I, 40, 20, ss.str(), vpColor::red);
+        ss << "||error||: " << error;
+        vpDisplay::displayText(I, 20, static_cast<int>(I.getWidth()) - 150, ss.str(), vpColor::red);
 
-        vpDisplay::flush(I);
+        if (opt_verbose)
+          std::cout << "error: " << error << std::endl;
 
-        vpTime::wait(t_init, 50);
-      } // end if (s_simStepDone)
+        if (!has_converged && error < convergence_threshold) {
+          has_converged = true;
+          std::cout << "Servo task has converged" << "\n";
+          vpDisplay::displayText(I, 100, 20, "Servo task has converged", vpColor::red);
+        }
+
+        if (first_time) {
+          first_time = false;
+        }
+      } // end if (cMo_vec.size() == 1)
+      else {
+        v_c = 0; // Stop the robot
+      }
+
+      if (!send_velocities) {
+        v_c = 0; // Stop the robot
+      }
+
+      robot.setVelocity(vpRobot::CAMERA_FRAME, v_c);
+
+      std::stringstream ss;
+      ss << "Loop time [s]: " << std::round((sim_time - sim_time_prev)*1000.)/1000.;
+      ss << " Simulation time [s]: " << sim_time;
+      sim_time_prev = sim_time;
+      vpDisplay::displayText(I, 40, 20, ss.str(), vpColor::red);
 
       vpMouseButton::vpMouseButtonType button;
       if (vpDisplay::getClick(I, button, false)) {
@@ -427,13 +379,16 @@ int main(int argc, char **argv)
           break;
         }
       }
+
+      vpDisplay::flush(I);
+      robot.wait(sim_time, 0.002);
     } //end while
 
     if (opt_plot && plotter != nullptr) {
       delete plotter;
       plotter = nullptr;
     }
-    stopSimTrigger_pub.publish(startStopSim);
+    robot.coppeliasimStopSimulation();
 
     if (!final_quit) {
       while (!final_quit) {
@@ -462,4 +417,3 @@ int main(int argc, char **argv)
 
   return 0;
 }
-

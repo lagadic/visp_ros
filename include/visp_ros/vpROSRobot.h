@@ -41,22 +41,23 @@
  *****************************************************************************/
 
 
-#ifndef vpROSRobot_H
-#define vpROSRobot_H
+#ifndef vpROSRobot_h
+#define vpROSRobot_h
 
 /*!
 \file vpROSRobot.h
 \brief vpRobot implementation for ROS middleware.
 */
 
-#include <visp/vpRobot.h>
+#include <visp3/robot/vpRobot.h>
+
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 
 /*!
-\class vpROSRobot
-\brief Interface for robots based on ROS.
+  \class vpROSRobot
+  \brief Interface for robots based on ROS.
 */
 
 class VISP_EXPORT vpROSRobot : public vpRobot

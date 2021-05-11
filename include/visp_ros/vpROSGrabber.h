@@ -48,13 +48,14 @@
 #ifndef vpROSGrabber_h
 #define vpROSGrabber_h
 
-#include <visp/vpConfig.h>
+#include <visp3/core/vpConfig.h>
 
 #if defined(VISP_HAVE_OPENCV)
 
-#include <visp/vpImage.h>
-#include <visp/vpFrameGrabber.h>
-#include <visp/vpRGBa.h>
+#include <visp3/core/vpImage.h>
+#include <visp3/core/vpFrameGrabber.h>
+#include <visp3/core/vpRGBa.h>
+
 #include <ros/ros.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
@@ -103,29 +104,30 @@ int main()
 class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
 {
   protected:
-    ros::NodeHandle *n;
-    ros::Subscriber image_data;
-    ros::Subscriber image_info;
-    ros::AsyncSpinner *spinner;
-    volatile bool isInitialized;
-    volatile unsigned short usWidth;
-    volatile unsigned short usHeight;
-    image_geometry::PinholeCameraModel p;
-    cv::Mat data;
-    bool flip;
-    volatile bool _rectify;
-    volatile bool mutex_image, mutex_param;
+    ros::NodeHandle *m_n;
+    ros::Subscriber m_img_sub;
+    ros::Subscriber m_cam_info_sub;
+    ros::AsyncSpinner *m_spinner;
+    volatile bool m_isInitialized;
+    volatile unsigned int m_width;
+    volatile unsigned int m_height;
+    image_geometry::PinholeCameraModel m_p;
+    cv::Mat m_img;
+    bool m_flip;
+    volatile bool m_rectify;
+    volatile bool m_mutex_image, m_mutex_param;
     void imageCallbackRaw(const sensor_msgs::Image::ConstPtr& msg);
     void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
     void paramCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
-    volatile bool first_img_received, first_param_received;
-    volatile uint32_t _sec,_nsec;
-    std::string _master_uri;
-    std::string _topic_image;
-    std::string _topic_info;
-    std::string _nodespace;
-    std::string _image_transport;
-    vpCameraParameters _cam;
+    volatile bool m_first_img_received;
+    volatile bool m_first_param_received;
+    volatile uint32_t m_sec, m_nsec;
+    std::string m_master_uri;
+    std::string m_topic_image;
+    std::string m_topic_cam_info;
+    std::string m_nodespace;
+    std::string m_image_transport;
+    vpCameraParameters m_cam;
 
   public:
 
@@ -143,28 +145,29 @@ class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
     bool acquireNoWait(vpImage<unsigned char> &I);
     bool acquireNoWait(vpImage<vpRGBa> &I);
 
-
     void acquire(vpImage<unsigned char> &I, struct timespec &timestamp);
     void acquire(vpImage<vpRGBa> &I, struct timespec &timestamp);
+    void acquire(vpImage<unsigned char> &I, double &timestamp_second);
+    void acquire(vpImage<vpRGBa> &I, double &timestamp_second);
     cv::Mat acquire(struct timespec &timestamp);
     bool acquireNoWait(vpImage<unsigned char> &I, struct timespec &timestamp);
     bool acquireNoWait(vpImage<vpRGBa> &I, struct timespec &timestamp);
 
     void close();
 
-    void setCameraInfoTopic(std::string topic_name);
-    void setImageTopic(std::string topic_name);
-    void setMasterURI(std::string master_uri);
-    void setNodespace(std::string nodespace);
-    void setImageTransport(std::string image_transport);
+    void setCameraInfoTopic(const std::string &topic_name);
+    void setImageTopic(const std::string &topic_name);
+    void setMasterURI(const std::string &master_uri);
+    void setNodespace(const std::string &nodespace);
+    void setImageTransport(const std::string &image_transport);
     void setFlip(bool flipType);
     void setRectify(bool rectify);
 
     bool getCameraInfo(vpCameraParameters &cam);
-    void getWidth(unsigned short &width) const;
-    void getHeight(unsigned short &height) const;
-    unsigned short getWidth() const;
-    unsigned short getHeight() const;
+    void getWidth(unsigned int width) const;
+    void getHeight(unsigned int height) const;
+    unsigned int getWidth() const;
+    unsigned int getHeight() const;
 };
 
 #endif

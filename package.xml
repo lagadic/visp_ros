@@ -8,6 +8,7 @@
   <author>Francois Pasteau</author>
   <author>Fabien Spindler</author>
   <author>Gatien Gaumerais</author>
+  <author>Alexander Oliva</author>
   <license>GPLv2</license>
   <url>http://ros.org/wiki/visp_ros</url>
   <maintainer email="Fabien.Spindler@inria.fr">Fabien Spindler</maintainer>
@@ -24,6 +25,7 @@
   <depend>visp_bridge</depend>
   <depend>tf</depend>
   <depend>nodelet</depend>
+  <depend>liborocos-kdl-dev</depend>
   <build_depend>message_generation</build_depend>
   <depend>kdl_parser</depend>
 

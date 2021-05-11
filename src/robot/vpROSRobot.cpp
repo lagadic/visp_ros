@@ -44,15 +44,16 @@
   \file vpROSRobot.cpp
   \brief class that defines a vpRobot to use with ROS
 */
-
-#include <visp/vpHomogeneousMatrix.h>
-#include <visp/vpRobotException.h>
-#include <visp_ros/vpROSRobot.h>
-#include <visp/vpDebug.h>
 #include <iostream>
+#include <sstream>
+
+#include <visp3/core/vpHomogeneousMatrix.h>
+#include <visp3/robot/vpRobotException.h>
+
+#include <visp_ros/vpROSRobot.h>
+
 #include <ros/ros.h>
 #include <ros/time.h>
-#include <sstream>
 
 //! constructor
 vpROSRobot::vpROSRobot():

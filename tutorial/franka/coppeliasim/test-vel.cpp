@@ -26,7 +26,7 @@
 #include <std_msgs/Float32.h>
 
 #include <visp_ros/vpROSGrabber.h>
-#include <visp_ros/vpROSRobotFrankaSim.h>
+#include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 static bool s_simStepDone = true;
 static std::mutex s_mutex_ros;
@@ -56,10 +56,10 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(1000);
     ros::spinOnce();
 
-    vpROSRobotFrankaSim robot;
+    vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose(true);
-    robot.setJointStateTopic("/vrep/franka/joint_state");
-    robot.seteMcTopic("/vrep/franka/eMc");
+    robot.setTopicJointState("/vrep/franka/joint_state");
+    robot.setTopic_eMc("/vrep/franka/eMc");
     robot.connect();
 
     ros::Publisher enableSyncMode_pub = n->advertise<std_msgs::Bool>("/enableSyncMode", 1);
@@ -100,8 +100,9 @@ int main(int argc, char **argv)
 
     vpColVector q_init, q_final;
     robot.getPosition(vpRobot::JOINT_STATE, q_init);
+    std::cout << "q initial: " << 180./M_PI*q_init.t() << " deg" << std::endl;
 
-    while (vpTime::measureTimeSecond() - t_start < 5) {
+    while (vpTime::measureTimeSecond() - t_start < 10) {
       ros::spinOnce();
       t_init = vpTime::measureTimeMs();
       s_mutex_ros.lock();
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
 
       std::stringstream ss;
       ss << "Loop time: " << t_init - t_init_prev << " - " << t_simTime - t_simTime_prev << " ms";
-      std::cout << ss.str() << std::endl;
+//      std::cout << ss.str() << std::endl;
       t_init_prev = t_init;
       t_simTime_prev = t_simTime;
 
@@ -123,7 +124,8 @@ int main(int argc, char **argv)
     std::cout << "Elapsed time: " << vpTime::measureTimeSecond() - t_start << " seconds - " << t_simTime - t_simTime_start << std::endl;
 
     robot.getPosition(vpRobot::JOINT_STATE, q_final);
-    std::cout << "Joint displacement: " << 180*M_PI*(q_final - q_init).t() << " deg" << std::endl;
+    std::cout << "q final: " << 180/M_PI*q_final.t() << " deg" << std::endl;
+    std::cout << "Joint displacement: " << 180./M_PI*(q_final - q_init).t() << " deg" << std::endl;
 
 
     stopSimTrigger_pub.publish(startStopSim);

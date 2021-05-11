@@ -44,10 +44,11 @@ find_package(orocos_kdl QUIET)
 find_package(iir QUIET)
 
 if(orocos_kdl_FOUND)
+  add_definitions("-DVISP_HAVE_OROCOS_KDL")
   message("-- orocos kdl found: We can build franka simulator")
   if(iir_FOUND)
     message("-- iir found")
-    add_definitions("-DHAVE_IIR")
+    add_definitions("-DVISP_HAVE_IIR")
   endif()
 else()
   message("-- orocos kdl not found: Unable to build franka simulator")
@@ -108,11 +109,13 @@ if(orocos_kdl_FOUND)
   set(srcs
     include/${PROJECT_NAME}/vpROSGrabber.h
     include/${PROJECT_NAME}/vpROSRobot.h
-    include/${PROJECT_NAME}/vpROSRobotFrankaSim.h
+    include/${PROJECT_NAME}/vpRobotFrankaSim.h
+    include/${PROJECT_NAME}/vpROSRobotFrankaCoppeliasim.h
     include/${PROJECT_NAME}/vpROSRobotPioneer.h
     src/device/framegrabber/vpROSGrabber.cpp
     src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
-    src/robot/sim-robot/franka/vpROSRobotFrankaSim.cpp
+    src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
+    src/robot/sim-robot/franka/vpROSRobotFrankaCoppeliasim.cpp
     src/robot/sim-robot/franka/model/CoriolisMatrix.cpp
     src/robot/sim-robot/franka/model/franka_model.h
     src/robot/sim-robot/franka/model/FrictionTorque.cpp
