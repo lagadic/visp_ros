@@ -7,7 +7,7 @@ A basket of generic ros nodes based on ViSP library.
 
 ## Prerequisities
 
-Install ros-<version>-visp package that matches your ros distribution (groovy, hydro, indigo, kinetic, melodic, noetic), as for example:
+Install ros-<version>-visp package that matches your ros distribution (kinetic, melodic, noetic), as for example:
 
 	$ sudo apt-get install ros-melodic-visp
 
@@ -16,25 +16,36 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 	$ cd visp-ws
 	$ git clone https://github.com/lagadic/visp.git
 	$ mkdir visp-build-ros; cd visp-build-ros
-	$ cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../visp
+	$ cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/$ROS_DISTRO ../visp
 	$ make -j4; sudo make install
 
 ## Get the source
 
+Enter in catkin source folder and source ROS setup:
+
 	$ cd ~/catkin_ws/src
+	$ source /opt/ros/<ros-version>
 
 Get vision_visp stack that contains visp_bridge package:
 
-	$ git clone https://github.com/lagadic/vision_visp.git (master branch)
+	$ git clone https://github.com/lagadic/vision_visp.git -b $ROS_DISTRO
 
 Get visp_ros package:
 
-	$ git clone https://github.com/lagadic/visp_ros.git (master branch)
+	$ git clone https://github.com/lagadic/visp_ros.git
 
 ## Build visp_ros package
 
 	$ cd ~/catkin_ws
 	$ catkin_make -DCMAKE_BUILD_TYPE=Release --pkg visp_ros
+
+## Build documenation and tutorials
+
+	$ cd ~/catkin_ws
+	$ rosdoc_lite src/visp_ros
+
+Documentation is available in `~/catkin_ws/doc/html/index.html`
+
 
 # Usage
 

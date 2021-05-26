@@ -99,7 +99,7 @@ At this point the installation depends on installed ROS version.
 
 - **ROS noetic**
 
-  Since `CoppeliaSim` comes with a `ROSInterface` build for ROS `melodic` and we are using ROS we need to:
+  Since `CoppeliaSim` comes with a `ROSInterface` build for ROS `melodic` and we are using ROS noetic, we need to:
 
   1. Get the last version of  `libPlugin` from [here](https://github.com/CoppeliaRobotics/libPlugin).
   \verbatim
@@ -133,7 +133,7 @@ At this point the installation depends on installed ROS version.
 
 \section franka_coppeliasim_run_sim Run the Franka simulator
 
-To properly run the simulator, you will need three terminals, one for the `roscore`, one for `CoppeliaSim`, and one for the ROS node (note that `roscore` should be started before `CoppeliaSim`):
+To properly run the simulator, you will need three terminals, one for `roscore`, one for `CoppeliaSim`, and one for the ROS node that does for example the visual-servo (note that `roscore` should be started before `CoppeliaSim`):
 
 - **In terminal 1 run:**
   \verbatim
@@ -148,9 +148,11 @@ To properly run the simulator, you will need three terminals, one for the `rosco
   $ ./coppeliaSim.sh
   \endverbatim
 
-    Now in `CoppeliaSim` GUI, enter menu `"File > Open scene..."` and browse to `~/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene` folder to select `frankaSim.ttt`.
+  Now in `CoppeliaSim` GUI, enter menu `"File > Open scene..."` and browse to `~/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene` folder to select `frankaSim.ttt`.
 
-    At this point, in `CoppeliaSim` GUI you should see the following feedback:
+  \image html img-coppeliasim-franka-scene.jpeg
+
+  At this point, in `CoppeliaSim` GUI you should see the following feedback:
   \verbatim
   [sandboxScript:info]   Simulator launched, welcome!
   [CoppeliaSim:info]   Default scene was set-up.
@@ -159,25 +161,55 @@ To properly run the simulator, you will need three terminals, one for the `rosco
   [CoppeliaSim:info]   Scene opened.
   ROS interface was found.
   \endverbatim
-    Be sure that ROS interface is found. If this is not the case, it means:
+  Be sure that ROS interface is found. If this is not the case, it means:
 
-    - either that you forget to `source ~/catkin_ws/devel/setup.bash`, 
-    - either that you have an issue that comes from ROS interface build step described [here](#franka_coppeliasim_install_ros_interface).
+  - either that you forget to `source ~/catkin_ws/devel/setup.bash`, 
+  - either that you have an issue that comes from ROS interface build step described [here](#franka_coppeliasim_install_ros_interface).
+
+  Note that a circular motion could be applied to the AprilTag. To this end, in the `Scene hierarchy` double-click on the document icon
+  just at the right of `Tag36h11` (see previous image) to open the Lua script. A new window should open, where setting the value of
+  `w` variable for example to 0.2 in function `sysCall_actuation()` and restarting the script allows to make the AprilTag moving when simulation is started.
+  \code
+  function sysCall_actuation()
+    simTime = sim.getSimulationTime()
+    w = 0.2
+    sim.setJointTargetVelocity(BJ_Handle, w)
+    sim.setJointTargetVelocity(TJ_Handle,-w)
+  end
+  \endcode
 
 - **In terminal 3 run:**
 
-  To run a position-based visual-servoing over an Apriltag target, run:
+  To run a **position-based visual-servoing** (PBVS) over an Apriltag target, run:
   \verbatim
   $ source ~/catkin_ws/devel/setup.bash
-  $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag
+  $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
   \endverbatim
-  To run an image-based visual-servoing example, run rather:
+  Here you should be able to see something similar to the following video:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/QQ89sbmufZE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
+
+  To run an **image-based visual-servoing** (IBVS) example, run rather:
   \verbatim
-  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag
+  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
   \endverbatim
+  Here you should rather see something similar to the next video:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/02Bx093Fuak" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
   To access advanced options, you may add `--help` command line option:
   \verbatim
   $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --help
   \endverbatim
+
+  There is also a **joint impedance control** example that could be launched using:
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
+  \endverbatim
+  The following video show the resulting robot behavior:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/n4udNlUmKSo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
 
 */

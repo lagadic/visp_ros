@@ -4,12 +4,23 @@
 
 \section intro Introduction
 
-\b visp_ros is a library that allows to consider some ROS based classes as ViSP traditional classes. 
-\b visp_ros contains also a collection of nodes that allow to control robots that are interfaced in ViSP.
+\b visp_ros is an extension of [ViSP](https://visp.inria.fr) library developed by Inria [Rainbow](https://team.inria.fr/rainbow/) team. While [ViSP](https://visp.inria.fr) is independent from ROS, in \b visp_ros we benefit from ROS features. 
+
+\b visp_ros contains a library:
+- with new C++ classes (vpROSGrabber, vpROSRobot, vpROSRobotPioneer, vpROSRobotFrankaCoppeliasim) that could be used like usual [ViSP classes](https://visp-doc.inria.fr/doxygen/visp-daily/classes.html). They are based on ROS, but to use them there is no need to know so much about ROS;
+- that makes possible to use ROS in a transparent way, either by building classical binaries without catkin, either by building ROS nodes with catkin but without the need to write ROS specific code;
+- where creating a ROS node out of ViSP becomes simple. 
+
+\b visp_ros contains also a set of ROS nodes that allow to control specific hardware such as for the moment:
+- robots that can be controlled only in our lab due to proprietary drivers: Afma6 gantry robot, Biclops PT head, ADEPT Viper 650 and 850 robots described [here](https://team.inria.fr/rainbow/research/robotics-platforms/);
+- other robots that anyone can buy and use with open-source drivers interfaced in ViSP: Pioneer mobile robot, Parrot bebop2 drone
+
+\b visp_ros contains also a tutorial that shows how to simulate a Franka Panda robot using CoppeliaSim.
 
 \section tutorial Tutorials
 
 - \ref tutorial-ros-grabber <br>In this first tutorial you will learn how to use images published by ROS nodes in a classical ViSP development thanks to vpROSGrabber class.
-- \ref tutorial-franka-coppeliasim <br>In this first tutorial you will learn how to simulate a Franka robot using ViSP, CoppeliaSim and ROS.
-
+- \ref tutorial-franka-coppeliasim <br>In this other tutorial you will learn how to simulate a Franka robot using \b visp_ros, [CoppeliaSim](https://www.coppeliarobotics.com/coppeliaSim) and ROS.
+- [Visual servoing with Parrot Bebop 2 drone using visp_ros](http://wiki.ros.org/visp_ros/Tutorials/How%20to%20do%20visual%20servoing%20with%20Parrot%20Bebop%202%20drone%20and%20visp_ros)<br>
+This tutorial explains how to set up and use \b visp_ros package to do visual servoing with Parrot Bebop 2 drone.
 */
