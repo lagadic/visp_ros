@@ -179,6 +179,7 @@ endif()
 if(orocos_kdl_FOUND)
   add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
   add_executable(tutorial-franka-coppeliasim-pbvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp)
+  add_executable(tutorial-franka-coppeliasim-joint-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp)
   add_executable(test-vel tutorial/franka/coppeliasim/test-vel.cpp)
   set(franka_sim_LIBRARIES ${catkin_LIBRARIES} ${PROJECT_NAME} ${orocos_kdl_LIBRARIES})
   if(iir_FOUND)
@@ -186,12 +187,14 @@ if(orocos_kdl_FOUND)
   endif()
   target_link_libraries(tutorial-franka-coppeliasim-ibvs-apriltag ${franka_sim_LIBRARIES})
   target_link_libraries(tutorial-franka-coppeliasim-pbvs-apriltag ${franka_sim_LIBRARIES})
+  target_link_libraries(tutorial-franka-coppeliasim-joint-impedance-control ${franka_sim_LIBRARIES})
   target_link_libraries(test-vel ${franka_sim_LIBRARIES})
 
   install(
     TARGETS
     tutorial-franka-coppeliasim-ibvs-apriltag
     tutorial-franka-coppeliasim-pbvs-apriltag
+    tutorial-franka-coppeliasim-joint-impedance-control
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
