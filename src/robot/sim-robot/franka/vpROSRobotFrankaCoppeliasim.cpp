@@ -529,6 +529,7 @@ void vpROSRobotFrankaCoppeliasim::torqueControlLoop()
 
   while (ros::ok() && ! m_ftControlThreadStopAsked) {
     loop_rate.sleep();
+    m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
     this->getGravity(g);
 
     m_mutex.lock();
@@ -572,11 +573,15 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
     // Start primitive STOP only if the current state is velocity or force/torque
     if (vpRobot::STATE_POSITION_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from position control to stop.\n";
+      m_mutex.lock();
       m_posControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from velocity control to stop.\n";
+      m_mutex.lock();
       m_velControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from force/torque control to stop.\n";
@@ -585,12 +590,14 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
 
     if(m_controlThread.joinable()) {
       m_controlThread.join();
+      m_mutex.lock();
       m_posControlThreadStopAsked = false;
       m_posControlThreadIsRunning = false;
       m_velControlThreadStopAsked = false;
       m_velControlThreadIsRunning = false;
       m_ftControlThreadStopAsked = false;
       m_ftControlThreadIsRunning = false;
+      m_mutex.unlock();
     }
     this->m_stateRobot = newState;
     break;
@@ -602,19 +609,25 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
     else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from velocity to position control.\n";
       // Stop the velocity control loop
+      m_mutex.lock();
       m_velControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from force/torque to position control.\n";
       // Stop the force control loop
+      m_mutex.lock();
       m_ftControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     if(m_controlThread.joinable()) {
       m_controlThread.join();
+      m_mutex.lock();
       m_velControlThreadStopAsked = false;
       m_velControlThreadIsRunning = false;
       m_ftControlThreadStopAsked = false;
       m_ftControlThreadIsRunning = false;
+      m_mutex.unlock();
     }
     //    m_controlThread = std::thread([this] {this->positionControlLoop();});
     this->m_stateRobot = newState;
@@ -626,21 +639,27 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
     }
     else if (vpRobot::STATE_POSITION_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from position to velocity control.\n";
+      m_mutex.lock();
       m_posControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from force/torque to velocity control.\n";
       // Stop the force control loop
+      m_mutex.lock();
       m_ftControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
 
     if (getRobotState() != vpRobot::STATE_VELOCITY_CONTROL) {
       if (m_controlThread.joinable()) {
         m_controlThread.join();
+        m_mutex.lock();
         m_posControlThreadStopAsked = false;
         m_posControlThreadIsRunning = false;
         m_ftControlThreadStopAsked = false;
         m_ftControlThreadIsRunning = false;
+        m_mutex.unlock();
       }
     }
     if (! m_velControlThreadIsRunning) {
@@ -659,15 +678,19 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
     }
     else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
       std::cout << "Change the control mode from velocity to force/torque control.\n";
+      m_mutex.lock();
       m_velControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     if (getRobotState() != vpRobot::STATE_FORCE_TORQUE_CONTROL) {
       if(m_controlThread.joinable()) {
         m_controlThread.join();
+        m_mutex.lock();
         m_posControlThreadStopAsked = false;
         m_posControlThreadIsRunning = false;
         m_velControlThreadStopAsked = false;
         m_velControlThreadIsRunning = false;
+        m_mutex.unlock();
       }
     }
     if (! m_ftControlThreadIsRunning) {
