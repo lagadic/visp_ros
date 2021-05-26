@@ -1,0 +1,215 @@
+/**
+
+\page tutorial-franka-coppeliasim Tutorial: How to simulate Franka robot with Coppeliasim
+\tableofcontents
+
+\section franka_coppeliasim_intro Introduction
+
+<a href="https://visp.inria.fr">ViSP library</a> allows to control the real Panda robot from Franka Emika to perform for example a [position-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-pbvs.html) or an  [image-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-ibvs.html). In this tutorial, we show how to simulate a Franka robot thanks to Coppeliasim and ROS. 
+
+\section franka_coppeliasim_install_deps Install dependencies
+
+To be able to build the package to simulate a Franka robot, you need the following dependencies
+- visp
+- Orokos-kdl
+- visp_bridge ROS package part of vision_visp ROS meta package
+
+\subsection franka_coppeliasim_install_deps_with_rosdep Install dependencies using rosdep
+
+The easiest way to install these dependencies is to run `rosdep` following this [tutorial](http://wiki.ros.org/visp_ros/Tutorials/Howto_install_visp_ros).
+
+\subsection franka_coppeliasim_install_deps_from_src Install dependencies from source
+
+There is also the possibility to build the dependencies from source.
+
+- Update Ubuntu packages
+  \verbatim
+  $ sudo apt-get update
+  $ sudo apt-get upgrade
+  \endverbatim
+
+- Install requested 3rd parties for ViSP
+  \verbatim
+  $ sudo apt-get install libopencv-dev libx11-dev liblapack-dev libeigen3-dev \
+         libv4l-dev libzbar-dev libpthread-stubs0-dev libjpeg-dev             \
+         libpng-dev libdc1394-dev libpcl-dev
+  \endverbatim
+
+- Install Orocos-kdl needed for inverse and direct robot arm kinematics computation
+  \verbatim
+  $ sudo apt-get install liborocos-kdl-dev
+  \endverbatim
+
+- Install optional Iit Butterworth Filter
+  \verbatim
+  $ sudo apt install iir1-dev
+  \endverbatim
+
+- Build ViSP from source. There is no need to install ViSP in `/usr`.
+  \verbatim
+  $ mkdir -p ~/software/visp
+  $ cd ~/software/visp
+  $ git clone https://github.com/lagadic/visp.git
+  $ mkdir -p visp-build
+  $ cd visp-build
+  $ cmake ../visp
+  $ make -j4
+  \endverbatim
+
+- Build `vision_visp` ROS package. We suppose here that ROS is already installed.
+  \verbatim
+  $ cd ~/catkin_ws/src
+  $ git clone https://github.com/lagadic/vision_visp.git --branch $ROS_DISTRO
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ cd ~/catkin_ws/
+  $ catkin_make --cmake-args -DCMAKE_BUILD_TYPE=Release -DVISP_DIR=~/software/visp/visp-build
+  \endverbatim
+
+\section franka_coppeliasim_build_visp_ros Build visp_ros
+
+- Clone `visp_ros` package in the cartkin workspace
+  \verbatim
+  $ cd ~/catkin_ws/src
+  $ git clone https://github.com/lagadic/visp_ros.git
+  \endverbatim
+
+- Build package
+  \verbatim
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ cd ~/catkin_ws/
+  $ catkin_make --cmake-args -DCMAKE_BUILD_TYPE=Release -DVISP_DIR=~/software/visp/visp-build
+  \endverbatim
+
+\section franka_coppeliasim_install_coppeliasim Install Coppeliasim
+
+\subsection franka_coppeliasim_install_coppeliasim_download Download CoppeliaSim
+
+- Download the last edu version of `CoppeliaSim` for Ubuntu 18.04 or 20.04 from [here](https://coppeliarobotics.com/downloads) (at the time this tutorial was written it was `CoppeliaSim_Edu_V4_1_0_Ubuntu18_04.tar.xz` or `CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz` respectively).
+- Extract the archive content in `~/software` workspace.
+- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu18_04/` folder or similar
+
+
+\subsection franka_coppeliasim_install_ros_interface Install ROSInterface for CoppeliaSim
+
+At this point the installation depends on installed ROS version.
+
+- **ROS melodic**
+
+  Since `CoppeliaSim` comes with a `ROSInterface` build for ROS `melodic` there is no need to build `ROSInterface`.
+
+- **ROS noetic**
+
+  Since `CoppeliaSim` comes with a `ROSInterface` build for ROS `melodic` and we are using ROS noetic, we need to:
+
+  1. Get the last version of  `libPlugin` from [here](https://github.com/CoppeliaRobotics/libPlugin).
+  \verbatim
+  $ cd ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/programming
+  $ mv libPlugin/ libPlugin_orig/
+  $ git clone https://github.com/CoppeliaRobotics/libPlugin.git --branch coppeliasim-v4.1.0
+  \endverbatim
+
+  2. Get `ROSInterface` node source code
+  \verbatim
+  $ cd ~/catkin_ws/src/
+  $ git clone --recursive https://github.com/CoppeliaRobotics/simExtROSInterface.git \
+              --branch coppeliasim-v4.1.0 sim_ros_interface 
+  \endverbatim
+
+  3. Build `ROSInterface` node 
+  \verbatim
+  $ cd ~/catkin_ws
+  $ source /opt/ros/noetic/setup.bash
+  $ export COPPELIASIM_ROOT_DIR=~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  $ sudo apt-get install python3-pip xsltproc
+  $ pip3 install xmlschema
+  $ catkin_make --cmake-args -DCMAKE_BUILD_TYPE=Release
+  \endverbatim
+
+  4. Copy `ROSInterface` in the CoppeliaSim directory
+  \verbatim
+  $ cp devel/lib/libsimExtROSInterface.so ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  \endverbatim
+
+
+\section franka_coppeliasim_run_sim Run the Franka simulator
+
+To properly run the simulator, you will need three terminals, one for `roscore`, one for `CoppeliaSim`, and one for the ROS node that does for example the visual-servo (note that `roscore` should be started before `CoppeliaSim`):
+
+- **In terminal 1 run:**
+  \verbatim
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ roscore
+  \endverbatim
+
+- **In terminal 2 run:**
+  \verbatim
+  $ source ~/catkin_ws/devel/setup.bash
+  $ cd ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  $ ./coppeliaSim.sh
+  \endverbatim
+
+  Now in `CoppeliaSim` GUI, enter menu `"File > Open scene..."` and browse to `~/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene` folder to select `frankaSim.ttt`.
+
+  \image html img-coppeliasim-franka-scene.jpeg
+
+  At this point, in `CoppeliaSim` GUI you should see the following feedback:
+  \verbatim
+  [sandboxScript:info]   Simulator launched, welcome!
+  [CoppeliaSim:info]   Default scene was set-up.
+  [CoppeliaSim:info]   Loading scene ($HOME/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene/frankaSim.ttt). Serialization version is 22.
+  [CoppeliaSim:info]   File was previously written with CoppeliaSim version 4.01.00 (rev 1)
+  [CoppeliaSim:info]   Scene opened.
+  ROS interface was found.
+  \endverbatim
+  Be sure that ROS interface is found. If this is not the case, it means:
+
+  - either that you forget to `source ~/catkin_ws/devel/setup.bash`, 
+  - either that you have an issue that comes from ROS interface build step described [here](#franka_coppeliasim_install_ros_interface).
+
+  Note that a circular motion could be applied to the AprilTag. To this end, in the `Scene hierarchy` double-click on the document icon
+  just at the right of `Tag36h11` (see previous image) to open the Lua script. A new window should open, where setting the value of
+  `w` variable for example to 0.2 in function `sysCall_actuation()` and restarting the script allows to make the AprilTag moving when simulation is started.
+  \code
+  function sysCall_actuation()
+    simTime = sim.getSimulationTime()
+    w = 0.2
+    sim.setJointTargetVelocity(BJ_Handle, w)
+    sim.setJointTargetVelocity(TJ_Handle,-w)
+  end
+  \endcode
+
+- **In terminal 3 run:**
+
+  To run a **position-based visual-servoing** (PBVS) over an Apriltag target, run:
+  \verbatim
+  $ source ~/catkin_ws/devel/setup.bash
+  $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
+  \endverbatim
+  Here you should be able to see something similar to the following video:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/QQ89sbmufZE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
+
+  To run an **image-based visual-servoing** (IBVS) example, run rather:
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
+  \endverbatim
+  Here you should rather see something similar to the next video:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/02Bx093Fuak" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
+  To access advanced options, you may add `--help` command line option:
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --help
+  \endverbatim
+
+  There is also a **joint impedance control** example that could be launched using:
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
+  \endverbatim
+  The following video show the resulting robot behavior:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/n4udNlUmKSo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+  \endhtmlonly
+
+*/

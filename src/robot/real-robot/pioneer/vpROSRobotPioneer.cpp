@@ -107,7 +107,6 @@ void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, con
   vpColVector vel_sat;
   vpColVector vel_robot(6);
 
-  std::cout << "vel recu: " << vel << std::endl;
   if (frame == vpRobot::REFERENCE_FRAME)
   {
     vel_max[0] = getMaxTranslationVelocity();
@@ -120,7 +119,6 @@ void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, con
     vel_robot[3] = 0;
     vel_robot[4] = 0;
     vel_robot[5] = vel_sat[1];
-    std::cout << "vel envoye: " << vel_robot << std::endl;
     vpROSRobot::setVelocity(frame, vel_robot);
   }
   else
