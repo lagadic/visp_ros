@@ -2,6 +2,8 @@
  * \example tutorial-franka-coppeliasim-pbvs-apriltag.cpp
  */
 
+//! \example tutorial-franka-coppeliasim-pbvs-apriltag.cpp
+
 #include <iostream>
 
 #include <visp3/core/vpCameraParameters.h>
@@ -56,7 +58,7 @@ int main(int argc, char **argv)
     if (std::string(argv[i]) == "--tag_size" && i + 1 < argc) {
       opt_tagSize = std::stod(argv[i + 1]);
     }
-    else if (std::string(argv[i]) == "--verbose") {
+    else if (std::string(argv[i]) == "--verbose" || std::string(argv[i]) == "-v") {
       opt_verbose = true;
     }
     else if (std::string(argv[i]) == "--plot") {
@@ -87,7 +89,7 @@ int main(int argc, char **argv)
           << "[--task_sequencing] "
           << "[--no-convergence-threshold] "
           << "[--enable-coppeliasim-sync-mode] "
-          << "[--verbose] "
+          << "[--verbose] [-v] "
           << "[--help] [-h]" << std::endl;;
       return EXIT_SUCCESS;
     }
@@ -103,7 +105,7 @@ int main(int argc, char **argv)
     ros::spinOnce();
 
     vpROSRobotFrankaCoppeliasim robot;
-    robot.setVerbose(true);
+    robot.setVerbose(opt_verbose);
     robot.connect();
 
     std::cout << "Coppeliasim sync mode enabled: " << (opt_coppeliasim_sync_mode ? "yes" : "no") << std::endl;
@@ -111,7 +113,7 @@ int main(int argc, char **argv)
     robot.setCoppeliasimSyncMode(false);
     robot.coppeliasimStartSimulation();
 
-    if (1) {
+    if (0) {
       robot.setRobotState(vpRobot::STATE_POSITION_CONTROL);
       vpColVector q;
       robot.getPosition(vpRobot::JOINT_STATE, q);
@@ -349,7 +351,6 @@ int main(int argc, char **argv)
       sim_time_prev = sim_time;
       vpDisplay::displayText(I, 40, 20, ss.str(), vpColor::red);
 
-
       vpMouseButton::vpMouseButtonType button;
       if (vpDisplay::getClick(I, button, false)) {
         switch (button) {
@@ -368,7 +369,7 @@ int main(int argc, char **argv)
       }
 
       vpDisplay::flush(I);
-      robot.wait(sim_time, 0.002);
+      robot.wait(sim_time, 0.020); // Slow down the loop to simulate a camera at 50 Hz
     } //end while
 
 

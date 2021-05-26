@@ -2,6 +2,8 @@
  * \example tutorial-franka-coppeliasim-ibvs-apriltag.cpp
  */
 
+//! \example tutorial-franka-coppeliasim-ibvs-apriltag.cpp
+
 #include <iostream>
 
 #include <visp3/core/vpCameraParameters.h>
@@ -55,7 +57,7 @@ int main(int argc, char **argv)
     if (std::string(argv[i]) == "--tag_size" && i + 1 < argc) {
       opt_tagSize = std::stod(argv[i + 1]);
     }
-    else if (std::string(argv[i]) == "--verbose") {
+    else if (std::string(argv[i]) == "--verbose" || std::string(argv[i]) == "-v") {
       opt_verbose = true;
     }
     else if (std::string(argv[i]) == "--plot") {
@@ -78,15 +80,15 @@ int main(int argc, char **argv)
     }
     else if (std::string(argv[i]) == "--help" || std::string(argv[i]) == "-h") {
       std::cout << argv[0]
-          << "[--tag_size <marker size in meter; default " << opt_tagSize << ">] "
-          << "[--quad_decimate <decimation; default " << opt_quad_decimate << ">] "
-          << "[--adaptive_gain] "
-          << "[--plot] "
-          << "[--task_sequencing] "
-          << "[--no-convergence-threshold] "
-          << "[--enable-coppeliasim-sync-mode] "
-          << "[--verbose] "
-          << "[--help] [-h]" << std::endl;;
+                << "[--tag_size <marker size in meter; default " << opt_tagSize << ">] "
+                << "[--quad_decimate <decimation; default " << opt_quad_decimate << ">] "
+                << "[--adaptive_gain] "
+                << "[--plot] "
+                << "[--task_sequencing] "
+                << "[--no-convergence-threshold] "
+                << "[--enable-coppeliasim-sync-mode] "
+                << "[--verbose] [-v] "
+                << "[--help] [-h]" << std::endl;;
       return EXIT_SUCCESS;
     }
   }
@@ -101,7 +103,7 @@ int main(int argc, char **argv)
     ros::spinOnce();
 
     vpROSRobotFrankaCoppeliasim robot;
-    robot.setVerbose(true);
+    robot.setVerbose(opt_verbose);
     robot.connect();
 
     std::cout << "Coppeliasim sync mode enabled: " << (opt_coppeliasim_sync_mode ? "yes" : "no") << std::endl;
@@ -109,7 +111,7 @@ int main(int argc, char **argv)
     robot.setCoppeliasimSyncMode(false);
     robot.coppeliasimStartSimulation();
 
-    if (1) {
+    if (0) {
       robot.setRobotState(vpRobot::STATE_POSITION_CONTROL);
       vpColVector q;
       robot.getPosition(vpRobot::JOINT_STATE, q);
@@ -147,7 +149,7 @@ int main(int argc, char **argv)
 
     // Desired pose used to compute the desired features
     vpHomogeneousMatrix cdMo( vpTranslationVector(0, 0.0, opt_tagSize * 3),
-                              vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) );
+                             vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) );
 
     // Create visual features
     std::vector<vpFeaturePoint> p(4), pd(4); // We use 4 points
@@ -381,7 +383,7 @@ int main(int argc, char **argv)
       }
 
       vpDisplay::flush(I);
-      robot.wait(sim_time, 0.002);
+      robot.wait(sim_time, 0.020); // Slow down the loop to simulate a camera at 50 Hz
     } //end while
 
     if (opt_plot && plotter != nullptr) {
