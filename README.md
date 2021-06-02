@@ -39,7 +39,7 @@ Get visp_ros package:
 	$ cd ~/catkin_ws
 	$ catkin_make -DCMAKE_BUILD_TYPE=Release --pkg visp_ros
 
-## Build documenation and tutorials
+## Build documentation and tutorials
 
 	$ cd ~/catkin_ws
 	$ rosdoc_lite src/visp_ros
