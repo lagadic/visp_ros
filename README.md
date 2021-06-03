@@ -7,7 +7,7 @@ A basket of generic ros nodes based on ViSP library.
 
 ## Prerequisities
 
-Install ros-<version>-visp package that matches your ros distribution (kinetic, melodic, noetic), as for example:
+Install `ros-<version>-visp` package that matches your ros distribution (kinetic, melodic, noetic), as for example:
 
 	$ sudo apt-get install ros-melodic-visp
 
