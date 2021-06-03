@@ -1,7 +1,24 @@
 visp_ros
 ========
 
-A basket of generic ros nodes based on ViSP library.
+`visp_ros` is an extension of [ViSP](https://visp.inria.fr/) library developed by Inria [Rainbow](https://team.inria.fr/rainbow/) team. While ViSP is independent to ROS, in `visp_ros` we benefit from ROS features.
+
+`visp_ros` is compatible with ROS kinetic, melodic and noetic.
+
+`visp_ros` contains a library:
+
+- with new C++ classes (vpROSGrabber, vpROSRobot, vpROSRobotPioneer, vpROSRobotFrankaCoppeliasim) that could be used like usual ViSP classes. They are based on ROS, but to use them there is no need to know so much about ROS;
+- that makes possible to use ROS in a transparent way, either by building classical binaries without catkin, either by building ROS nodes with catkin but without the need to write ROS specific code;
+- where creating a ROS node out of ViSP becomes simple.
+
+`visp_ros` contains also a set of ROS nodes that allow to control specific hardware such as for the moment:
+
+- robots that can be controlled only in our lab due to proprietary drivers: Afma6 gantry robot, Biclops PT head, ADEPT Viper 650 and 850 robots described here;
+- other robots that anyone can buy and use with open-source drivers interfaced in ViSP: Pioneer mobile robot, Parrot bebop2 drone.
+
+`visp_ros` contains also a tutorial that shows how to simulate a Franka Panda robot using [CoppeliaSim](https://www.coppeliarobotics.com/). The simulation is a physical simulation with a model that has been accurately identified from a real Franka robot. If you are using this simulator we would appreciate that you cite this [paper](http://rainbow-doc.irisa.fr/publi/publi/Gaz19a-eng.html):
+
+*C. Gaz, M. Cognetti, A. Oliva, P. Robuffo Giordano, A. De Luca, Dynamic Identification of the Franka Emika Panda Robot With Retrieval of Feasible Parameters Using Penalty-Based Optimization. IEEE RA-L, 2019.*
 
 # Installation
 
@@ -11,7 +28,7 @@ Install `ros-<version>-visp` package that matches your ros distribution (kinetic
 
 	$ sudo apt-get install ros-melodic-visp
 
-If you want to use the nodes that allow to control real robots such as Biclops PT head, Viper 650, Viper 850, Afma4 or Afma6 robots, you need to build ViSP from source and install ViSP in '/opt/ros/<ros-version>' in order to overwrite the version that was installed using the previous line. 
+If you want to use the nodes that allow to control real robots such as Biclops PT head, Viper 650, Viper 850, Afma4 or Afma6 robots, you need to build ViSP from source and install ViSP in `/opt/ros/<version>` in order to overwrite the version that was installed using the previous line.
 
 	$ cd visp-ws
 	$ git clone https://github.com/lagadic/visp.git
@@ -24,13 +41,13 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 Enter in catkin source folder and source ROS setup:
 
 	$ cd ~/catkin_ws/src
-	$ source /opt/ros/<ros-version>
+	$ source /opt/ros/<version>
 
 Get vision_visp stack that contains visp_bridge package:
 
 	$ git clone https://github.com/lagadic/vision_visp.git -b $ROS_DISTRO
 
-Get visp_ros package:
+Get `visp_ros` package:
 
 	$ git clone https://github.com/lagadic/visp_ros.git
 

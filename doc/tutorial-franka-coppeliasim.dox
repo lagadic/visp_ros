@@ -5,7 +5,11 @@
 
 \section franka_coppeliasim_intro Introduction
 
-<a href="https://visp.inria.fr">ViSP library</a> allows to control the real Panda robot from Franka Emika to perform for example a [position-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-pbvs.html) or an  [image-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-ibvs.html). In this tutorial, we show how to simulate a Franka robot thanks to Coppeliasim and ROS. 
+<a href="https://visp.inria.fr">ViSP library</a> allows to control the real Panda robot from Franka Emika to perform for example a [position-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-pbvs.html) or an  [image-based visual-servoing](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-franka-ibvs.html). In this tutorial, we show how to simulate a Franka robot thanks to [CoppeliaSim](https://www.coppeliarobotics.com/) and ROS.
+
+The simulation is a physical simulation with a model that has been accurately identified from a real Franka robot. If you are using this simulator we would appreciate that you cite this [paper](http://rainbow-doc.irisa.fr/publi/publi/Gaz19a-eng.html):
+
+<em>C. Gaz, M. Cognetti, A. Oliva, P. Robuffo Giordano, A. De Luca, Dynamic Identification of the Franka Emika Panda Robot With Retrieval of Feasible Parameters Using Penalty-Based Optimization. IEEE RA-L, 2019.</em>
 
 \section franka_coppeliasim_install_deps Install dependencies
 
