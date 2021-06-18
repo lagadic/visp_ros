@@ -101,6 +101,15 @@ vpColVector vpRobotFrankaSim::getVelDes()
 }
 
 /*!
+ * Get the friction vector calculated from the current robot state. Unit: \f$[Nm]\f$.
+ * \param[out] friction : Friction 7-dim vector.
+ */
+void vpRobotFrankaSim::getFriction(vpColVector &friction){
+  std::lock_guard<std::mutex> lock(m_mutex);
+  friction =  franka_model::friction(m_dq);
+}
+
+/*!
  * Set camera extrinsics as the homogeneous transformation between the end-effector
  *  and the camera frame.
  * \param[in] eMc : Homogeneous transformation between the end-effector

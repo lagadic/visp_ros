@@ -47,6 +47,7 @@
 #include <visp3/core/vpPoseVector.h>
 #include <visp3/core/vpThetaUVector.h>
 
+
 #if defined(VISP_HAVE_OROCOS_KDL)
 
 #ifdef VISP_HAVE_OROCOS_KDL
@@ -80,21 +81,19 @@ public:
   vpHomogeneousMatrix get_fMe(const vpColVector &q);
   vpHomogeneousMatrix get_fMe();
 
-  void getCoriolis(vpColVector &coriolis);
-
-  virtual void getForceTorque(const vpRobot::vpControlFrameType frame, vpColVector &force);
   void getGravity(vpColVector &gravity);
   void getMass(vpMatrix &mass);
+  void getCoriolis(vpColVector &coriolis);
+  void getFriction(vpColVector &friction);
+
+  virtual void getForceTorque(const vpRobot::vpControlFrameType frame, vpColVector &force);
   virtual void getPosition(const vpRobot::vpControlFrameType frame, vpColVector &position);
   virtual void getPosition(const vpRobot::vpControlFrameType frame, vpPoseVector &position);
   virtual void getVelocity(const vpRobot::vpControlFrameType frame, vpColVector &d_position);
 
   virtual void set_eMc(const vpHomogeneousMatrix &eMc);
-
   virtual void setForceTorque(const vpRobot::vpControlFrameType frame, const vpColVector &force);
-
   virtual void setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position);
-
   virtual void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
 
   /*!
