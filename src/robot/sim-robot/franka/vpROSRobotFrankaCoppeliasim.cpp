@@ -626,7 +626,7 @@ void vpROSRobotFrankaCoppeliasim::torqueControlLoop()
   robot_ctrl_type_msg.data = static_cast<int>(m_stateRobot);
   m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
 
-  vpColVector g(7,0), tau_sat(7,0), tau_max(7,0), f(7,0);
+  vpColVector g(7,0), tau_max(7,0), tau_sat(7,0), f(7,0);
   tau_max = {87, 87,87, 87, 12, 12, 12};
 #ifdef VISP_HAVE_IIR
   const int order = 1; // ex: 4th order (=2 biquads)
@@ -648,16 +648,14 @@ void vpROSRobotFrankaCoppeliasim::torqueControlLoop()
 
     m_mutex.lock();
     for (unsigned int i = 0; i < 7; i++) {
-      if(std::abs(tau_sat[i]) >= 0.0){ // this simulates the static friction
 #ifdef VISP_HAVE_IIR
-        m_tau_J_des_filt[i] = TorqueFilter[i].filter(m_tau_J_des[i]);
-        joint_state_cmd_msg.effort[i] = m_tau_J_des_filt[i] + g[i] - f[i];
+      m_tau_J_des_filt[i] = TorqueFilter[i].filter(m_tau_J_des[i]);
+      joint_state_cmd_msg.effort[i] = m_tau_J_des_filt[i] + g[i] - f[i];
 #else
-        joint_state_cmd_msg.effort[i] = m_tau_J_des[i] + g[i] - f[i];
+      joint_state_cmd_msg.effort[i] = m_tau_J_des[i] + g[i] - f[i];
 #endif
-      }
-      else {
-        joint_state_cmd_msg.effort[i] = g[i] - f[i];
+      if(m_verbose && std::abs(joint_state_cmd_msg.effort[i]) > tau_max[i]){
+    	  std::cout << "Excess torque " << joint_state_cmd_msg.effort[i] << " axis nr. " << i << std::endl;
       }
     }
     m_mutex.unlock();
