@@ -47,7 +47,6 @@
 #include <visp3/core/vpPoseVector.h>
 #include <visp3/core/vpThetaUVector.h>
 
-
 #if defined(VISP_HAVE_OROCOS_KDL)
 
 #ifdef VISP_HAVE_OROCOS_KDL
@@ -96,6 +95,11 @@ public:
   virtual void setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position);
   virtual void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
 
+  virtual void add_tool(const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &fMcom, const vpMatrix &I_L);
+  virtual void set_flMe(const vpHomogeneousMatrix &flMe);
+  virtual void set_g0(const vpColVector &g0);
+//  vpHomogeneousMatrix get_flMe() const;
+
   /*!
    * Enable/disable verbose mode to print additional info.
    * \param verbose : true to enable verbose mode, false otherwise.
@@ -109,6 +113,16 @@ protected:
   vpColVector m_q;      // Joint Positions
   vpColVector m_dq;     // Joint Velocities
   vpColVector m_tau_J;  // Joint efforts
+
+  double m_mL;                  // payload mass
+  vpHomogeneousMatrix m_fMcom;  // payload Center of Mass pose in flange frame
+  vpMatrix m_Il;                // payload inertia tensor
+  vpHomogeneousMatrix m_flMe;   // End-effector pose in flange frame
+  bool m_toolMounted;           // flag to indicate the presence of a tool
+  bool m_camMounted;            // flag to indicate the presence of a camera
+
+  vpColVector m_g0;           // Absolute gravitational acceleration vector in base frame
+
 
   std::mutex m_mutex;
 
@@ -138,9 +152,8 @@ protected:
   vpColVector m_tau_J_des;         // Desired joint torques.
   vpColVector m_tau_J_des_filt;    // Desired joint torques filtered.
 
-  vpHomogeneousMatrix m_eMc;
+  vpHomogeneousMatrix m_eMc;       // Transformation of the camera w.r.t. End-Effector frame
   vpVelocityTwistMatrix m_eVc;
-  bool m_overwrite_eMc; // Flag to indicate that eMc should no more be updated from topic
 
   bool m_verbose;
 };

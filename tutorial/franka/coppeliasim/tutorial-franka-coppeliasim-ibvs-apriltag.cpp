@@ -124,8 +124,8 @@ int main(int argc, char **argv)
 
     vpImage<unsigned char> I;
     vpROSGrabber g;
-    g.setImageTopic("/vrep/franka/camera/image");
-    g.setCameraInfoTopic("/vrep/franka/camera/camera_info");
+    g.setImageTopic("/coppeliasim/franka/camera/image");
+    g.setCameraInfoTopic("/coppeliasim/franka/camera/camera_info");
     g.open(argc, argv);
 
     g.acquire(I);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
     vpHomogeneousMatrix cMo, oMo;
 
     // Desired pose used to compute the desired features
-    vpHomogeneousMatrix cdMo( vpTranslationVector(0, 0.0, opt_tagSize * 3),
+    vpHomogeneousMatrix cdMo( vpTranslationVector(0.0, 0.0, opt_tagSize * 3),
                              vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) );
 
     // Create visual features
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
     double sim_time_img = sim_time;
 
     if (0) {
-      // Instead of setting eMc from /vrep/franka/eMc topic, we can set its value to introduce noise for example
+      // Instead of setting eMc from /coppeliasim/franka/eMc topic, we can set its value to introduce noise for example
       vpHomogeneousMatrix eMc;
       eMc.buildFrom(0.05, -0.05, 0, 0, 0, M_PI_4);
       robot.set_eMc(eMc);

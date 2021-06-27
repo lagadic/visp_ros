@@ -46,14 +46,18 @@
  */
 vpRobotFrankaSim::vpRobotFrankaSim() :
   m_q(7,0), m_dq(7,0), m_tau_J(7,0),
+  m_mL(0.0),m_fMcom(), m_Il(3,3), m_flMe(),
+  m_g0({0.0,0.0,-9.80665}),
   m_mutex(),
   m_q_kdl(7), m_dq_des_kdl(7), m_chain_kdl(), m_q_min_kdl(7), m_q_max_kdl(7),
   m_stateRobot(vpRobot::STATE_STOP),
   m_q_des(7,0),
   m_dq_des(7,0), m_dq_des_filt(7,0), m_v_cart_des(6,0),
   m_tau_J_des(7,0), m_tau_J_des_filt(7,0),
-  m_eMc(), m_eVc(), m_overwrite_eMc(false),
-  m_verbose(false)
+  m_eMc(), m_eVc(),
+  m_verbose(false),
+  m_toolMounted(false),
+  m_camMounted(false)
 {
 #ifdef VISP_HAVE_OROCOS_KDL
   m_chain_kdl.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::None), KDL::Frame::DH_Craig1989( 0.0   ,  0.0  ,0.333,0.0)));
@@ -118,9 +122,86 @@ void vpRobotFrankaSim::getFriction(vpColVector &friction){
 void vpRobotFrankaSim::set_eMc(const vpHomogeneousMatrix &eMc)
 {
   std::lock_guard<std::mutex> lock(m_mutex);
-  m_overwrite_eMc = true;
   m_eMc = eMc;
   m_eVc.buildFrom(m_eMc);
+  m_camMounted = true;
+}
+
+
+/*!
+ * Set end-effecto extrinsics as the homogeneous transformation between the flange
+ * and the end-effector frame.
+ * \param[in] flMe : Homogeneous transformation between the end-effector
+ * and the flange frame.
+ */
+void vpRobotFrankaSim::set_flMe(const vpHomogeneousMatrix &flMe){
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_flMe = flMe;
+
+#ifdef VISP_HAVE_OROCOS_KDL
+  KDL::Frame frame8Mfl_kdl;
+  frame8Mfl_kdl = m_chain_kdl.segments[7].getFrameToTip();
+  vpHomogeneousMatrix f8Mfl, f8Me;
+  for (unsigned int i = 0; i < 3; i++) {
+    for (unsigned int j = 0; j < 3; j++) {
+    	f8Mfl[i][j] = frame8Mfl_kdl.M.data[3 * i + j];
+    }
+    f8Mfl[i][3] = frame8Mfl_kdl.p.data[i];
+  }
+  f8Me = f8Mfl*flMe;
+
+  KDL::Rotation f8Re(f8Me[0][0], f8Me[0][1], f8Me[0][2],
+		  	  	    f8Me[1][0], f8Me[1][1], f8Me[0][2],
+					f8Me[2][0], f8Me[2][1], f8Me[2][2]);
+  KDL::Vector f8te(f8Me[0][3], f8Me[1][3], f8Me[2][3]);
+  KDL::Frame f8Me_kdl(f8Re, f8te);
+
+  m_chain_kdl.segments[7].setFrameToTip(f8Me_kdl);
+#endif
+
+}
+
+/*!
+ * Set the absolute acceleration vector in robot's base frame.
+ * \param[in] g0 : gravitational acceleration vector in base frame.
+ */
+void vpRobotFrankaSim::set_g0(const vpColVector &g0){
+	std::lock_guard<std::mutex> lock(m_mutex);
+	m_g0 = g0;
+}
+
+/*!
+ * Set the tool extrinsics as the homogeneous transformation between the robot
+ *  flange and the end-effector frame. It modifies the robot kinematics of the
+ *  last link as well as the dynamic model due to the mass and center of mass (CoM)
+ *  of the plugged tool
+ * \param[in] flMe : Homogeneous transformation between the robot flange
+ * and the new pose of the end-effector frame.
+ * \param[in] mL : Mass of the tool
+ * \param[in] fMcom : tool Center-of-Mass pose in flange frame
+ * \param[in] I_L : tool inertia tensor in CoM frame
+ */
+void vpRobotFrankaSim::add_tool(const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &fMcom, const vpMatrix &I_L)
+{
+  this->set_flMe(flMe);
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if(mL < 0.0){
+    std::cout <<  "Mass cannot be negative! \nmL = " << mL << " not assigned \n";
+  }else{
+    m_mL = mL;
+  }
+  m_fMcom = fMcom;
+  m_Il = I_L;
+  m_toolMounted = true;
+
+  if(m_verbose){
+	std::cout << "A tool has been mounted on the robot.\n";
+	std::cout << "Mass: " << m_mL << " [kg]\n";
+	std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+	std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+	std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+  }
+
 }
 
 /*!
@@ -758,7 +839,7 @@ vpHomogeneousMatrix vpRobotFrankaSim::get_fMe(const vpColVector &q)
  */
 void vpRobotFrankaSim::getMass(vpMatrix &mass){
   std::lock_guard<std::mutex> lock(m_mutex);
-  mass = franka_model::massMatrix(m_q);
+  mass = franka_model::massMatrix(m_q,m_mL, m_fMcom,m_Il);
 }
 
 /*!
@@ -767,7 +848,7 @@ void vpRobotFrankaSim::getMass(vpMatrix &mass){
  */
 void vpRobotFrankaSim::getGravity(vpColVector &gravity){
   std::lock_guard<std::mutex> lock(m_mutex);
-  gravity = franka_model::gravityVector(m_q);
+  gravity = franka_model::gravityVector(m_q,m_mL,m_fMcom,m_g0);
 }
 
 /*!
@@ -778,7 +859,7 @@ void vpRobotFrankaSim::getGravity(vpColVector &gravity){
 void vpRobotFrankaSim::getCoriolis(vpColVector &coriolis){
   std::lock_guard<std::mutex> lock(m_mutex);
   vpMatrix C(7,7);
-  C = franka_model::coriolisMatrix(m_q, m_dq);
+  C = franka_model::coriolisMatrix(m_q,m_dq,m_mL,m_fMcom,m_Il);
   coriolis = C * m_dq;
 }
 

@@ -54,6 +54,21 @@ int main(int argc, char **argv)
 
     vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose(opt_verbose);
+    if(0){
+      // Instead of setting the tool from Coppeliasim topics, we can set its values manually to e.g. introduce errors in the parameters
+      // This must be done before call robot.connect()
+      // The following are the parameters for the Panda Hand as reported in the datasheet.
+      double mass = 0.73; // [kg]
+      vpHomogeneousMatrix flMe(vpTranslationVector(0,0,0.1034),
+    		                   vpRotationMatrix({std::cos(vpMath::rad(45)), -std::sin(vpMath::rad(45)),
+    	                                         0,std::sin(vpMath::rad(45)),std::cos(vpMath::rad(45)),
+												 0,0,0,1}));
+      vpHomogeneousMatrix fMcom(vpTranslationVector(-0.01,0.0,0.03), vpRotationMatrix());
+      vpMatrix I_l(3,3);
+      I_l.diag(vpColVector({0.001,0.0025,0.0017})); // [kg*m^2]
+      robot.add_tool(flMe, mass, fMcom, I_l);
+    }
+
     robot.connect();
 
     std::cout << "Coppeliasim sync mode enabled: " << (opt_coppeliasim_sync_mode ? "yes" : "no") << std::endl;
@@ -99,7 +114,7 @@ int main(int argc, char **argv)
     plotter->setLegend(3, 0, "||qd - d||");
 
     // Create joint array
-    vpColVector q(7,0), qd(7,0),dq(7,0), dqd(7,0), ddqd(7,0), tau_d(7,0), C(7,0), pos(6,0), q0(7,0);
+    vpColVector q(7,0), qd(7,0),dq(7,0), dqd(7,0), ddqd(7,0), tau_d(7,0), C(7,0), pos(6,0), q0(7,0), F(7,0);
     vpMatrix J(6,7), B(7,7);
 
     std::cout << "Reading current joint position" << std::endl;
@@ -128,20 +143,28 @@ int main(int argc, char **argv)
       robot.getVelocity(vpRobot::JOINT_STATE, dq);
       robot.getMass(B);
       robot.getCoriolis(C);
+      robot.getFriction(F);
 
       if (first_time){
         sim_time_start = sim_time;
         first_time = false;
       }
+      // compute some joint trajectories
       qd[0] = q0[0] + std::sin(2*M_PI*0.25*(sim_time - sim_time_start));
       dqd[0] = 2*M_PI*0.25*std::cos(2*M_PI*0.25*(sim_time - sim_time_start));
       ddqd[0] = -std::pow(2*0.25*M_PI,2)*std::sin(2*M_PI*0.25*(sim_time - sim_time_start));
+      qd[2] = q0[2] + (M_PI/16)*std::sin(2*M_PI*(sim_time - sim_time_start));
+      dqd[2] = M_PI*(M_PI/8)*std::cos(2*M_PI*(sim_time - sim_time_start));
+      ddqd[2] = - M_PI*M_PI*(M_PI/4)*std::sin(2*M_PI*(sim_time - sim_time_start));
       qd[3] = q0[3] + (M_PI/16)*std::sin(2*M_PI*(sim_time - sim_time_start));
       dqd[3] = M_PI*(M_PI/8)*std::cos(2*M_PI*(sim_time - sim_time_start));
       ddqd[3] = - M_PI*M_PI*(M_PI/4)*std::sin(2*M_PI*(sim_time - sim_time_start));
+      qd[6] = q0[6] + std::sin(2*M_PI*0.25*(sim_time - sim_time_start));
+      dqd[6] = 2*M_PI*0.25*std::cos(2*M_PI*0.25*(sim_time - sim_time_start));
+      ddqd[6] = -std::pow(2*0.25*M_PI,2)*std::sin(2*M_PI*0.25*(sim_time - sim_time_start));
 
       // Compute the control law
-      tau_d = B*(k*(qd - q) + d*(dqd - dq) + ddqd) + C;
+      tau_d = B*(k*(qd - q) + d*(dqd - dq) + ddqd) + C + F;
 
       // Send command to the torque robot
       robot.setForceTorque(vpRobot::JOINT_STATE, tau_d);

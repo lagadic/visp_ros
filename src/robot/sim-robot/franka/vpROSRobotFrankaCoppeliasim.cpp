@@ -52,8 +52,12 @@
 vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
   : m_controlThread(),
     m_acquisitionThread(),
-    m_topic_jointState("/vrep/franka/joint_state"),
-    m_topic_eMc("/vrep/franka/eMc"),
+    m_topic_jointState("/coppeliasim/franka/joint_state"),
+    m_topic_g0("/coppeliasim/franka/g0"),
+	m_topic_eMc("/coppeliasim/franka/eMc"),
+	m_topic_flMe("/coppeliasim/franka/flMe"),
+	m_topic_flMcom("/coppeliasim/franka/flMcom"),
+	m_topic_toolInertia("/coppeliasim/franka/tool/inertia"),
     m_topic_jointStateCmd("/fakeFCI/joint_state"),
     m_topic_robotStateCmd("/fakeFCI/robot_state"),
     m_connected(false),
@@ -66,9 +70,13 @@ vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
     m_pub_triggerNextStep(), m_pub_enableSyncMode(),
     m_sub_coppeliasim_jointState(), m_sub_coppeliasim_eMc(),
     m_sub_coppeliasim_simulationStepDone(), m_sub_coppeliasim_simulationTime(),
-    m_sub_coppeliasim_simulationState(),
+    m_sub_coppeliasim_simulationState(), m_sub_coppeliasim_flMe(),
+	m_sub_coppeliasim_toolInertia(), m_sub_coppeliasim_flMcom(),
     m_simulationStepDone(false), m_simulationTime(0.), m_syncModeEnabled(false),
-    m_simulationState(0)
+    m_simulationState(0),
+	m_overwrite_flMe(true),
+	m_overwrite_flMcom(true),
+	m_overwrite_toolInertia(true)
 {
 
 }
@@ -113,10 +121,18 @@ void vpROSRobotFrankaCoppeliasim::connect()
 
   if (m_verbose) {
     std::cout << "Subscribe " << m_topic_jointState << std::endl;
+    std::cout << "Subscribe " << m_topic_g0 << std::endl;
     std::cout << "Subscribe " << m_topic_eMc << std::endl;
+    std::cout << "Subscribe " << m_topic_flMe << std::endl;
+    std::cout << "Subscribe " << m_topic_flMcom << std::endl;
+    std::cout << "Subscribe " << m_topic_toolInertia << std::endl;
   }
   m_sub_coppeliasim_jointState = n->subscribe(m_topic_jointState, 1, &vpROSRobotFrankaCoppeliasim::callbackJointState, this);
+  m_sub_coppeliasim_g0 = n->subscribe(m_topic_g0, 1, &vpROSRobotFrankaCoppeliasim::callback_g0, this);
   m_sub_coppeliasim_eMc = n->subscribe(m_topic_eMc, 1, &vpROSRobotFrankaCoppeliasim::callback_eMc, this);
+  m_sub_coppeliasim_flMe = n->subscribe(m_topic_flMe, 1, &vpROSRobotFrankaCoppeliasim::callback_flMe, this);
+  m_sub_coppeliasim_flMcom = n->subscribe(m_topic_flMcom, 1, &vpROSRobotFrankaCoppeliasim::callback_flMcom, this);
+  m_sub_coppeliasim_toolInertia = n->subscribe(m_topic_toolInertia, 1, &vpROSRobotFrankaCoppeliasim::callback_toolInertia, this);
 
   if (m_verbose) {
     std::cout << "Advertise " << m_topic_jointStateCmd << std::endl;
@@ -345,6 +361,21 @@ void vpROSRobotFrankaCoppeliasim::callbackJointState(const sensor_msgs::JointSta
 }
 
 /*!
+ * Callback that updates the gravitational acceleration vector as perceived at
+ * the robot's base considered on Coppeliasim side.
+ * \param[in] g0_msg : Message associated to the topic set by setTopic_g0() the
+ * absolute acceleration vector in base frame.
+ */
+void vpROSRobotFrankaCoppeliasim::callback_g0(const geometry_msgs::Vector3& g0_msg)
+{
+  vpColVector g0(3,0);
+  g0[0] = g0_msg.x;
+  g0[1] = g0_msg.y;
+  g0[2] = g0_msg.z;
+  this->set_g0(g0);
+}
+
+/*!
  * Callback that updates camera extrinsics
  * with the transformation considered on Coppeliasim side.
  * \param[in] pose_msg : Message associated to the topic set by setTopic_eMc() that contains
@@ -352,11 +383,93 @@ void vpROSRobotFrankaCoppeliasim::callbackJointState(const sensor_msgs::JointSta
  */
 void vpROSRobotFrankaCoppeliasim::callback_eMc(const geometry_msgs::Pose& pose_msg)
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-  if (! m_overwrite_eMc) {
-    m_eMc = visp_bridge::toVispHomogeneousMatrix(pose_msg);
-    m_eVc.buildFrom(m_eMc);
+  if (!m_camMounted) {
+	  this->set_eMc(visp_bridge::toVispHomogeneousMatrix(pose_msg));
   }
+}
+
+/*!
+ * Callback that updates end-effector extrinsics w.r.t. the robot flange
+ * with the transformation considered on Coppeliasim side.
+ * \param[in] pose_msg : Message associated to the topic set by setTopic_flMe() that contains
+ * the homogeneous transformation between end-effector and flange frame.
+ * This callback works jointly with the `callback_toolInertia`  and `callback_flMcom`
+ * to automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void vpROSRobotFrankaCoppeliasim::callback_flMe(const geometry_msgs::Pose& pose_msg)
+{
+  if (!m_toolMounted && m_overwrite_flMe) {
+	this->set_flMe(visp_bridge::toVispHomogeneousMatrix(pose_msg));
+	m_overwrite_flMe = false;
+
+	if(!m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom){
+	  m_toolMounted = true;
+	  std::cout << "A tool has been mounted on the robot.\n";
+	  std::cout << "Mass: " << m_mL << " [kg]\n";
+	  std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+	  std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+	  std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+	}
+  }
+}
+
+/*!
+ * Callback that updates tool CoM pose w.r.t. the robot flange
+ * with the transformation considered on Coppeliasim side.
+ * \param[in] pose_msg : Message associated to the topic set by setTopic_flMcom() that contains
+ * the homogeneous transformation between flange and CoM frame.
+ * This callback works jointly with the `callback_toolInertia` and `callback_flMe`
+ * to automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void vpROSRobotFrankaCoppeliasim::callback_flMcom(const geometry_msgs::Pose& pose_msg)
+{
+  if (!m_toolMounted && m_overwrite_flMcom) {
+	m_fMcom = visp_bridge::toVispHomogeneousMatrix(pose_msg);
+	m_overwrite_flMcom = false;
+
+	if(!m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom){
+	  m_toolMounted = true;
+	  std::cout << "A tool has been mounted on the robot.\n";
+	  std::cout << "Mass: " << m_mL << " [kg]\n";
+	  std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+	  std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+	  std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+	}
+  }
+}
+
+/*!
+ * Callback that updates the tool inertial parameters.
+ * \param[in] inertia_msg : Message associated to the topic set by setTopic_toolInertia()
+ * that contains the inertial parameters of the mounted tool as considered on
+ * Coppeliasim side. The inertia tensor must be specified in flange frame as well
+ * as the center of mass.
+ * This callback works jointly with the `callback_flMe` and `callback_flMcom` to
+ * automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void vpROSRobotFrankaCoppeliasim::callback_toolInertia(const geometry_msgs::Inertia& inertia_msg)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (!m_toolMounted && m_overwrite_toolInertia) {
+	  m_mL = inertia_msg.m;
+	  m_Il[0][0] = inertia_msg.ixx;
+	  m_Il[0][1] = m_Il[1][0] = inertia_msg.ixy;
+	  m_Il[0][2] = m_Il[2][0] = inertia_msg.ixz;
+	  m_Il[1][1] = inertia_msg.iyy;
+	  m_Il[1][2] = m_Il[2][1] = inertia_msg.iyz;
+	  m_Il[2][2] = inertia_msg.izz;
+
+	  m_overwrite_toolInertia = false;
+
+	  if(!m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom){
+		m_toolMounted = true;
+		std::cout << "A tool has been mounted on the robot.\n";
+		std::cout << "Mass: " << m_mL << " [kg]\n";
+		std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+		std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+		std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+      }
+	}
 }
 
 /*!

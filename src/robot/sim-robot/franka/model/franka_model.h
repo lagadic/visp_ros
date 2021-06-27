@@ -21,12 +21,15 @@ namespace franka_model
   const unsigned int njoints = 7;
 
   /*
-   * In order to speed up the code execution, we pre-compute the constant part of the
-   * friction model of each joint i (second term of the right member of the equation).
+   * In order to speed up the code execution, we pre-compute the constant part
+   * of the friction model of each joint i (second term of the right member of
+   * the equation).
    *
-   * tau_f(i) = FI_1(i)/(1+exp(-FI_2(i)*(dq(i)+FI_3(i)))) -FI_1(i)/(1+exp(-FI_2(i)*FI_3(i)))
+   * tau_f(i) = FI_1(i)/(1+exp(-FI_2(i)*(dq(i)+FI_3(i)))) -
+   *                                           FI_1(i)/(1+exp(-FI_2(i)*FI_3(i)))
    *
-   * For further information refer to our paper and relative Supplementary Material:
+   * For further information refer to our paper and relative Supplementary
+   * Material:
    *      C. Gaz, M. Cognetti, A. Oliva, P. Robuffo Giordano, A. De Luca,
    * 'Dynamic Identification of the Franka Emika Panda Robot With Retrieval of
    *   Feasible Parameters Using Penalty-Based Optimization'. IEEE RA-L, 2019.
@@ -64,11 +67,18 @@ namespace franka_model
   const double TAU_F_CONST_6 = FI_16/(1+exp(-FI_26*FI_36));
   const double TAU_F_CONST_7 = FI_17/(1+exp(-FI_27*FI_37));
 
-  vpMatrix massMatrix(const vpColVector &q);
+  vpMatrix massMatrix(const vpColVector &q, const double mL = 0,
+		              const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+					  const vpMatrix &I_L = vpMatrix(3,3));
 
-  vpMatrix coriolisMatrix(const vpColVector &q,const vpColVector &dq);
+  vpMatrix coriolisMatrix(const vpColVector &q,const vpColVector &dq,
+		                  const double mL = 0,
+						  const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+						  const vpMatrix &I_L  = vpMatrix(3,3));
 
-  vpColVector gravityVector(const vpColVector &q);
+  vpColVector gravityVector(const vpColVector &q, const double mL = 0 ,
+		                    const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+							const vpColVector &g0 = vpColVector({0.0,0.0,-9.80665}));
 
   vpColVector friction(const vpColVector &dq);
 }
