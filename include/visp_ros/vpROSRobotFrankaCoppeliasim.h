@@ -40,9 +40,9 @@
 
 #include <ros/ros.h>
 
-#include <sensor_msgs/JointState.h>
-#include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Inertia.h>
+#include <geometry_msgs/Pose.h>
+#include <sensor_msgs/JointState.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int32.h>
@@ -91,9 +91,9 @@ public:
 
   void connect();
 
-  void coppeliasimPauseSimulation(double sleep_ms = 1000.);
-  void coppeliasimStartSimulation(double sleep_ms = 1000.);
-  void coppeliasimStopSimulation(double sleep_ms = 1000.);
+  void coppeliasimPauseSimulation( double sleep_ms = 1000. );
+  void coppeliasimStartSimulation( double sleep_ms = 1000. );
+  void coppeliasimStopSimulation( double sleep_ms = 1000. );
   void coppeliasimTriggerNextStep();
 
   double getCoppeliasimSimulationTime();
@@ -106,24 +106,18 @@ public:
    *
    * \sa setCoppeliasimSyncMode()
    */
-  inline bool getCoppeliasimSyncMode()
-  {
-    return m_syncModeEnabled;
-  }
+  inline bool getCoppeliasimSyncMode() { return m_syncModeEnabled; }
 
   /*!
    * Return true when ROS connexion with Coppeliasim is established.
    */
-  inline bool isConnected() const
-  {
-    return m_connected;
-  }
+  inline bool isConnected() const { return m_connected; }
 
-  void setCoppeliasimSyncMode(bool enable, double sleep_ms = 1000.);
+  void setCoppeliasimSyncMode( bool enable, double sleep_ms = 1000. );
 
-  void setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position);
+  void setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position );
 
-  vpRobot::vpRobotStateType setRobotState(vpRobot::vpRobotStateType newState);
+  vpRobot::vpRobotStateType setRobotState( vpRobot::vpRobotStateType newState );
 
   /*!
    * Set topic name that contains the robot state including position,
@@ -131,17 +125,14 @@ public:
    *
    * \param topic_jointState : Topic name.
    */
-  inline void setTopicJointState(const std::string &topic_jointState)
-  {
-    m_topic_jointState = topic_jointState;
-  }
+  inline void setTopicJointState( const std::string &topic_jointState ) { m_topic_jointState = topic_jointState; }
 
   /*!
    * Name of the topic used to public joint state command that has to be applied to the robot.
    *
    * \param topic_jointStateCmd : Topic name.
    */
-  inline void setTopicJointStateCmd(const std::string &topic_jointStateCmd)
+  inline void setTopicJointStateCmd( const std::string &topic_jointStateCmd )
   {
     m_topic_jointStateCmd = topic_jointStateCmd;
   }
@@ -152,10 +143,7 @@ public:
    *
    * \param topic_robotState : Topic name.
    */
-  inline void setTopicRobotStateCmd(const std::string &topic_robotState)
-  {
-    m_topic_robotStateCmd = topic_robotState;
-  }
+  inline void setTopicRobotStateCmd( const std::string &topic_robotState ) { m_topic_robotStateCmd = topic_robotState; }
 
   /*!
    * Set topic name that contains `g0` corresponding to the absolute acceleration
@@ -163,10 +151,7 @@ public:
    *
    * \param topic_g0 : Topic name.
    */
-  inline void setTopic_g0(const std::string &topic_g0)
-  {
-    m_topic_g0 = topic_g0;
-  }
+  inline void setTopic_g0( const std::string &topic_g0 ) { m_topic_g0 = topic_g0; }
 
   /*!
    * Set topic name that contains `eMc` corresponding to the end-effector
@@ -174,10 +159,7 @@ public:
    *
    * \param topic_eMc : Topic name.
    */
-  inline void setTopic_eMc(const std::string &topic_eMc)
-  {
-    m_topic_eMc = topic_eMc;
-  }
+  inline void setTopic_eMc( const std::string &topic_eMc ) { m_topic_eMc = topic_eMc; }
 
   /*!
    * Set topic name that contains `flMe` corresponding to the flange
@@ -185,10 +167,7 @@ public:
    *
    * \param topic_flMe : Topic name.
    */
-  inline void setTopic_flMe(const std::string &topic_flMe)
-  {
-    m_topic_flMe = topic_flMe;
-  }
+  inline void setTopic_flMe( const std::string &topic_flMe ) { m_topic_flMe = topic_flMe; }
 
   /*!
    * Set topic name that contains `flMcom` corresponding to the flange
@@ -196,35 +175,29 @@ public:
    *
    * \param topic_flMcom : Topic name.
    */
-  inline void setTopic_flMcom(const std::string &topic_flMcom)
-  {
-    m_topic_flMcom = topic_flMcom;
-  }
+  inline void setTopic_flMcom( const std::string &topic_flMcom ) { m_topic_flMcom = topic_flMcom; }
 
   /*!
    * Set topic name that contains the `Inertia` parameters of the tool.
    *
    * \param topic_toolInertia : Topic name.
    */
-  inline void setTopic_toolInertia(const std::string &topic_toolInertia)
-  {
-	  m_topic_toolInertia = topic_toolInertia;
-  }
+  inline void setTopic_toolInertia( const std::string &topic_toolInertia ) { m_topic_toolInertia = topic_toolInertia; }
 
-  void setCoppeliasimSimulationStepDone(bool simulationStepDone);
+  void setCoppeliasimSimulationStepDone( bool simulationStepDone );
 
-  void wait(double timestamp_second, double duration_second);
+  void wait( double timestamp_second, double duration_second );
 
 protected:
-  void callbackJointState(const sensor_msgs::JointState& joint_state);
-  void callback_g0(const geometry_msgs::Vector3& g0_msg);
-  void callback_eMc(const geometry_msgs::Pose& pose_msg);
-  void callback_flMe(const geometry_msgs::Pose& pose_msg);
-  void callback_flMcom(const geometry_msgs::Pose& pose_msg);
-  void callback_toolInertia(const geometry_msgs::Inertia& inertia_msg);
-  void callbackSimulationStepDone(const std_msgs::Bool &msg);
-  void callbackSimulationTime(const std_msgs::Float32& msg);
-  void callbackSimulationState(const std_msgs::Int32& msg);
+  void callbackJointState( const sensor_msgs::JointState &joint_state );
+  void callback_g0( const geometry_msgs::Vector3 &g0_msg );
+  void callback_eMc( const geometry_msgs::Pose &pose_msg );
+  void callback_flMe( const geometry_msgs::Pose &pose_msg );
+  void callback_flMcom( const geometry_msgs::Pose &pose_msg );
+  void callback_toolInertia( const geometry_msgs::Inertia &inertia_msg );
+  void callbackSimulationStepDone( const std_msgs::Bool &msg );
+  void callbackSimulationTime( const std_msgs::Float32 &msg );
+  void callbackSimulationState( const std_msgs::Int32 &msg );
 
   void readingLoop();
 
@@ -288,7 +261,8 @@ protected:
   bool m_syncModeEnabled;
   int m_simulationState;
 
-  bool m_overwrite_toolInertia; // Flag to indicate that the inertia parameters of the tool should no more be updated from topic
+  bool m_overwrite_toolInertia; // Flag to indicate that the inertia parameters of the tool should no more be updated
+                                // from topic
   bool m_overwrite_flMe;        // Flag to indicate that flMe should no more be updated from topic
   bool m_overwrite_flMcom;      // Flag to indicate that flMcom should no more be updated from topic
 };

@@ -39,19 +39,18 @@
  *
  *****************************************************************************/
 
+#include <std_srvs/Empty.h>
 #include <visp/vpConfig.h>
 #include <visp/vpMath.h>
 #include <visp/vpRobotException.h>
-#include <std_srvs/Empty.h>
 #include <visp_ros/vpROSRobotPioneer.h>
-
 
 /*!
   Default constructor that initializes Aria.
   */
-vpROSRobotPioneer::vpROSRobotPioneer() : vpPioneer()
+vpROSRobotPioneer::vpROSRobotPioneer()
+  : vpPioneer()
 {
-
 }
 
 //! destructor
@@ -62,15 +61,17 @@ vpROSRobotPioneer::~vpROSRobotPioneer()
 }
 
 //! basic initialization
-void vpROSRobotPioneer::init()
+void
+vpROSRobotPioneer::init()
 {
   vpROSRobot::init();
   enableMotors();
 }
 
-void vpROSRobotPioneer::init(int argc, char **argv)
+void
+vpROSRobotPioneer::init( int argc, char **argv )
 {
-  vpROSRobot::init(argc, argv);
+  vpROSRobot::init( argc, argv );
   enableMotors();
 }
 
@@ -91,60 +92,62 @@ void vpROSRobotPioneer::init(int argc, char **argv)
   \exception vpRobotException::dimensionError : Velocity vector is not a 2 dimension vector.
   \exception vpRobotException::wrongStateError : If the specified control frame is not supported.
   */
-void vpROSRobotPioneer::setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel)
+void
+vpROSRobotPioneer::setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel )
 {
-  if (! isInitialized) {
-    throw (vpRobotException(vpRobotException::notInitialized,
-                            "ROS robot pioneer is not initialized") );
-  }
-
-  if (vel.size() != 2)
+  if ( !isInitialized )
   {
-    throw(vpRobotException(vpRobotException::dimensionError, "Velocity vector is not a 2 dimension vector"));
+    throw( vpRobotException( vpRobotException::notInitialized, "ROS robot pioneer is not initialized" ) );
   }
 
-  vpColVector vel_max(2);
-  vpColVector vel_sat;
-  vpColVector vel_robot(6);
+  if ( vel.size() != 2 )
+  {
+    throw( vpRobotException( vpRobotException::dimensionError, "Velocity vector is not a 2 dimension vector" ) );
+  }
 
-  if (frame == vpRobot::REFERENCE_FRAME)
+  vpColVector vel_max( 2 );
+  vpColVector vel_sat;
+  vpColVector vel_robot( 6 );
+
+  if ( frame == vpRobot::REFERENCE_FRAME )
   {
     vel_max[0] = getMaxTranslationVelocity();
     vel_max[1] = getMaxRotationVelocity();
 
-    vel_sat = vpRobot::saturateVelocities(vel, vel_max, true);
+    vel_sat      = vpRobot::saturateVelocities( vel, vel_max, true );
     vel_robot[0] = vel_sat[0];
     vel_robot[1] = 0;
     vel_robot[2] = 0;
     vel_robot[3] = 0;
     vel_robot[4] = 0;
     vel_robot[5] = vel_sat[1];
-    vpROSRobot::setVelocity(frame, vel_robot);
+    vpROSRobot::setVelocity( frame, vel_robot );
   }
   else
   {
-    throw vpRobotException (vpRobotException::wrongStateError,
-                            "Cannot send the robot velocity in the specified control frame");
+    throw vpRobotException( vpRobotException::wrongStateError,
+                            "Cannot send the robot velocity in the specified control frame" );
   }
 }
 
-void vpROSRobotPioneer::enableMotors()
+void
+vpROSRobotPioneer::enableMotors()
 {
-  ros::ServiceClient client = n->serviceClient<std_srvs::Empty>("/RosAria/enable_motors");
+  ros::ServiceClient client = n->serviceClient< std_srvs::Empty >( "/RosAria/enable_motors" );
   std_srvs::Empty srv;
-  if (!client.call(srv))
+  if ( !client.call( srv ) )
   {
-    ROS_ERROR("Unable to enable motors");
+    ROS_ERROR( "Unable to enable motors" );
   }
 }
 
-void vpROSRobotPioneer::disableMotors()
+void
+vpROSRobotPioneer::disableMotors()
 {
-  ros::ServiceClient client = n->serviceClient<std_srvs::Empty>("/RosAria/disable_motors");
+  ros::ServiceClient client = n->serviceClient< std_srvs::Empty >( "/RosAria/disable_motors" );
   std_srvs::Empty srv;
-  if (!client.call(srv))
+  if ( !client.call( srv ) )
   {
-    ROS_ERROR("Unable to disable motors");
+    ROS_ERROR( "Unable to disable motors" );
   }
 }
-

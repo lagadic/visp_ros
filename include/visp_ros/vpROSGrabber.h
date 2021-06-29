@@ -50,34 +50,34 @@
 
 #include <visp3/core/vpConfig.h>
 
-#if defined(VISP_HAVE_OPENCV)
+#if defined( VISP_HAVE_OPENCV )
 
-#include <visp3/core/vpImage.h>
 #include <visp3/core/vpFrameGrabber.h>
+#include <visp3/core/vpImage.h>
 #include <visp3/core/vpRGBa.h>
 
+#include <image_geometry/pinhole_camera_model.h>
 #include <ros/ros.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/Image.h>
 #include <visp_bridge/camera.h>
-#include <image_geometry/pinhole_camera_model.h>
 
 #if VISP_HAVE_OPENCV_VERSION >= 0x020101
-#    include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #else
-#  include <highgui.h>
+#include <highgui.h>
 #endif
 
 /*!
   \class vpROSGrabber
 
   \ingroup Framegrabber CameraDriver
-  
+
   \brief Class for cameras video capture for ROS cameras.
-  
+
   Needs OpenCV available on http://opencv.willowgarage.com/wiki/.
   Needs pthread
-  
+
   The code below shows how to use this class.
   \code
 #include <visp/vpImage.h>
@@ -103,73 +103,71 @@ int main()
  */
 class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
 {
-  protected:
-    ros::NodeHandle *m_n;
-    ros::Subscriber m_img_sub;
-    ros::Subscriber m_cam_info_sub;
-    ros::AsyncSpinner *m_spinner;
-    volatile bool m_isInitialized;
-    volatile unsigned int m_width;
-    volatile unsigned int m_height;
-    image_geometry::PinholeCameraModel m_p;
-    cv::Mat m_img;
-    bool m_flip;
-    volatile bool m_rectify;
-    volatile bool m_mutex_image, m_mutex_param;
-    void imageCallbackRaw(const sensor_msgs::Image::ConstPtr& msg);
-    void imageCallback(const sensor_msgs::CompressedImage::ConstPtr& msg);
-    void paramCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
-    volatile bool m_first_img_received;
-    volatile bool m_first_param_received;
-    volatile uint32_t m_sec, m_nsec;
-    std::string m_master_uri;
-    std::string m_topic_image;
-    std::string m_topic_cam_info;
-    std::string m_nodespace;
-    std::string m_image_transport;
-    vpCameraParameters m_cam;
+protected:
+  ros::NodeHandle *m_n;
+  ros::Subscriber m_img_sub;
+  ros::Subscriber m_cam_info_sub;
+  ros::AsyncSpinner *m_spinner;
+  volatile bool m_isInitialized;
+  volatile unsigned int m_width;
+  volatile unsigned int m_height;
+  image_geometry::PinholeCameraModel m_p;
+  cv::Mat m_img;
+  bool m_flip;
+  volatile bool m_rectify;
+  volatile bool m_mutex_image, m_mutex_param;
+  void imageCallbackRaw( const sensor_msgs::Image::ConstPtr &msg );
+  void imageCallback( const sensor_msgs::CompressedImage::ConstPtr &msg );
+  void paramCallback( const sensor_msgs::CameraInfo::ConstPtr &msg );
+  volatile bool m_first_img_received;
+  volatile bool m_first_param_received;
+  volatile uint32_t m_sec, m_nsec;
+  std::string m_master_uri;
+  std::string m_topic_image;
+  std::string m_topic_cam_info;
+  std::string m_nodespace;
+  std::string m_image_transport;
+  vpCameraParameters m_cam;
 
-  public:
+public:
+  vpROSGrabber();
+  virtual ~vpROSGrabber();
 
-    vpROSGrabber();
-    virtual ~vpROSGrabber();
+  void open( int argc, char **argv );
+  void open();
+  void open( vpImage< unsigned char > &I );
+  void open( vpImage< vpRGBa > &I );
 
-    void open(int argc, char **argv);
-    void open();
-    void open(vpImage<unsigned char> &I);
-    void open(vpImage<vpRGBa> &I);
+  void acquire( vpImage< unsigned char > &I );
+  void acquire( vpImage< vpRGBa > &I );
+  cv::Mat acquire();
+  bool acquireNoWait( vpImage< unsigned char > &I );
+  bool acquireNoWait( vpImage< vpRGBa > &I );
 
-    void acquire(vpImage<unsigned char> &I);
-    void acquire(vpImage<vpRGBa> &I);
-    cv::Mat acquire();
-    bool acquireNoWait(vpImage<unsigned char> &I);
-    bool acquireNoWait(vpImage<vpRGBa> &I);
+  void acquire( vpImage< unsigned char > &I, struct timespec &timestamp );
+  void acquire( vpImage< vpRGBa > &I, struct timespec &timestamp );
+  void acquire( vpImage< unsigned char > &I, double &timestamp_second );
+  void acquire( vpImage< vpRGBa > &I, double &timestamp_second );
+  cv::Mat acquire( struct timespec &timestamp );
+  bool acquireNoWait( vpImage< unsigned char > &I, struct timespec &timestamp );
+  bool acquireNoWait( vpImage< vpRGBa > &I, struct timespec &timestamp );
 
-    void acquire(vpImage<unsigned char> &I, struct timespec &timestamp);
-    void acquire(vpImage<vpRGBa> &I, struct timespec &timestamp);
-    void acquire(vpImage<unsigned char> &I, double &timestamp_second);
-    void acquire(vpImage<vpRGBa> &I, double &timestamp_second);
-    cv::Mat acquire(struct timespec &timestamp);
-    bool acquireNoWait(vpImage<unsigned char> &I, struct timespec &timestamp);
-    bool acquireNoWait(vpImage<vpRGBa> &I, struct timespec &timestamp);
+  void close();
 
-    void close();
+  void setCameraInfoTopic( const std::string &topic_name );
+  void setImageTopic( const std::string &topic_name );
+  void setMasterURI( const std::string &master_uri );
+  void setNodespace( const std::string &nodespace );
+  void setImageTransport( const std::string &image_transport );
+  void setFlip( bool flipType );
+  void setRectify( bool rectify );
 
-    void setCameraInfoTopic(const std::string &topic_name);
-    void setImageTopic(const std::string &topic_name);
-    void setMasterURI(const std::string &master_uri);
-    void setNodespace(const std::string &nodespace);
-    void setImageTransport(const std::string &image_transport);
-    void setFlip(bool flipType);
-    void setRectify(bool rectify);
-
-    bool getCameraInfo(vpCameraParameters &cam);
-    void getWidth(unsigned int width) const;
-    void getHeight(unsigned int height) const;
-    unsigned int getWidth() const;
-    unsigned int getHeight() const;
+  bool getCameraInfo( vpCameraParameters &cam );
+  void getWidth( unsigned int width ) const;
+  void getHeight( unsigned int height ) const;
+  unsigned int getWidth() const;
+  unsigned int getHeight() const;
 };
 
 #endif
 #endif
-
