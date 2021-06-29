@@ -37,41 +37,40 @@
  *
  *****************************************************************************/
 
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <algorithm>
 
-#include <ros/ros.h>
 #include <nodelet/loader.h>
+#include <ros/ros.h>
 
 #include <visp3/core/vpConfig.h>
 
-int main(int argc, char* argv[])
+int
+main( int argc, char *argv[] )
 {
-#if VISP_VERSION_INT > VP_VERSION_INT(3,2,0) // ViSP >= 3.0.0
-  ros::init(argc, argv, "bebop_vs", ros::init_options::NoSigintHandler);
+#if VISP_VERSION_INT > VP_VERSION_INT( 3, 2, 0 ) // ViSP >= 3.0.0
+  ros::init( argc, argv, "bebop_vs", ros::init_options::NoSigintHandler );
   nodelet::Loader nll;
 
-  nodelet::M_string remap(ros::names::getRemappings());
+  nodelet::M_string remap( ros::names::getRemappings() );
   nodelet::V_string nargv;
   const std::string nl_name = ros::this_node::getName();
-  nll.load(nl_name, "visp_ros_bebop2_visual_servo_nodelet", remap, nargv);
+  nll.load( nl_name, "visp_ros_bebop2_visual_servo_nodelet", remap, nargv );
 
-  const std::vector<std::string>& loaded_nodelets = nll.listLoadedNodelets();
-  if (std::find(loaded_nodelets.begin(),
-                loaded_nodelets.end(),
-                nl_name) == loaded_nodelets.end())
+  const std::vector< std::string > &loaded_nodelets = nll.listLoadedNodelets();
+  if ( std::find( loaded_nodelets.begin(), loaded_nodelets.end(), nl_name ) == loaded_nodelets.end() )
   {
     // Nodelet OnInit() failed
-    ROS_FATAL("Visual servo nodelet failed to load.");
+    ROS_FATAL( "Visual servo nodelet failed to load." );
     return 1;
   }
 
   // It reaches here when OnInit() succeeds
-  ROS_INFO("Visual servo nodelet loaded.");
+  ROS_INFO( "Visual servo nodelet loaded." );
   ros::spin();
 #else
-  ROS_INFO("This node needs ViSP > 3.2.0. Exit...");
+  ROS_INFO( "This node needs ViSP > 3.2.0. Exit..." );
 #endif
 
   return 0;

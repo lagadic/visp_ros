@@ -38,27 +38,27 @@
 #ifndef vpRobotFrankaSim_h
 #define vpRobotFrankaSim_h
 
-#include <thread>
-#include <mutex>
 #include <atomic>
+#include <mutex>
+#include <thread>
 
 #include <visp3/core/vpConfig.h>
-#include <visp3/robot/vpRobot.h>
 #include <visp3/core/vpPoseVector.h>
 #include <visp3/core/vpThetaUVector.h>
+#include <visp3/robot/vpRobot.h>
 
-#if defined(VISP_HAVE_OROCOS_KDL)
+#if defined( VISP_HAVE_OROCOS_KDL )
 
 #ifdef VISP_HAVE_OROCOS_KDL
 #include <kdl/chain.hpp>
 #include <kdl/chainfksolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainiksolverpos_nr.hpp>
+#include <kdl/chainiksolverpos_nr_jl.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/frames_io.hpp>
 #include <kdl/solveri.hpp>
-#include <kdl/chainiksolvervel_pinv.hpp>
-#include <kdl/chainiksolverpos_nr.hpp>
-#include <kdl/chainiksolverpos_nr_jl.hpp>
 #endif
 
 /*!
@@ -70,50 +70,60 @@ public:
   vpRobotFrankaSim();
   virtual ~vpRobotFrankaSim();
 
-  vpRobot::vpRobotStateType getRobotState(void);
+  vpRobot::vpRobotStateType getRobotState( void );
 
-  void get_fJe(vpMatrix &fJe);
-  void get_fJe(const vpColVector &q, vpMatrix &fJe);
-  void get_eJe(vpMatrix &eJe_);
-  void get_eJe(const vpColVector &q, vpMatrix &fJe);
+  void get_fJe( vpMatrix &fJe );
+  void get_fJe( const vpColVector &q, vpMatrix &fJe );
+  void get_eJe( vpMatrix &eJe_ );
+  void get_eJe( const vpColVector &q, vpMatrix &fJe );
   vpHomogeneousMatrix get_eMc() const;
-  vpHomogeneousMatrix get_fMe(const vpColVector &q);
+  vpHomogeneousMatrix get_fMe( const vpColVector &q );
   vpHomogeneousMatrix get_fMe();
 
-  void getCoriolis(vpColVector &coriolis);
+  void getGravity( vpColVector &gravity );
+  void getMass( vpMatrix &mass );
+  void getCoriolis( vpColVector &coriolis );
+  void getFriction( vpColVector &friction );
 
-  virtual void getForceTorque(const vpRobot::vpControlFrameType frame, vpColVector &force);
-  void getGravity(vpColVector &gravity);
-  void getMass(vpMatrix &mass);
-  virtual void getPosition(const vpRobot::vpControlFrameType frame, vpColVector &position);
-  virtual void getPosition(const vpRobot::vpControlFrameType frame, vpPoseVector &position);
-  virtual void getVelocity(const vpRobot::vpControlFrameType frame, vpColVector &d_position);
+  virtual void getForceTorque( const vpRobot::vpControlFrameType frame, vpColVector &force );
+  virtual void getPosition( const vpRobot::vpControlFrameType frame, vpColVector &position );
+  virtual void getPosition( const vpRobot::vpControlFrameType frame, vpPoseVector &position );
+  virtual void getVelocity( const vpRobot::vpControlFrameType frame, vpColVector &d_position );
 
-  virtual void set_eMc(const vpHomogeneousMatrix &eMc);
+  virtual void set_eMc( const vpHomogeneousMatrix &eMc );
+  virtual void setForceTorque( const vpRobot::vpControlFrameType frame, const vpColVector &force );
+  virtual void setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position );
+  virtual void setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel );
 
-  virtual void setForceTorque(const vpRobot::vpControlFrameType frame, const vpColVector &force);
-
-  virtual void setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position);
-
-  virtual void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
+  virtual void add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &fMcom,
+                         const vpMatrix &I_L );
+  virtual void set_flMe( const vpHomogeneousMatrix &flMe );
+  virtual void set_g0( const vpColVector &g0 );
+  //  vpHomogeneousMatrix get_flMe() const;
 
   /*!
    * Enable/disable verbose mode to print additional info.
    * \param verbose : true to enable verbose mode, false otherwise.
    */
-  inline void setVerbose(bool verbose)
-  {
-    m_verbose = verbose;
-  }
+  inline void setVerbose( bool verbose ) { m_verbose = verbose; }
 
 protected:
-  vpColVector m_q;      // Joint Positions
-  vpColVector m_dq;     // Joint Velocities
-  vpColVector m_tau_J;  // Joint efforts
+  vpColVector m_q;     // Joint Positions
+  vpColVector m_dq;    // Joint Velocities
+  vpColVector m_tau_J; // Joint efforts
+
+  double m_mL;                 // payload mass
+  vpHomogeneousMatrix m_fMcom; // payload Center of Mass pose in flange frame
+  vpMatrix m_Il;               // payload inertia tensor
+  vpHomogeneousMatrix m_flMe;  // End-effector pose in flange frame
+  bool m_toolMounted;          // flag to indicate the presence of a tool
+  bool m_camMounted;           // flag to indicate the presence of a camera
+
+  vpColVector m_g0; // Absolute gravitational acceleration vector in base frame
 
   std::mutex m_mutex;
 
-  vpColVector solveIK(const vpHomogeneousMatrix &edMw);
+  vpColVector solveIK( const vpHomogeneousMatrix &edMw );
   vpColVector getVelDes();
 
 #ifdef VISP_HAVE_OROCOS_KDL
@@ -122,26 +132,25 @@ protected:
   KDL::Chain m_chain_kdl;
   KDL::JntArray m_q_min_kdl;
   KDL::JntArray m_q_max_kdl;
-  KDL::ChainFkSolverPos_recursive* m_fksolver_kdl;
-  KDL::ChainJntToJacSolver* m_jacobianSolver_kdl;
-  KDL::ChainIkSolverVel_pinv* m_diffIkSolver_kdl;
-  KDL::ChainIkSolverPos_NR_JL* m_iksolver_JL_kdl;
+  KDL::ChainFkSolverPos_recursive *m_fksolver_kdl;
+  KDL::ChainJntToJacSolver *m_jacobianSolver_kdl;
+  KDL::ChainIkSolverVel_pinv *m_diffIkSolver_kdl;
+  KDL::ChainIkSolverPos_NR_JL *m_iksolver_JL_kdl;
 #endif
 
   vpRobot::vpRobotStateType m_stateRobot;
 
-  vpColVector m_q_des;             // Desired joint position.
+  vpColVector m_q_des; // Desired joint position.
 
-  vpColVector m_dq_des;            // Desired joint velocity.
-  vpColVector m_dq_des_filt;       // Desired joint velocity filtered.
-  vpColVector m_v_cart_des;        // Desired Cartesian velocity in end-effector frame.
+  vpColVector m_dq_des;      // Desired joint velocity.
+  vpColVector m_dq_des_filt; // Desired joint velocity filtered.
+  vpColVector m_v_cart_des;  // Desired Cartesian velocity in end-effector frame.
 
-  vpColVector m_tau_J_des;         // Desired joint torques.
-  vpColVector m_tau_J_des_filt;    // Desired joint torques filtered.
+  vpColVector m_tau_J_des;      // Desired joint torques.
+  vpColVector m_tau_J_des_filt; // Desired joint torques filtered.
 
-  vpHomogeneousMatrix m_eMc;
+  vpHomogeneousMatrix m_eMc; // Transformation of the camera w.r.t. End-Effector frame
   vpVelocityTwistMatrix m_eVc;
-  bool m_overwrite_eMc; // Flag to indicate that eMc should no more be updated from topic
 
   bool m_verbose;
 };

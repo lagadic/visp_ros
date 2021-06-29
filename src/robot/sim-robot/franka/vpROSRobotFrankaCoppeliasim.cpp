@@ -43,34 +43,55 @@
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 #ifdef VISP_HAVE_IIR
-#  include <Iir.h>
+#include <Iir.h>
 #endif
 
 /*!
  * Default constructor.
  */
 vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
-  : m_controlThread(),
-    m_acquisitionThread(),
-    m_topic_jointState("/vrep/franka/joint_state"),
-    m_topic_eMc("/vrep/franka/eMc"),
-    m_topic_jointStateCmd("/fakeFCI/joint_state"),
-    m_topic_robotStateCmd("/fakeFCI/robot_state"),
-    m_connected(false),
-    m_posControlThreadIsRunning(false), m_posControlThreadStopAsked(false),
-    m_posControlLock(false), m_posControlNewCmd(false),
-    m_velControlThreadIsRunning(false), m_velControlThreadStopAsked(false),
-    m_ftControlThreadIsRunning(false), m_ftControlThreadStopAsked(false),
-    m_pub_jointStateCmd(), m_pub_robotStateCmd(),
-    m_pub_startSimulation(), m_pub_pauseSimulation(), m_pub_stopSimulation(),
-    m_pub_triggerNextStep(), m_pub_enableSyncMode(),
-    m_sub_coppeliasim_jointState(), m_sub_coppeliasim_eMc(),
-    m_sub_coppeliasim_simulationStepDone(), m_sub_coppeliasim_simulationTime(),
-    m_sub_coppeliasim_simulationState(),
-    m_simulationStepDone(false), m_simulationTime(0.), m_syncModeEnabled(false),
-    m_simulationState(0)
+  : m_controlThread()
+  , m_acquisitionThread()
+  , m_topic_jointState( "/coppeliasim/franka/joint_state" )
+  , m_topic_g0( "/coppeliasim/franka/g0" )
+  , m_topic_eMc( "/coppeliasim/franka/eMc" )
+  , m_topic_flMe( "/coppeliasim/franka/flMe" )
+  , m_topic_flMcom( "/coppeliasim/franka/flMcom" )
+  , m_topic_toolInertia( "/coppeliasim/franka/tool/inertia" )
+  , m_topic_jointStateCmd( "/fakeFCI/joint_state" )
+  , m_topic_robotStateCmd( "/fakeFCI/robot_state" )
+  , m_connected( false )
+  , m_posControlThreadIsRunning( false )
+  , m_posControlThreadStopAsked( false )
+  , m_posControlLock( false )
+  , m_posControlNewCmd( false )
+  , m_velControlThreadIsRunning( false )
+  , m_velControlThreadStopAsked( false )
+  , m_ftControlThreadIsRunning( false )
+  , m_ftControlThreadStopAsked( false )
+  , m_pub_jointStateCmd()
+  , m_pub_robotStateCmd()
+  , m_pub_startSimulation()
+  , m_pub_pauseSimulation()
+  , m_pub_stopSimulation()
+  , m_pub_triggerNextStep()
+  , m_pub_enableSyncMode()
+  , m_sub_coppeliasim_jointState()
+  , m_sub_coppeliasim_eMc()
+  , m_sub_coppeliasim_simulationStepDone()
+  , m_sub_coppeliasim_simulationTime()
+  , m_sub_coppeliasim_simulationState()
+  , m_sub_coppeliasim_flMe()
+  , m_sub_coppeliasim_toolInertia()
+  , m_sub_coppeliasim_flMcom()
+  , m_simulationStepDone( false )
+  , m_simulationTime( 0. )
+  , m_syncModeEnabled( false )
+  , m_simulationState( 0 )
+  , m_overwrite_flMe( true )
+  , m_overwrite_flMcom( true )
+  , m_overwrite_toolInertia( true )
 {
-
 }
 
 /*!
@@ -79,23 +100,25 @@ vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
 vpROSRobotFrankaCoppeliasim::~vpROSRobotFrankaCoppeliasim()
 {
   m_mutex.lock();
-  m_connected = false;
+  m_connected                 = false;
   m_posControlThreadStopAsked = true;
   m_velControlThreadStopAsked = true;
-  m_ftControlThreadStopAsked = true;
+  m_ftControlThreadStopAsked  = true;
   m_mutex.unlock();
 
-  if (m_controlThread.joinable()) {
+  if ( m_controlThread.joinable() )
+  {
     m_controlThread.join();
     m_posControlThreadStopAsked = false;
     m_posControlThreadIsRunning = false;
     m_velControlThreadStopAsked = false;
     m_velControlThreadIsRunning = false;
-    m_ftControlThreadStopAsked = false;
-    m_ftControlThreadIsRunning = false;
+    m_ftControlThreadStopAsked  = false;
+    m_ftControlThreadIsRunning  = false;
   }
 
-  if (m_acquisitionThread.joinable()) {
+  if ( m_acquisitionThread.joinable() )
+  {
     m_acquisitionThread.join();
   }
 }
@@ -107,42 +130,58 @@ vpROSRobotFrankaCoppeliasim::~vpROSRobotFrankaCoppeliasim()
  *
  * \sa setTopicJointState(), setTopic_eMc(), setTopicJointStateCmd(), setTopicRobotStateCmdCmd()
  */
-void vpROSRobotFrankaCoppeliasim::connect()
+void
+vpROSRobotFrankaCoppeliasim::connect()
 {
-  ros::NodeHandlePtr n = boost::make_shared<ros::NodeHandle>();
+  ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
 
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Subscribe " << m_topic_jointState << std::endl;
+    std::cout << "Subscribe " << m_topic_g0 << std::endl;
     std::cout << "Subscribe " << m_topic_eMc << std::endl;
+    std::cout << "Subscribe " << m_topic_flMe << std::endl;
+    std::cout << "Subscribe " << m_topic_flMcom << std::endl;
+    std::cout << "Subscribe " << m_topic_toolInertia << std::endl;
   }
-  m_sub_coppeliasim_jointState = n->subscribe(m_topic_jointState, 1, &vpROSRobotFrankaCoppeliasim::callbackJointState, this);
-  m_sub_coppeliasim_eMc = n->subscribe(m_topic_eMc, 1, &vpROSRobotFrankaCoppeliasim::callback_eMc, this);
+  m_sub_coppeliasim_jointState =
+      n->subscribe( m_topic_jointState, 1, &vpROSRobotFrankaCoppeliasim::callbackJointState, this );
+  m_sub_coppeliasim_g0     = n->subscribe( m_topic_g0, 1, &vpROSRobotFrankaCoppeliasim::callback_g0, this );
+  m_sub_coppeliasim_eMc    = n->subscribe( m_topic_eMc, 1, &vpROSRobotFrankaCoppeliasim::callback_eMc, this );
+  m_sub_coppeliasim_flMe   = n->subscribe( m_topic_flMe, 1, &vpROSRobotFrankaCoppeliasim::callback_flMe, this );
+  m_sub_coppeliasim_flMcom = n->subscribe( m_topic_flMcom, 1, &vpROSRobotFrankaCoppeliasim::callback_flMcom, this );
+  m_sub_coppeliasim_toolInertia =
+      n->subscribe( m_topic_toolInertia, 1, &vpROSRobotFrankaCoppeliasim::callback_toolInertia, this );
 
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Advertise " << m_topic_jointStateCmd << std::endl;
     std::cout << "Advertise " << m_topic_robotStateCmd << std::endl;
   }
-  m_pub_jointStateCmd = n->advertise<sensor_msgs::JointState>(m_topic_jointStateCmd, 1);
-  m_pub_robotStateCmd = n->advertise<std_msgs::Int32>(m_topic_robotStateCmd, 1);
+  m_pub_jointStateCmd = n->advertise< sensor_msgs::JointState >( m_topic_jointStateCmd, 1 );
+  m_pub_robotStateCmd = n->advertise< std_msgs::Int32 >( m_topic_robotStateCmd, 1 );
 
   // Coppeliasim specific topic names
-  m_sub_coppeliasim_simulationStepDone = n->subscribe("/simulationStepDone", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone, this);
-  m_sub_coppeliasim_simulationTime = n->subscribe("/simulationTime", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationTime, this);
-  m_sub_coppeliasim_simulationState = n->subscribe("/simulationState", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationState, this);
+  m_sub_coppeliasim_simulationStepDone =
+      n->subscribe( "/simulationStepDone", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone, this );
+  m_sub_coppeliasim_simulationTime =
+      n->subscribe( "/simulationTime", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationTime, this );
+  m_sub_coppeliasim_simulationState =
+      n->subscribe( "/simulationState", 1, &vpROSRobotFrankaCoppeliasim::callbackSimulationState, this );
 
-  m_pub_startSimulation = n->advertise<std_msgs::Bool>("/startSimulation", 1);
-  m_pub_pauseSimulation = n->advertise<std_msgs::Bool>("/pauseSimulation", 1);
-  m_pub_stopSimulation = n->advertise<std_msgs::Bool>("/stopSimulation", 1);
-  m_pub_enableSyncMode = n->advertise<std_msgs::Bool>("/enableSyncMode", 1);
-  m_pub_triggerNextStep = n->advertise<std_msgs::Bool>("/triggerNextStep", 1);
+  m_pub_startSimulation = n->advertise< std_msgs::Bool >( "/startSimulation", 1 );
+  m_pub_pauseSimulation = n->advertise< std_msgs::Bool >( "/pauseSimulation", 1 );
+  m_pub_stopSimulation  = n->advertise< std_msgs::Bool >( "/stopSimulation", 1 );
+  m_pub_enableSyncMode  = n->advertise< std_msgs::Bool >( "/enableSyncMode", 1 );
+  m_pub_triggerNextStep = n->advertise< std_msgs::Bool >( "/triggerNextStep", 1 );
 
-  std::lock_guard<std::mutex> lock(m_mutex);
-  m_connected = true;
-  m_acquisitionThread = std::thread([this] { readingLoop(); });
+  std::lock_guard< std::mutex > lock( m_mutex );
+  m_connected         = true;
+  m_acquisitionThread = std::thread( [this] { readingLoop(); } );
 
   // Sleep a couple of ms to ensure thread is launched and topics are created
-  vpTime::sleepMs(3000);
-  std::cout << "ROS is initialized ? " << (ros::isInitialized() ? "yes" : "no") << std::endl;
+  vpTime::sleepMs( 3000 );
+  std::cout << "ROS is initialized ? " << ( ros::isInitialized() ? "yes" : "no" ) << std::endl;
 }
 
 /*!
@@ -157,13 +196,14 @@ void vpROSRobotFrankaCoppeliasim::connect()
  *
  * \sa coppeliasimTriggerNextStep(), getCoppeliasimSybcMode()
  */
-void vpROSRobotFrankaCoppeliasim::setCoppeliasimSyncMode(bool enable, double sleep_ms)
+void
+vpROSRobotFrankaCoppeliasim::setCoppeliasimSyncMode( bool enable, double sleep_ms )
 {
   std_msgs::Bool msg_enableSyncMode;
   msg_enableSyncMode.data = enable;
-  m_pub_enableSyncMode.publish(msg_enableSyncMode);
+  m_pub_enableSyncMode.publish( msg_enableSyncMode );
   m_syncModeEnabled = enable;
-  ros::Rate loop_rate(1000./sleep_ms);
+  ros::Rate loop_rate( 1000. / sleep_ms );
   loop_rate.sleep();
 }
 
@@ -176,12 +216,13 @@ void vpROSRobotFrankaCoppeliasim::setCoppeliasimSyncMode(bool enable, double sle
  *
  * \sa coppeliasimStartSimulation(), coppeliasimStopSimulation(), getCoppeliasimSimulationState()
  */
-void vpROSRobotFrankaCoppeliasim::coppeliasimPauseSimulation(double sleep_ms)
+void
+vpROSRobotFrankaCoppeliasim::coppeliasimPauseSimulation( double sleep_ms )
 {
   std_msgs::Bool msg_pauseSimulation;
   msg_pauseSimulation.data = true;
-  m_pub_pauseSimulation.publish(msg_pauseSimulation);
-  ros::Rate loop_rate(1000./sleep_ms);
+  m_pub_pauseSimulation.publish( msg_pauseSimulation );
+  ros::Rate loop_rate( 1000. / sleep_ms );
   loop_rate.sleep();
 }
 
@@ -194,12 +235,13 @@ void vpROSRobotFrankaCoppeliasim::coppeliasimPauseSimulation(double sleep_ms)
  *
  * \sa coppeliasimPauseSimulation(), coppeliasimStopSimulation(), getCoppeliasimSimulationState()
  */
-void vpROSRobotFrankaCoppeliasim::coppeliasimStartSimulation(double sleep_ms)
+void
+vpROSRobotFrankaCoppeliasim::coppeliasimStartSimulation( double sleep_ms )
 {
   std_msgs::Bool msg_startSimulation;
   msg_startSimulation.data = true;
-  m_pub_startSimulation.publish(msg_startSimulation);
-  ros::Rate loop_rate(1000./sleep_ms);
+  m_pub_startSimulation.publish( msg_startSimulation );
+  ros::Rate loop_rate( 1000. / sleep_ms );
   loop_rate.sleep();
   coppeliasimTriggerNextStep();
 }
@@ -213,12 +255,13 @@ void vpROSRobotFrankaCoppeliasim::coppeliasimStartSimulation(double sleep_ms)
  *
  * \sa coppeliasimStartSimulation(), coppeliasimPauseSimulation(), getCoppeliasimSimulationState()
  */
-void vpROSRobotFrankaCoppeliasim::coppeliasimStopSimulation(double sleep_ms)
+void
+vpROSRobotFrankaCoppeliasim::coppeliasimStopSimulation( double sleep_ms )
 {
   std_msgs::Bool msg_stopSimulation;
   msg_stopSimulation.data = true;
-  m_pub_stopSimulation.publish(msg_stopSimulation);
-  ros::Rate loop_rate(1000./sleep_ms);
+  m_pub_stopSimulation.publish( msg_stopSimulation );
+  ros::Rate loop_rate( 1000. / sleep_ms );
   loop_rate.sleep();
 }
 
@@ -231,29 +274,32 @@ void vpROSRobotFrankaCoppeliasim::coppeliasimStopSimulation(double sleep_ms)
  *
  * \sa setCoppeliasimSyncMode()
  */
-void vpROSRobotFrankaCoppeliasim::coppeliasimTriggerNextStep()
+void
+vpROSRobotFrankaCoppeliasim::coppeliasimTriggerNextStep()
 {
   std_msgs::Bool msg_triggerNextStep;
   msg_triggerNextStep.data = true;
-  m_pub_triggerNextStep.publish(msg_triggerNextStep);
+  m_pub_triggerNextStep.publish( msg_triggerNextStep );
 }
 
 /*!
  * Callback that allows to know when a simulation step is done on Coppeliasim side.
  * \param[in] msg : Simulation step done message send by Coppeliasim
  */
-void vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone(const std_msgs::Bool &msg)
+void
+vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone( const std_msgs::Bool &msg )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   m_simulationStepDone = msg.data;
 }
 
 /*!
  * Return true when a simulation step is done on Coppeliasim side, false otherwise.
  */
-bool vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationStepDone()
+bool
+vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationStepDone()
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   return m_simulationStepDone;
 }
 
@@ -262,9 +308,10 @@ bool vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationStepDone()
  * \param[in] simulationStepDone : True to indicate that the simmulation step is done,
  * false otherwise.
  */
-void vpROSRobotFrankaCoppeliasim::setCoppeliasimSimulationStepDone(bool simulationStepDone)
+void
+vpROSRobotFrankaCoppeliasim::setCoppeliasimSimulationStepDone( bool simulationStepDone )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   m_simulationStepDone = simulationStepDone;
 }
 
@@ -272,28 +319,31 @@ void vpROSRobotFrankaCoppeliasim::setCoppeliasimSimulationStepDone(bool simulati
  * Callback that allows to update the Coppeliasim simulation time.
  * \param[in] msg : Simulation time message.
  */
-void vpROSRobotFrankaCoppeliasim::callbackSimulationTime(const std_msgs::Float32& msg)
+void
+vpROSRobotFrankaCoppeliasim::callbackSimulationTime( const std_msgs::Float32 &msg )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   m_simulationTime = msg.data;
 }
 
 /*!
  * Return Coppeliasim simulation time.
  */
-double vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationTime()
+double
+vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationTime()
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-  return static_cast<double>(m_simulationTime);
+  std::lock_guard< std::mutex > lock( m_mutex );
+  return static_cast< double >( m_simulationTime );
 }
 
 /*!
  * Callback that allows to update the Coppeliasim simulation state.
  * \param[in] msg : Simulation state message.
  */
-void vpROSRobotFrankaCoppeliasim::callbackSimulationState(const std_msgs::Int32& msg)
+void
+vpROSRobotFrankaCoppeliasim::callbackSimulationState( const std_msgs::Int32 &msg )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   m_simulationState = msg.data;
 }
 
@@ -304,9 +354,10 @@ void vpROSRobotFrankaCoppeliasim::callbackSimulationState(const std_msgs::Int32&
  * \sa coppeliasimStartSimulation(), coppeliasimPauseSimulation(), coppeliasimStopSimulation()
  *
  */
-int vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationState()
+int
+vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationState()
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   return m_simulationState;
 }
 
@@ -316,16 +367,18 @@ int vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationState()
  *
  * \sa setTopicJointState(), setTopic_eMc()
  */
-void vpROSRobotFrankaCoppeliasim::readingLoop()
+void
+vpROSRobotFrankaCoppeliasim::readingLoop()
 {
-  ros::Rate loop_rate(500); // Hz
+  ros::Rate loop_rate( 500 ); // Hz
 
-  while (ros::ok() && m_connected) {
+  while ( ros::ok() && m_connected )
+  {
     loop_rate.sleep();
     ros::spinOnce();
   }
 
-  std::lock_guard<std::mutex> lock(m_mutex);
+  std::lock_guard< std::mutex > lock( m_mutex );
   m_connected = false;
 }
 
@@ -334,14 +387,32 @@ void vpROSRobotFrankaCoppeliasim::readingLoop()
  * with the values updated on Coppeliasim side.
  * \param[in] joint_state : Joint state message associated to the topic set by setTopicJointState().
  */
-void vpROSRobotFrankaCoppeliasim::callbackJointState(const sensor_msgs::JointState& joint_state)
+void
+vpROSRobotFrankaCoppeliasim::callbackJointState( const sensor_msgs::JointState &joint_state )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-  for (unsigned int i = 0; i < 7; i ++) {
-    m_q_kdl(i) = m_q[i] = joint_state.position[i];
-    m_dq[i] = joint_state.velocity[i];
-    m_tau_J[i] = joint_state.effort[i];
+  std::lock_guard< std::mutex > lock( m_mutex );
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
+    m_q_kdl( i ) = m_q[i] = joint_state.position[i];
+    m_dq[i]               = joint_state.velocity[i];
+    m_tau_J[i]            = joint_state.effort[i];
   }
+}
+
+/*!
+ * Callback that updates the gravitational acceleration vector as perceived at
+ * the robot's base considered on Coppeliasim side.
+ * \param[in] g0_msg : Message associated to the topic set by setTopic_g0() the
+ * absolute acceleration vector in base frame.
+ */
+void
+vpROSRobotFrankaCoppeliasim::callback_g0( const geometry_msgs::Vector3 &g0_msg )
+{
+  vpColVector g0( 3, 0 );
+  g0[0] = g0_msg.x;
+  g0[1] = g0_msg.y;
+  g0[2] = g0_msg.z;
+  this->set_g0( g0 );
 }
 
 /*!
@@ -350,89 +421,196 @@ void vpROSRobotFrankaCoppeliasim::callbackJointState(const sensor_msgs::JointSta
  * \param[in] pose_msg : Message associated to the topic set by setTopic_eMc() that contains
  * the homogeneous transformation between end-effector and camera frame.
  */
-void vpROSRobotFrankaCoppeliasim::callback_eMc(const geometry_msgs::Pose& pose_msg)
+void
+vpROSRobotFrankaCoppeliasim::callback_eMc( const geometry_msgs::Pose &pose_msg )
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-  if (! m_overwrite_eMc) {
-    m_eMc = visp_bridge::toVispHomogeneousMatrix(pose_msg);
-    m_eVc.buildFrom(m_eMc);
+  if ( !m_camMounted )
+  {
+    this->set_eMc( visp_bridge::toVispHomogeneousMatrix( pose_msg ) );
+  }
+}
+
+/*!
+ * Callback that updates end-effector extrinsics w.r.t. the robot flange
+ * with the transformation considered on Coppeliasim side.
+ * \param[in] pose_msg : Message associated to the topic set by setTopic_flMe() that contains
+ * the homogeneous transformation between end-effector and flange frame.
+ * This callback works jointly with the `callback_toolInertia`  and `callback_flMcom`
+ * to automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void
+vpROSRobotFrankaCoppeliasim::callback_flMe( const geometry_msgs::Pose &pose_msg )
+{
+  if ( !m_toolMounted && m_overwrite_flMe )
+  {
+    this->set_flMe( visp_bridge::toVispHomogeneousMatrix( pose_msg ) );
+    m_overwrite_flMe = false;
+
+    if ( !m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom )
+    {
+      m_toolMounted = true;
+      std::cout << "A tool has been mounted on the robot.\n";
+      std::cout << "Mass: " << m_mL << " [kg]\n";
+      std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+      std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+      std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+    }
+  }
+}
+
+/*!
+ * Callback that updates tool CoM pose w.r.t. the robot flange
+ * with the transformation considered on Coppeliasim side.
+ * \param[in] pose_msg : Message associated to the topic set by setTopic_flMcom() that contains
+ * the homogeneous transformation between flange and CoM frame.
+ * This callback works jointly with the `callback_toolInertia` and `callback_flMe`
+ * to automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void
+vpROSRobotFrankaCoppeliasim::callback_flMcom( const geometry_msgs::Pose &pose_msg )
+{
+  if ( !m_toolMounted && m_overwrite_flMcom )
+  {
+    m_fMcom            = visp_bridge::toVispHomogeneousMatrix( pose_msg );
+    m_overwrite_flMcom = false;
+
+    if ( !m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom )
+    {
+      m_toolMounted = true;
+      std::cout << "A tool has been mounted on the robot.\n";
+      std::cout << "Mass: " << m_mL << " [kg]\n";
+      std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+      std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+      std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+    }
+  }
+}
+
+/*!
+ * Callback that updates the tool inertial parameters.
+ * \param[in] inertia_msg : Message associated to the topic set by setTopic_toolInertia()
+ * that contains the inertial parameters of the mounted tool as considered on
+ * Coppeliasim side. The inertia tensor must be specified in flange frame as well
+ * as the center of mass.
+ * This callback works jointly with the `callback_flMe` and `callback_flMcom` to
+ * automatically retrieve the kinematic and dynamic parameters of the tool.
+ */
+void
+vpROSRobotFrankaCoppeliasim::callback_toolInertia( const geometry_msgs::Inertia &inertia_msg )
+{
+  std::lock_guard< std::mutex > lock( m_mutex );
+  if ( !m_toolMounted && m_overwrite_toolInertia )
+  {
+    m_mL       = inertia_msg.m;
+    m_Il[0][0] = inertia_msg.ixx;
+    m_Il[0][1] = m_Il[1][0] = inertia_msg.ixy;
+    m_Il[0][2] = m_Il[2][0] = inertia_msg.ixz;
+    m_Il[1][1]              = inertia_msg.iyy;
+    m_Il[1][2] = m_Il[2][1] = inertia_msg.iyz;
+    m_Il[2][2]              = inertia_msg.izz;
+
+    m_overwrite_toolInertia = false;
+
+    if ( !m_overwrite_flMe && !m_overwrite_toolInertia && !m_overwrite_flMcom )
+    {
+      m_toolMounted = true;
+      std::cout << "A tool has been mounted on the robot.\n";
+      std::cout << "Mass: " << m_mL << " [kg]\n";
+      std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
+      std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
+      std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+    }
   }
 }
 
 /*!
  * Infinite loop launched when the control is done in position.
  */
-void vpROSRobotFrankaCoppeliasim::positionControlLoop()
+void
+vpROSRobotFrankaCoppeliasim::positionControlLoop()
 {
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Position controller thread launched" << std::endl;
   }
-  ros::NodeHandlePtr n = boost::make_shared<ros::NodeHandle>();
-  ros::Rate loop_rate(500); // Hz
+  ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
+  ros::Rate loop_rate( 500 ); // Hz
   sensor_msgs::JointState joint_state_cmd_msg;
-  joint_state_cmd_msg.velocity.resize(7);
-  joint_state_cmd_msg.name.resize(7);
+  joint_state_cmd_msg.velocity.resize( 7 );
+  joint_state_cmd_msg.name.resize( 7 );
   joint_state_cmd_msg.header.frame_id = "Joint_velocity_cmd";
-  for (unsigned int i = 0; i < 7; i ++) {
-    joint_state_cmd_msg.name[i] = "J" + std::to_string(i);
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
+    joint_state_cmd_msg.name[i] = "J" + std::to_string( i );
   }
-  vpColVector vel_max(7, 0), dq_sat(7,0), gains(7,0);
-  vel_max = {2.1750, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.6100};
+  vpColVector vel_max( 7, 0 ), dq_sat( 7, 0 ), gains( 7, 0 );
+  vel_max = { 2.1750, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.6100 };
 
-  vpMatrix Kp(7,7), Kd(7,7);
+  vpMatrix Kp( 7, 7 ), Kd( 7, 7 );
 
-  gains = {6.0, 6.0, 6.0, 6.0, 3.5, 2.5, 2.0};
-  Kp.diag(gains);
-  gains = {0.5, 0.5, 0.5, 0.5, 0.3, 0.25, 0.2};
-  Kd.diag(gains);
+  gains = { 6.0, 6.0, 6.0, 6.0, 3.5, 2.5, 2.0 };
+  Kp.diag( gains );
+  gains = { 0.5, 0.5, 0.5, 0.5, 0.3, 0.25, 0.2 };
+  Kd.diag( gains );
 
   // Publish robot state to the corresponding ROS topic
   std_msgs::Int32 robot_ctrl_type_msg;
-  robot_ctrl_type_msg.data = static_cast<int>(m_stateRobot);
-  m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
+  robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
+  m_pub_robotStateCmd.publish(
+      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
 
   m_posControlThreadIsRunning = true;
 
   bool backup_sync_mode = m_syncModeEnabled;
 
-  if (backup_sync_mode) {
-    setCoppeliasimSyncMode(false);
+  if ( backup_sync_mode )
+  {
+    setCoppeliasimSyncMode( false );
   }
 
-  while (ros::ok() && !m_posControlThreadStopAsked && m_posControlNewCmd) {
+  while ( ros::ok() && !m_posControlThreadStopAsked && m_posControlNewCmd )
+  {
     loop_rate.sleep();
-    m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
+    m_pub_robotStateCmd.publish(
+        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
 
     m_mutex.lock();
-    m_dq_des = Kp * 10. * (m_q_des - m_q) - Kd * m_dq;
-    dq_sat = vpRobot::saturateVelocities(m_dq_des, vel_max, false);
-    if(std::sqrt(((180./M_PI)*(m_q_des - m_q)).sumSquare()) > 0.1 ){
-      for (unsigned int i = 0; i < 7; i ++) {
+    m_dq_des = Kp * 10. * ( m_q_des - m_q ) - Kd * m_dq;
+    dq_sat   = vpRobot::saturateVelocities( m_dq_des, vel_max, false );
+    if ( std::sqrt( ( ( 180. / M_PI ) * ( m_q_des - m_q ) ).sumSquare() ) > 0.1 )
+    {
+      for ( unsigned int i = 0; i < 7; i++ )
+      {
         joint_state_cmd_msg.velocity[i] = dq_sat[i];
       }
     }
-    else {
-      for (unsigned int i = 0; i < 7; i ++) {
+    else
+    {
+      for ( unsigned int i = 0; i < 7; i++ )
+      {
         joint_state_cmd_msg.velocity[i] = 0;
       }
       m_posControlNewCmd = false;
     }
 
     m_mutex.unlock();
-    m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+    m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   }
 
-  for (unsigned int i = 0; i < 7; i++) {
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
     joint_state_cmd_msg.velocity[i] = 0.;
   }
-  m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+  m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   m_posControlThreadIsRunning = false;
 
-  if (backup_sync_mode) {
-    setCoppeliasimSyncMode(true);
+  if ( backup_sync_mode )
+  {
+    setCoppeliasimSyncMode( true );
   }
 
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Position controller thread finished" << std::endl;
   }
 }
@@ -440,51 +618,60 @@ void vpROSRobotFrankaCoppeliasim::positionControlLoop()
 /*!
  * Infinite loop launched when the control is done in joint velocity.
  */
-void vpROSRobotFrankaCoppeliasim::velocityControlLoop()
+void
+vpROSRobotFrankaCoppeliasim::velocityControlLoop()
 {
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Velocity controller thread launched" << std::endl;
   }
-  ros::NodeHandlePtr n = boost::make_shared<ros::NodeHandle>();
-  ros::Rate loop_rate(500); // Hz
+  ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
+  ros::Rate loop_rate( 500 ); // Hz
 
   sensor_msgs::JointState joint_state_cmd_msg;
-  joint_state_cmd_msg.velocity.resize(7);
-  joint_state_cmd_msg.name.resize(7);
+  joint_state_cmd_msg.velocity.resize( 7 );
+  joint_state_cmd_msg.name.resize( 7 );
   joint_state_cmd_msg.header.frame_id = "Joint_velocity_cmd";
-  for (unsigned int i = 0; i < 7; i++) {
-    joint_state_cmd_msg.name[i] = "J" + std::to_string(i);
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
+    joint_state_cmd_msg.name[i] = "J" + std::to_string( i );
   }
 
   // Publish robot state to the corresponding ROS topic
   std_msgs::Int32 robot_ctrl_type_msg;
-  robot_ctrl_type_msg.data = static_cast<int>(m_stateRobot);
-  m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
+  robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
+  m_pub_robotStateCmd.publish(
+      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
 
-  vpColVector vel_max(7, 0), dq_sat(7,0);
-  vel_max = {2.1750, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.6100};
+  vpColVector vel_max( 7, 0 ), dq_sat( 7, 0 );
+  vel_max = { 2.1750, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.6100 };
 
   m_velControlThreadIsRunning = true;
 
-  while (ros::ok() && ! m_velControlThreadStopAsked) {
+  while ( ros::ok() && !m_velControlThreadStopAsked )
+  {
     loop_rate.sleep();
-    m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
+    m_pub_robotStateCmd.publish(
+        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
     m_mutex.lock();
-    dq_sat = vpRobot::saturateVelocities(m_dq_des, vel_max, true);
-    for (unsigned int i = 0; i < 7; i ++) {
+    dq_sat = vpRobot::saturateVelocities( m_dq_des, vel_max, true );
+    for ( unsigned int i = 0; i < 7; i++ )
+    {
       joint_state_cmd_msg.velocity[i] = dq_sat[i];
     }
     m_mutex.unlock();
-    m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+    m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   }
 
-  for (unsigned int i = 0; i < 7; i ++) {
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
     joint_state_cmd_msg.velocity[i] = 0;
   }
-  m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+  m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   m_velControlThreadIsRunning = false;
 
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Velocity controller thread finished" << std::endl;
   }
 }
@@ -492,71 +679,81 @@ void vpROSRobotFrankaCoppeliasim::velocityControlLoop()
 /*!
  * Infinite loop launched when the control is done in joint torque.
  */
-void vpROSRobotFrankaCoppeliasim::torqueControlLoop()
+void
+vpROSRobotFrankaCoppeliasim::torqueControlLoop()
 {
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Torque controller thread launched" << std::endl;
   }
-  ros::NodeHandlePtr n = boost::make_shared<ros::NodeHandle>();
-  ros::Rate loop_rate(500); // Hz
+  ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
+  ros::Rate loop_rate( 500 ); // Hz
 
   sensor_msgs::JointState joint_state_cmd_msg;
-  joint_state_cmd_msg.effort.resize(7);
-  joint_state_cmd_msg.name.resize(7);
+  joint_state_cmd_msg.effort.resize( 7 );
+  joint_state_cmd_msg.name.resize( 7 );
   joint_state_cmd_msg.header.frame_id = "Joint_torque_cmd";
-  for (unsigned int i = 0; i < 7; i ++) {
-    joint_state_cmd_msg.name[i] = "J" + std::to_string(i);
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
+    joint_state_cmd_msg.name[i] = "J" + std::to_string( i );
   }
 
   // Publish robot state to the corresponding ROS topic
   std_msgs::Int32 robot_ctrl_type_msg;
-  robot_ctrl_type_msg.data = static_cast<int>(m_stateRobot);
-  m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
+  robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
+  m_pub_robotStateCmd.publish(
+      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
 
-  vpColVector g(7,0), tau_sat(7,0), tau_max(7,0);
-  tau_max = {87, 87,87, 87, 12, 12, 12};
+  vpColVector g( 7, 0 ), tau_max( 7, 0 ), tau_sat( 7, 0 ), f( 7, 0 );
+  tau_max = { 87, 87, 87, 87, 12, 12, 12 };
 #ifdef VISP_HAVE_IIR
-  const int order = 1; // ex: 4th order (=2 biquads)
-  const double samplingrate = 1000.; // Hz
-  const double cutoff_frequency = 10.; // Hz
-  std::array<Iir::Butterworth::LowPass<order>, 7> TorqueFilter;
-  for (unsigned int i = 0; i < 7; i++) {
-    TorqueFilter[i].setup(samplingrate, cutoff_frequency);
+  const int order               = 1;     // ex: 4th order (=2 biquads)
+  const double samplingrate     = 1000.; // Hz
+  const double cutoff_frequency = 10.;   // Hz
+  std::array< Iir::Butterworth::LowPass< order >, 7 > TorqueFilter;
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
+    TorqueFilter[i].setup( samplingrate, cutoff_frequency );
   }
 #endif
 
   m_ftControlThreadIsRunning = true;
 
-  while (ros::ok() && ! m_ftControlThreadStopAsked) {
+  while ( ros::ok() && !m_ftControlThreadStopAsked )
+  {
     loop_rate.sleep();
-    m_pub_robotStateCmd.publish(robot_ctrl_type_msg); // Should be published more than one time to be received by CoppeliaSim !
-    this->getGravity(g);
+    m_pub_robotStateCmd.publish(
+        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
+    this->getGravity( g );     // as for the real robot, we compensate for the gravity
+    this->getFriction( f );    // this is to simulate the dynamic friction
 
     m_mutex.lock();
-    for (unsigned int i = 0; i < 7; i++) {
-      if(std::abs(tau_sat[i]) >= 0.0){ // this simulates the static friction
+    for ( unsigned int i = 0; i < 7; i++ )
+    {
 #ifdef VISP_HAVE_IIR
-        m_tau_J_des_filt[i] = TorqueFilter[i].filter(m_tau_J_des[i]);
-        joint_state_cmd_msg.effort[i] = m_tau_J_des_filt[i] + g[i];
+      m_tau_J_des_filt[i]           = TorqueFilter[i].filter( m_tau_J_des[i] );
+      joint_state_cmd_msg.effort[i] = m_tau_J_des_filt[i] + g[i] - f[i];
 #else
-        joint_state_cmd_msg.effort[i] = m_tau_J_des[i] + g[i];
+      joint_state_cmd_msg.effort[i] = m_tau_J_des[i] + g[i] - f[i];
 #endif
-      }
-      else {
-        joint_state_cmd_msg.effort[i] = g[i];
+      if ( m_verbose && std::abs( joint_state_cmd_msg.effort[i] ) > tau_max[i] )
+      {
+        std::cout << "Excess torque " << joint_state_cmd_msg.effort[i] << " axis nr. " << i << std::endl;
       }
     }
     m_mutex.unlock();
-    m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+    m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   }
 
-  for (unsigned int i = 0; i < 7; i ++) {
+  for ( unsigned int i = 0; i < 7; i++ )
+  {
     joint_state_cmd_msg.effort[i] = 0;
   }
-  m_pub_jointStateCmd.publish(joint_state_cmd_msg);
+  m_pub_jointStateCmd.publish( joint_state_cmd_msg );
   m_ftControlThreadIsRunning = false;
 
-  if (m_verbose) {
+  if ( m_verbose )
+  {
     std::cout << "Torque controller thread finished" << std::endl;
   }
 }
@@ -566,84 +763,100 @@ void vpROSRobotFrankaCoppeliasim::torqueControlLoop()
  * \param newState : New robot state.
  * \return The new robot state.
  */
-vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vpRobotStateType newState)
+vpRobot::vpRobotStateType
+vpROSRobotFrankaCoppeliasim::setRobotState( vpRobot::vpRobotStateType newState )
 {
-  switch (newState) {
-  case vpRobot::STATE_STOP: {
+  switch ( newState )
+  {
+  case vpRobot::STATE_STOP:
+  {
     // Start primitive STOP only if the current state is velocity or force/torque
-    if (vpRobot::STATE_POSITION_CONTROL == getRobotState()) {
+    if ( vpRobot::STATE_POSITION_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from position control to stop.\n";
       m_mutex.lock();
       m_posControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_VELOCITY_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from velocity control to stop.\n";
       m_mutex.lock();
       m_velControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from force/torque control to stop.\n";
       m_ftControlThreadStopAsked = true;
     }
 
-    if(m_controlThread.joinable()) {
+    if ( m_controlThread.joinable() )
+    {
       m_controlThread.join();
       m_mutex.lock();
       m_posControlThreadStopAsked = false;
       m_posControlThreadIsRunning = false;
       m_velControlThreadStopAsked = false;
       m_velControlThreadIsRunning = false;
-      m_ftControlThreadStopAsked = false;
-      m_ftControlThreadIsRunning = false;
+      m_ftControlThreadStopAsked  = false;
+      m_ftControlThreadIsRunning  = false;
       m_mutex.unlock();
     }
     this->m_stateRobot = newState;
     break;
   }
-  case vpRobot::STATE_POSITION_CONTROL: {
-    if (vpRobot::STATE_STOP == getRobotState()) {
+  case vpRobot::STATE_POSITION_CONTROL:
+  {
+    if ( vpRobot::STATE_STOP == getRobotState() )
+    {
       std::cout << "Change the control mode from stop to position control.\n";
     }
-    else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_VELOCITY_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from velocity to position control.\n";
       // Stop the velocity control loop
       m_mutex.lock();
       m_velControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from force/torque to position control.\n";
       // Stop the force control loop
       m_mutex.lock();
       m_ftControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    if(m_controlThread.joinable()) {
+    if ( m_controlThread.joinable() )
+    {
       m_controlThread.join();
       m_mutex.lock();
       m_velControlThreadStopAsked = false;
       m_velControlThreadIsRunning = false;
-      m_ftControlThreadStopAsked = false;
-      m_ftControlThreadIsRunning = false;
+      m_ftControlThreadStopAsked  = false;
+      m_ftControlThreadIsRunning  = false;
       m_mutex.unlock();
     }
     //    m_controlThread = std::thread([this] {this->positionControlLoop();});
     this->m_stateRobot = newState;
     break;
   }
-  case vpRobot::STATE_VELOCITY_CONTROL: {
-    if (vpRobot::STATE_STOP == getRobotState()) {
+  case vpRobot::STATE_VELOCITY_CONTROL:
+  {
+    if ( vpRobot::STATE_STOP == getRobotState() )
+    {
       std::cout << "Change the control mode from stop to velocity control.\n";
     }
-    else if (vpRobot::STATE_POSITION_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_POSITION_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from position to velocity control.\n";
       m_mutex.lock();
       m_posControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    else if (vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_FORCE_TORQUE_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from force/torque to velocity control.\n";
       // Stop the force control loop
       m_mutex.lock();
@@ -651,39 +864,48 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
       m_mutex.unlock();
     }
 
-    if (getRobotState() != vpRobot::STATE_VELOCITY_CONTROL) {
-      if (m_controlThread.joinable()) {
+    if ( getRobotState() != vpRobot::STATE_VELOCITY_CONTROL )
+    {
+      if ( m_controlThread.joinable() )
+      {
         m_controlThread.join();
         m_mutex.lock();
         m_posControlThreadStopAsked = false;
         m_posControlThreadIsRunning = false;
-        m_ftControlThreadStopAsked = false;
-        m_ftControlThreadIsRunning = false;
+        m_ftControlThreadStopAsked  = false;
+        m_ftControlThreadIsRunning  = false;
         m_mutex.unlock();
       }
     }
-    if (! m_velControlThreadIsRunning) {
-      m_controlThread = std::thread([this] {this->velocityControlLoop();});
+    if ( !m_velControlThreadIsRunning )
+    {
+      m_controlThread = std::thread( [this] { this->velocityControlLoop(); } );
     }
     this->m_stateRobot = newState;
     break;
   }
-  case vpRobot::STATE_FORCE_TORQUE_CONTROL: {
-    if (vpRobot::STATE_STOP == getRobotState()) {
+  case vpRobot::STATE_FORCE_TORQUE_CONTROL:
+  {
+    if ( vpRobot::STATE_STOP == getRobotState() )
+    {
       std::cout << "Change the control mode from stop to force/torque control.\n";
     }
-    else if (vpRobot::STATE_POSITION_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_POSITION_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from position to force/torque control.\n";
       m_posControlThreadStopAsked = true;
     }
-    else if (vpRobot::STATE_VELOCITY_CONTROL == getRobotState()) {
+    else if ( vpRobot::STATE_VELOCITY_CONTROL == getRobotState() )
+    {
       std::cout << "Change the control mode from velocity to force/torque control.\n";
       m_mutex.lock();
       m_velControlThreadStopAsked = true;
       m_mutex.unlock();
     }
-    if (getRobotState() != vpRobot::STATE_FORCE_TORQUE_CONTROL) {
-      if(m_controlThread.joinable()) {
+    if ( getRobotState() != vpRobot::STATE_FORCE_TORQUE_CONTROL )
+    {
+      if ( m_controlThread.joinable() )
+      {
         m_controlThread.join();
         m_mutex.lock();
         m_posControlThreadStopAsked = false;
@@ -693,8 +915,9 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
         m_mutex.unlock();
       }
     }
-    if (! m_ftControlThreadIsRunning) {
-      m_controlThread = std::thread([this] {this->torqueControlLoop();});
+    if ( !m_ftControlThreadIsRunning )
+    {
+      m_controlThread = std::thread( [this] { this->torqueControlLoop(); } );
     }
     this->m_stateRobot = newState;
     break;
@@ -723,21 +946,27 @@ vpRobot::vpRobotStateType vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::vp
  * contains the 3 translations values [tx, ty, tz] followed by the 3 rotations using
  * the axis-angle representation [tux, tuy, tyz] with values in [rad].
  */
-void vpROSRobotFrankaCoppeliasim::setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position)
+void
+vpROSRobotFrankaCoppeliasim::setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position )
 {
-  vpRobotFrankaSim::setPosition(frame, position);
+  vpRobotFrankaSim::setPosition( frame, position );
 
   m_posControlNewCmd = true;
 
-  if(vpRobot::STATE_POSITION_CONTROL == getRobotState()){
-    m_controlThread = std::thread([this] {this->positionControlLoop();});
+  if ( vpRobot::STATE_POSITION_CONTROL == getRobotState() )
+  {
+    m_controlThread = std::thread( [this] { this->positionControlLoop(); } );
 
-    if(m_controlThread.joinable()){
+    if ( m_controlThread.joinable() )
+    {
       m_controlThread.join();
     }
-  } else {
+  }
+  else
+  {
     std::cout << "Robot is not in position state control. "
-              << "You should call vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::STATE_POSITION_CONTROL)" << std::endl;
+              << "You should call vpROSRobotFrankaCoppeliasim::setRobotState(vpRobot::STATE_POSITION_CONTROL)"
+              << std::endl;
   }
 }
 
@@ -746,25 +975,30 @@ void vpROSRobotFrankaCoppeliasim::setPosition(const vpRobot::vpControlFrameType 
  * \param timestamp_second : Simulation time in [s] used to start the chrono.
  * \param duration_second : Wait the given duration time in [s] since chrono is started
  */
-void vpROSRobotFrankaCoppeliasim::wait(double timestamp_second, double duration_second)
+void
+vpROSRobotFrankaCoppeliasim::wait( double timestamp_second, double duration_second )
 {
-  ros::Rate loop_rate(1000); // Hz
-  if (m_syncModeEnabled) {
-    setCoppeliasimSimulationStepDone(false);
+  ros::Rate loop_rate( 1000 ); // Hz
+  if ( m_syncModeEnabled )
+  {
+    setCoppeliasimSimulationStepDone( false );
 
     double epsilon = 0.0001; // 100 ns
-    do {
+    do
+    {
       coppeliasimTriggerNextStep();
-      while (! getCoppeliasimSimulationStepDone()) {
+      while ( !getCoppeliasimSimulationStepDone() )
+      {
         loop_rate.sleep();
       }
-      setCoppeliasimSimulationStepDone(false);
+      setCoppeliasimSimulationStepDone( false );
 
-    } while (getCoppeliasimSimulationTime() < timestamp_second + duration_second - epsilon);
-
+    } while ( getCoppeliasimSimulationTime() < timestamp_second + duration_second - epsilon );
   }
-  else {
-    while (getCoppeliasimSimulationTime() < timestamp_second + duration_second) {
+  else
+  {
+    while ( getCoppeliasimSimulationTime() < timestamp_second + duration_second )
+    {
       loop_rate.sleep();
     }
   }
