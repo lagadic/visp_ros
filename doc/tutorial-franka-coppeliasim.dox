@@ -88,9 +88,9 @@ There is also the possibility to build the dependencies from source.
 
 \subsection franka_coppeliasim_install_coppeliasim_download Download CoppeliaSim
 
-- Download the last edu version of `CoppeliaSim` for Ubuntu 18.04 or 20.04 from [here](https://coppeliarobotics.com/downloads) (at the time this tutorial was written it was `CoppeliaSim_Edu_V4_1_0_Ubuntu18_04.tar.xz` or `CoppeliaSim_Edu_V4_1_0_Ubuntu20_04.tar.xz` respectively).
+- Download the last edu version of `CoppeliaSim` for Ubuntu 18.04 or 20.04 from [here](https://coppeliarobotics.com/downloads) (at the time this tutorial was written it was `CoppeliaSim_Edu_V4_2_0_Ubuntu18_04.tar.xz` or `CoppeliaSim_Edu_V4_2_0_Ubuntu20_04.tar.xz` respectively).
 - Extract the archive content in `~/software` workspace.
-- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu18_04/` folder or similar
+- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04/` folder or similar
 
 
 \subsection franka_coppeliasim_install_ros_interface Install ROSInterface for CoppeliaSim
@@ -107,23 +107,23 @@ At this point the installation depends on installed ROS version.
 
   1. Get the last version of  `libPlugin` from [here](https://github.com/CoppeliaRobotics/libPlugin).
   \verbatim
-  $ cd ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04/programming
+  $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04/programming
   $ mv libPlugin/ libPlugin_orig/
-  $ git clone https://github.com/CoppeliaRobotics/libPlugin.git --branch coppeliasim-v4.1.0
+  $ git clone https://github.com/CoppeliaRobotics/libPlugin.git --branch coppeliasim-v4.2.0
   \endverbatim
 
   2. Get `ROSInterface` node source code
   \verbatim
   $ cd ~/catkin_ws/src/
   $ git clone --recursive https://github.com/CoppeliaRobotics/simExtROSInterface.git \
-              --branch coppeliasim-v4.1.0 sim_ros_interface 
+              --branch coppeliasim-v4.2.0 sim_ros_interface 
   \endverbatim
 
   3. Build `ROSInterface` node 
   \verbatim
   $ cd ~/catkin_ws
   $ source /opt/ros/noetic/setup.bash
-  $ export COPPELIASIM_ROOT_DIR=~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  $ export COPPELIASIM_ROOT_DIR=~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04
   $ sudo apt-get install python3-pip xsltproc
   $ pip3 install xmlschema
   $ catkin_make --cmake-args -DCMAKE_BUILD_TYPE=Release
@@ -131,7 +131,7 @@ At this point the installation depends on installed ROS version.
 
   4. Copy `ROSInterface` in the CoppeliaSim directory
   \verbatim
-  $ cp devel/lib/libsimExtROSInterface.so ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  $ cp devel/lib/libsimExtROSInterface.so ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04
   \endverbatim
 
 
@@ -147,8 +147,8 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 
 - **In terminal 2 run:**
   \verbatim
-  $ source ~/catkin_ws/devel/setup.bash
-  $ cd ~/software/CoppeliaSim_Edu_V4_1_0_Ubuntu20_04
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04
   $ ./coppeliaSim.sh
   \endverbatim
 

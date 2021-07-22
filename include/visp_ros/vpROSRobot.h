@@ -40,7 +40,6 @@
  *
  *****************************************************************************/
 
-
 #ifndef vpROSRobot_h
 #define vpROSRobot_h
 
@@ -51,9 +50,9 @@
 
 #include <visp3/robot/vpRobot.h>
 
-#include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <ros/ros.h>
 
 /*!
   \class vpROSRobot
@@ -62,76 +61,72 @@
 
 class VISP_EXPORT vpROSRobot : public vpRobot
 {
-  protected:
-    ros::NodeHandle *n;
-    ros::Publisher cmdvel;
-    ros::Subscriber odom;
-    ros::AsyncSpinner *spinner;
+protected:
+  ros::NodeHandle *n;
+  ros::Publisher cmdvel;
+  ros::Subscriber odom;
+  ros::AsyncSpinner *spinner;
 
-    bool isInitialized;
+  bool isInitialized;
 
-    vpQuaternionVector q;
-    vpTranslationVector p;
-    vpColVector pose_prev;
-    vpColVector displacement;
-    uint32_t _sec, _nsec;
-    volatile bool odom_mutex;
-    std::string _master_uri;
-    std::string _topic_cmd;
-    std::string _topic_odom;
-    std::string _nodespace;
+  vpQuaternionVector q;
+  vpTranslationVector p;
+  vpColVector pose_prev;
+  vpColVector displacement;
+  uint32_t _sec, _nsec;
+  volatile bool odom_mutex;
+  std::string _master_uri;
+  std::string _topic_cmd;
+  std::string _topic_odom;
+  std::string _nodespace;
 
-  private: // Set as private since not implemented
-    void get_eJe(vpMatrix & eJe){}
+private: // Set as private since not implemented
+  void get_eJe( vpMatrix &eJe ) {}
 
-    vpROSRobot(const vpROSRobot &robot);
-    /*!
-    Get the robot Jacobian expressed in the robot reference (or world) frame.
-    \warning Not implemented.
-  */
-    void get_fJe(vpMatrix & /*fJe*/) {}
+  vpROSRobot( const vpROSRobot &robot );
+  /*!
+  Get the robot Jacobian expressed in the robot reference (or world) frame.
+  \warning Not implemented.
+*/
+  void get_fJe( vpMatrix & /*fJe*/ ) {}
 
-    /*!
-    Get a displacement expressed in the joint space between two successive position control.
-    \warning Not implemented.
-  */
-    void getArticularDisplacement(vpColVector  & /*qdot*/) {};
+  /*!
+  Get a displacement expressed in the joint space between two successive position control.
+  \warning Not implemented.
+*/
+  void getArticularDisplacement( vpColVector & /*qdot*/ ){};
 
+  void getVelocity( const vpRobot::vpControlFrameType frame, vpColVector &velocity );
+  vpColVector getVelocity( const vpRobot::vpControlFrameType frame );
 
-    void getVelocity (const vpRobot::vpControlFrameType frame, vpColVector & velocity);
-    vpColVector getVelocity (const vpRobot::vpControlFrameType frame);
+  /*!
+  Set a displacement (frame has to be specified) in position control.
+  \warning Not implemented.
+*/
+  void setPosition( const vpRobot::vpControlFrameType /*frame*/, const vpColVector & /*q*/ ){};
+  void odomCallback( const nav_msgs::Odometry::ConstPtr &msg );
+  void getCameraDisplacement( vpColVector & /*v*/ );
 
-    /*!
-    Set a displacement (frame has to be specified) in position control.
-    \warning Not implemented.
-  */
-    void setPosition(const vpRobot::vpControlFrameType /*frame*/, const vpColVector &/*q*/) {};
-    void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-    void getCameraDisplacement(vpColVector & /*v*/);
+public:
+  //! constructor
+  vpROSRobot();
+  //! destructor
+  virtual ~vpROSRobot();
 
-  public:
-    //! constructor
-    vpROSRobot() ;
-    //! destructor
-    virtual ~vpROSRobot() ;
+  void getDisplacement( const vpRobot::vpControlFrameType /*frame*/, vpColVector & /*q*/ );
+  void getDisplacement( const vpRobot::vpControlFrameType /*frame*/, vpColVector & /*q*/, struct timespec &timestamp );
+  void getPosition( const vpRobot::vpControlFrameType /*frame*/, vpColVector & /*q*/ );
 
-    void getDisplacement(const vpRobot::vpControlFrameType /*frame*/, vpColVector &/*q*/);
-    void getDisplacement(const vpRobot::vpControlFrameType /*frame*/, vpColVector &/*q*/, struct timespec &timestamp);
-    void getPosition(const vpRobot::vpControlFrameType /*frame*/, vpColVector &/*q*/);
+  //! basic initialization
+  void init();
+  void init( int argc, char **argv );
 
-    //! basic initialization
-    void init() ;
-    void init(int argc, char **argv) ;
-
-    void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
-    void stopMotion();
-    void setCmdVelTopic(std::string topic_name);
-    void setOdomTopic(std::string topic_name);
-    void setMasterURI(std::string master_uri);
-    void setNodespace(std::string nodespace);
-} ;
+  void setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel );
+  void stopMotion();
+  void setCmdVelTopic( std::string topic_name );
+  void setOdomTopic( std::string topic_name );
+  void setMasterURI( std::string master_uri );
+  void setNodespace( std::string nodespace );
+};
 
 #endif
-
-
-

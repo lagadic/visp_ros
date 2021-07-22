@@ -42,9 +42,9 @@
 #define VPROSROBOTPIONEER_H
 
 #include <visp/vpConfig.h>
+#include <visp/vpPioneer.h>
 #include <visp/vpRobot.h>
 #include <visp/vpRobotException.h>
-#include <visp/vpPioneer.h>
 
 #include <visp_ros/vpROSRobot.h>
 
@@ -61,75 +61,69 @@
   see vpPioneer documentation on ViSP website http:://team.inria.fr/visp.
 
 */
-class VISP_EXPORT vpROSRobotPioneer: public vpROSRobot, public vpPioneer
+class VISP_EXPORT vpROSRobotPioneer : public vpROSRobot, public vpPioneer
 {
-  public:
-    vpROSRobotPioneer();
-    ~vpROSRobotPioneer();
+public:
+  vpROSRobotPioneer();
+  ~vpROSRobotPioneer();
 
-    void disableMotors();
-    void enableMotors();
+  void disableMotors();
+  void enableMotors();
 
-    /*!
-    Get the robot Jacobian expressed at point E, the point located at the
-    middle between the two wheels.
+  /*!
+  Get the robot Jacobian expressed at point E, the point located at the
+  middle between the two wheels.
 
-    \param eJe : Robot jacobian such as \f$(v_x, w_z) = {^e}{\bf J}e \; {\bf v}\f$ with
-    \f$(v_x, w_z)\f$ respectively the translational and rotational control velocities
-    of the mobile robot, \f$\bf v\f$ the six dimention velocity skew, and where
+  \param eJe : Robot jacobian such as \f$(v_x, w_z) = {^e}{\bf J}e \; {\bf v}\f$ with
+  \f$(v_x, w_z)\f$ respectively the translational and rotational control velocities
+  of the mobile robot, \f$\bf v\f$ the six dimention velocity skew, and where
 
-    \sa get_eJe()
+  \sa get_eJe()
 
+*/
+  void get_eJe( vpMatrix &eJe ) { eJe = vpUnicycle::get_eJe(); }
+
+  void getVelocity( const vpRobot::vpControlFrameType frame, vpColVector &velocity )
+  {
+    throw( vpRobotException( vpRobotException::notImplementedError, "getVelocity not implemented with ROS" ) );
+  }
+  vpColVector getVelocity( const vpRobot::vpControlFrameType frame )
+  {
+    throw( vpRobotException( vpRobotException::notImplementedError, "getVelocity not implemented with ROS" ) );
+  }
+
+  //! basic initialization
+  void init();
+  void init( int argc, char **argv );
+
+  void setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel );
+
+  /*!
+  Enable or disable sonar device usage.
   */
-    void get_eJe(vpMatrix & eJe)
-    {
-      eJe = vpUnicycle::get_eJe();
-    }
+  void useSonar( bool usage )
+  {
+    throw( vpRobotException( vpRobotException::notImplementedError, "useSonar not implemented with ROS" ) );
+  }
 
-    void getVelocity (const vpRobot::vpControlFrameType frame, vpColVector & velocity)
-    {
-      throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
-    }
-    vpColVector getVelocity (const vpRobot::vpControlFrameType frame)
-    {
-      throw (vpRobotException(vpRobotException::notImplementedError, "getVelocity not implemented with ROS") );
-    }
+private: /* Not allowed functions. */
+  /*!
+  Copy constructor not allowed.
+ */
+  vpROSRobotPioneer( const vpROSRobotPioneer &robot );
 
-    //! basic initialization
-    void init() ;
-    void init(int argc, char **argv) ;
+private: // Set as private since not implemented
+  /*!
+  Get the robot Jacobian expressed in the robot reference (or world) frame.
+  \warning Not implemented.
+*/
+  void get_fJe( vpMatrix & /*fJe*/ ){};
 
-    void setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &vel);
-
-    /*!
-    Enable or disable sonar device usage.
-    */
-    void useSonar(bool usage)
-    {
-      throw (vpRobotException(vpRobotException::notImplementedError, "useSonar not implemented with ROS") );
-    }
-
-  private: /* Not allowed functions. */
-
-    /*!
-    Copy constructor not allowed.
-   */
-    vpROSRobotPioneer(const vpROSRobotPioneer &robot);
-
-  private: // Set as private since not implemented
-    /*!
-    Get the robot Jacobian expressed in the robot reference (or world) frame.
-    \warning Not implemented.
-  */
-    void get_fJe(vpMatrix & /*fJe*/) {} ;
-
-    /*!
-    Set a displacement (frame has to be specified) in position control.
-    \warning Not implemented.
-  */
-    void setPosition(const vpRobot::vpControlFrameType /*frame*/, const vpColVector &/*q*/) {};
-
+  /*!
+  Set a displacement (frame has to be specified) in position control.
+  \warning Not implemented.
+*/
+  void setPosition( const vpRobot::vpControlFrameType /*frame*/, const vpColVector & /*q*/ ){};
 };
 
 #endif // vpROSRobotPioneer_H
-
