@@ -27,7 +27,6 @@ int
 main( int argc, char **argv )
 {
   bool opt_verbose               = false;
-  bool opt_plot                  = false;
   bool opt_coppeliasim_sync_mode = false;
 
   for ( int i = 1; i < argc; i++ )
@@ -62,7 +61,7 @@ main( int argc, char **argv )
     if ( 0 )
     {
       // Instead of setting the tool from Coppeliasim topics, we can set its values manually to e.g. introduce errors in
-      // the parameters This must be done before call robot.connect() The following are the parameters for the Panda
+      // the parameters. This must be done before call robot.connect(). The following are the parameters for the Panda
       // Hand as reported in the datasheet.
       double mass = 0.73; // [kg]
       vpHomogeneousMatrix flMe(
@@ -115,14 +114,15 @@ main( int argc, char **argv )
     plotter->setLegend( 2, 5, "Tau6" );
     plotter->setLegend( 2, 6, "Tau7" );
 
-    plotter->setTitle( 3, "Joint error norm [rad]" );
+    plotter->setTitle( 3, "Joint error norm [deg]" );
     plotter->initGraph( 3, 1 );
     plotter->setLegend( 3, 0, "||qd - d||" );
 
     // Create joint array
-    vpColVector q( 7, 0 ), qd( 7, 0 ), dq( 7, 0 ), dqd( 7, 0 ), ddqd( 7, 0 ), tau_d( 7, 0 ), C( 7, 0 ), pos( 6, 0 ),
-        q0( 7, 0 ), F( 7, 0 );
-    vpMatrix J( 6, 7 ), B( 7, 7 );
+    vpColVector q( 7, 0 ), qd( 7, 0 ), dq( 7, 0 ), dqd( 7, 0 ), ddqd( 7, 0 ),
+    		    tau_d( 7, 0 ), C( 7, 0 ), q0( 7, 0 ), F( 7, 0 ), tau_d0( 7, 0 ),
+				tau_cmd( 7, 0 );
+    vpMatrix B( 7, 7 );
 
     std::cout << "Reading current joint position" << std::endl;
     robot.getPosition( vpRobot::JOINT_STATE, q0 );
@@ -132,14 +132,20 @@ main( int argc, char **argv )
     qd = q0;
 
     bool final_quit = false;
+    bool send_cmd = true;
+    bool restart = false;
     bool first_time = true;
 
-    double k = 800;
-    double d = 2 * sqrt( k );
+    vpMatrix K( 7, 7 ), D( 7, 7 );
+    K.diag({600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 150.0});
+    D.diag({50.0, 50.0, 50.0, 50.0, 30.0, 25.0, 25.0});
 
     double sim_time       = robot.getCoppeliasimSimulationTime();
     double sim_time_start = sim_time;
     double sim_time_prev  = sim_time;
+
+    double c_time = 0.0;
+    double mu     = 10.0;
 
     while ( !final_quit )
     {
@@ -165,32 +171,43 @@ main( int argc, char **argv )
       qd[2]   = q0[2] + ( M_PI / 16 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
       dqd[2]  = M_PI * ( M_PI / 8 ) * std::cos( 2 * M_PI * ( sim_time - sim_time_start ) );
       ddqd[2] = -M_PI * M_PI * ( M_PI / 4 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
-      qd[3]   = q0[3] + ( M_PI / 16 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
-      dqd[3]  = M_PI * ( M_PI / 8 ) * std::cos( 2 * M_PI * ( sim_time - sim_time_start ) );
-      ddqd[3] = -M_PI * M_PI * ( M_PI / 4 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
+      qd[4]   = q0[4] + ( M_PI / 16 ) * std::sin( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
+      dqd[4]  = M_PI * ( M_PI / 8 ) * 0.5 * std::cos( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
+      ddqd[4] = -M_PI * M_PI * ( M_PI / 4 ) *0.5 *0.5 * std::sin( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
       qd[6]   = q0[6] + std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
       dqd[6]  = 2 * M_PI * 0.25 * std::cos( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
       ddqd[6] = -std::pow( 2 * 0.25 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
 
       // Compute the control law
-      tau_d = B * ( k * ( qd - q ) + d * ( dqd - dq ) + ddqd ) + C + F;
+      tau_d = B * ( K * ( qd - q ) + D * ( dqd - dq ) + ddqd ) + C + F;
+
+      if (!send_cmd) {
+    	  tau_cmd = 0; // Stop the robot
+    	  restart = true;
+      }else{
+    	  if(restart){
+    		  c_time = sim_time;
+    		  tau_d0 = tau_d;
+    		  restart = false;
+    	  }
+    	tau_cmd = tau_d - tau_d0*std::exp(-mu*(sim_time - c_time));
+      }
+
 
       // Send command to the torque robot
-      robot.setForceTorque( vpRobot::JOINT_STATE, tau_d );
+      robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
 
-      vpColVector norm( 1, std::sqrt( ( qd - q ).sumSquare() ) );
+      vpColVector norm( 1, vpMath::deg( std::sqrt( ( qd - q ).sumSquare() ) ) );
       plotter->plot( 0, sim_time, q );
       plotter->plot( 1, sim_time, qd - q );
-      plotter->plot( 2, sim_time, tau_d );
+      plotter->plot( 2, sim_time, tau_cmd );
       plotter->plot( 3, sim_time, norm );
 
-      std::stringstream ss;
-      ss << "Loop time [s]: " << std::round( ( sim_time - sim_time_prev ) * 1000. ) / 1000.;
-      ss << " Simulation time [s]: " << sim_time;
-      sim_time_prev = sim_time;
-      vpDisplay::displayText( plotter->I, 40, 20, ss.str(), vpColor::red );
+      if(opt_verbose){
+    	std::cout << "dt: " << sim_time - sim_time_prev << std::endl;
+      }
 
-      robot.wait( sim_time, 0.010 ); // Simulate a loop at 100 Hz
+      robot.wait( sim_time, 0.0019 ); // Simulate a loop at 500 Hz (2 ms)
 
       vpMouseButton::vpMouseButtonType button;
       if ( vpDisplay::getClick( plotter->I, button, false ) )
@@ -199,7 +216,12 @@ main( int argc, char **argv )
         {
           final_quit = true;
         }
+        if(button == vpMouseButton::button1){
+        	send_cmd = !send_cmd;
+        }
       }
+
+      sim_time_prev = sim_time;
     }
 
     if ( plotter != nullptr )

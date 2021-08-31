@@ -52,15 +52,16 @@
 #include <visp_ros/vpRobotFrankaSim.h>
 
 /*!
- * This class does the connexion using ROS 1 between Franka robot simulator implemented in
- * vpRobotFrankaSim and Coppeliasim simulator.
+ * This class does the connexion using ROS 1 between Franka robot simulator
+ * implemented in vpRobotFrankaSim and Coppeliasim simulator.
  *
  * It subscribes to default topics emited and updated on Coppeliasim side:
- * - `/coppeliasim/franka/joint_state` topic that contains the robot joint state as
- *   sensor_msgs::JointState message. To change this topic name use setTopicJointState().
- * - `/coppeliasim/franka/eMc` that contains the camera extrinsic homogeneous transformation from
- *   end-effector to camera frame as a geometry_msgs::Pose message.
- *   To change this topic name use setTopic_eMc().
+ * - `/coppeliasim/franka/joint_state` topic that contains the robot joint state
+ *   as sensor_msgs::JointState message. To change this topic name use
+ *   setTopicJointState().
+ * - `/coppeliasim/franka/eMc` that contains the camera extrinsic homogeneous
+ *   transformation from end-effector to camera frame as a geometry_msgs::Pose
+ *   message.To change this topic name use setTopic_eMc().
  *
  * Given the type of command to apply to the simulated robot, it published default
  * topics that are taken into account by Coppeliasim to update the robot state:
@@ -80,8 +81,8 @@
  * robot.connect();
  * \endcode
  *
- * If you decide to change the topic names, be aware that you should also change their names
- * in Coppeliasim scene lua script.
+ * If you decide to change the topic names, be aware that you should also change
+ * their names in Coppeliasim scene lua script.
  */
 class VISP_EXPORT vpROSRobotFrankaCoppeliasim : public vpRobotFrankaSim
 {
@@ -89,7 +90,7 @@ public:
   vpROSRobotFrankaCoppeliasim();
   virtual ~vpROSRobotFrankaCoppeliasim();
 
-  void connect();
+  void connect( const std::string &robot_ID = "");
 
   void coppeliasimPauseSimulation( double sleep_ms = 1000. );
   void coppeliasimStartSimulation( double sleep_ms = 1000. );
@@ -115,7 +116,8 @@ public:
 
   void setCoppeliasimSyncMode( bool enable, double sleep_ms = 1000. );
 
-  void setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position );
+  void setPosition( const vpRobot::vpControlFrameType frame,
+		            const vpColVector &position );
 
   vpRobot::vpRobotStateType setRobotState( vpRobot::vpRobotStateType newState );
 
@@ -125,10 +127,14 @@ public:
    *
    * \param topic_jointState : Topic name.
    */
-  inline void setTopicJointState( const std::string &topic_jointState ) { m_topic_jointState = topic_jointState; }
+  inline void setTopicJointState( const std::string &topic_jointState )
+  {
+	m_topic_jointState = topic_jointState;
+  }
 
   /*!
-   * Name of the topic used to public joint state command that has to be applied to the robot.
+   * Name of the topic used to public joint state command that has to be applied
+   * to the robot.
    *
    * \param topic_jointStateCmd : Topic name.
    */
@@ -143,7 +149,10 @@ public:
    *
    * \param topic_robotState : Topic name.
    */
-  inline void setTopicRobotStateCmd( const std::string &topic_robotState ) { m_topic_robotStateCmd = topic_robotState; }
+  inline void setTopicRobotStateCmd( const std::string &topic_robotState )
+  {
+	m_topic_robotStateCmd = topic_robotState;
+  }
 
   /*!
    * Set topic name that contains `g0` corresponding to the absolute acceleration
@@ -193,7 +202,6 @@ protected:
   void callback_g0( const geometry_msgs::Vector3 &g0_msg );
   void callback_eMc( const geometry_msgs::Pose &pose_msg );
   void callback_flMe( const geometry_msgs::Pose &pose_msg );
-  void callback_flMcom( const geometry_msgs::Pose &pose_msg );
   void callback_toolInertia( const geometry_msgs::Inertia &inertia_msg );
   void callbackSimulationStepDone( const std_msgs::Bool &msg );
   void callbackSimulationTime( const std_msgs::Float32 &msg );
@@ -249,7 +257,6 @@ protected:
   ros::Subscriber m_sub_coppeliasim_g0;
   ros::Subscriber m_sub_coppeliasim_eMc;
   ros::Subscriber m_sub_coppeliasim_flMe;
-  ros::Subscriber m_sub_coppeliasim_flMcom;
   ros::Subscriber m_sub_coppeliasim_toolInertia;
   ros::Subscriber m_sub_coppeliasim_simulationStepDone;
   ros::Subscriber m_sub_coppeliasim_simulationTime;
@@ -264,7 +271,6 @@ protected:
   bool m_overwrite_toolInertia; // Flag to indicate that the inertia parameters of the tool should no more be updated
                                 // from topic
   bool m_overwrite_flMe;        // Flag to indicate that flMe should no more be updated from topic
-  bool m_overwrite_flMcom;      // Flag to indicate that flMcom should no more be updated from topic
 };
 
 #endif

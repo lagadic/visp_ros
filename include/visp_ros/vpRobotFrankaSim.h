@@ -46,7 +46,7 @@
 #include <visp3/core/vpPoseVector.h>
 #include <visp3/core/vpThetaUVector.h>
 #include <visp3/robot/vpRobot.h>
-
+#define VISP_HAVE_OROCOS_KDL
 #if defined( VISP_HAVE_OROCOS_KDL )
 
 #ifdef VISP_HAVE_OROCOS_KDL
@@ -79,10 +79,14 @@ public:
   vpHomogeneousMatrix get_eMc() const;
   vpHomogeneousMatrix get_fMe( const vpColVector &q );
   vpHomogeneousMatrix get_fMe();
+  vpHomogeneousMatrix get_flMe() const;
+  vpHomogeneousMatrix get_flMcom() const;
+  double get_tool_mass() const;
 
   void getGravity( vpColVector &gravity );
   void getMass( vpMatrix &mass );
   void getCoriolis( vpColVector &coriolis );
+  void getCoriolisMatrix(vpMatrix &coriolis);
   void getFriction( vpColVector &friction );
 
   virtual void getForceTorque( const vpRobot::vpControlFrameType frame, vpColVector &force );
@@ -95,11 +99,11 @@ public:
   virtual void setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position );
   virtual void setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel );
 
-  virtual void add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &fMcom,
+  virtual void add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &flMcom,
                          const vpMatrix &I_L );
   virtual void set_flMe( const vpHomogeneousMatrix &flMe );
   virtual void set_g0( const vpColVector &g0 );
-  //  vpHomogeneousMatrix get_flMe() const;
+
 
   /*!
    * Enable/disable verbose mode to print additional info.
@@ -113,7 +117,7 @@ protected:
   vpColVector m_tau_J; // Joint efforts
 
   double m_mL;                 // payload mass
-  vpHomogeneousMatrix m_fMcom; // payload Center of Mass pose in flange frame
+  vpHomogeneousMatrix m_flMcom;// payload Center of Mass pose in flange frame
   vpMatrix m_Il;               // payload inertia tensor
   vpHomogeneousMatrix m_flMe;  // End-effector pose in flange frame
   bool m_toolMounted;          // flag to indicate the presence of a tool
