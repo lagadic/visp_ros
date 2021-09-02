@@ -210,14 +210,13 @@ vpRobotFrankaSim::set_g0( const vpColVector &g0 )
 
 /*!
  * Set the tool extrinsics as the homogeneous transformation between the robot
- *  flange and the end-effector frame. It modifies the robot kinematics of the
- *  last link as well as the dynamic model due to the mass and center of mass (CoM)
- *  of the plugged tool
- * \param[in] flMe : Homogeneous transformation between the robot flange
- * and the new pose of the end-effector frame.
- * \param[in] mL : Mass of the tool
- * \param[in] fMcom : tool Center-of-Mass pose in flange frame
- * \param[in] I_L : tool inertia tensor in CoM frame
+ * flange and the end-effector frame. It modifies the robot kinematics of the
+ * last link as well as the dynamic model due to the mass and center of mass (CoM)
+ * of the plugged tool
+ * \param[in] flMe : Homogeneous transformation between the robot flange and end-effector frame.
+ * \param[in] mL : Mass of the tool attached to the end-effector.
+ * \param[in] flMcom : Homogeneous transformation between the robot flange and tool Center-of-Mass.
+ * \param[in] I_L : Tool inertia tensor in CoM frame.
  */
 void
 vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &flMcom,
@@ -569,9 +568,8 @@ vpRobotFrankaSim::solveIK( const vpHomogeneousMatrix &wMe )
   vpColVector q_solved( 7, 0 );
 #ifdef VISP_HAVE_OROCOS_KDL
   KDL::JntArray q_out( 7 );
-  KDL::Rotation wRe( wMe[0][0], wMe[0][1], wMe[0][2],
-		             wMe[1][0], wMe[1][1], wMe[1][2],
-					 wMe[2][0], wMe[2][1], wMe[2][2] );
+  KDL::Rotation wRe( wMe[0][0], wMe[0][1], wMe[0][2], wMe[1][0], wMe[1][1], wMe[1][2], wMe[2][0], wMe[2][1],
+                     wMe[2][2] );
 
   KDL::Vector wte( wMe[0][3], wMe[1][3], wMe[2][3] );
   KDL::Frame wMe_kdl( wRe, wte );
