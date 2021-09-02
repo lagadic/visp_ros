@@ -146,14 +146,15 @@ main( int argc, char **argv )
     vpPlot *plotter = nullptr;
 
     plotter = new vpPlot( 4, 800, 800, 10, 10, "Real time curves plotter" );
-    plotter->setTitle( 0, "EE Pose [m] - [rad]" );
-    plotter->initGraph( 0, 6 );
-    plotter->setLegend( 0, 0, "x" );
-    plotter->setLegend( 0, 1, "y" );
-    plotter->setLegend( 0, 2, "z" );
-    plotter->setLegend( 0, 3, "tu_x" );
-    plotter->setLegend( 0, 4, "tu_y" );
-    plotter->setLegend( 0, 5, "tu_z" );
+    plotter->setTitle( 0, "Joint torques [Nm]" );
+    plotter->initGraph( 0, 7 );
+    plotter->setLegend( 0, 0, "Tau1" );
+    plotter->setLegend( 0, 1, "Tau2" );
+    plotter->setLegend( 0, 2, "Tau3" );
+    plotter->setLegend( 0, 3, "Tau4" );
+    plotter->setLegend( 0, 4, "Tau5" );
+    plotter->setLegend( 0, 5, "Tau6" );
+    plotter->setLegend( 0, 6, "Tau7" );
 
     plotter->setTitle( 1, "EE pose error [m] - [rad]" );
     plotter->initGraph( 1, 6 );
@@ -164,7 +165,7 @@ main( int argc, char **argv )
     plotter->setLegend( 1, 4, "e_tu_y" );
     plotter->setLegend( 1, 5, "e_tu_z" );
 
-    plotter->setTitle( 2, "Joint torque command [Nm]" );
+    plotter->setTitle( 2, "(gravity free) Joint torque commands [Nm]" );
     plotter->initGraph( 2, 7 );
     plotter->setLegend( 2, 0, "Tau1" );
     plotter->setLegend( 2, 1, "Tau2" );
@@ -282,10 +283,11 @@ main( int argc, char **argv )
 
         robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
 
-        plotter->plot( 0, sim_time, (vpColVector)vpPoseVector(robot.get_fMe()));
+        vpColVector aux( 2, 0 ), tau_J( 7, 0 );
+        robot.getForceTorque(vpRobot::JOINT_STATE, tau_J);
+        plotter->plot( 0, sim_time, tau_J);
         plotter->plot( 1, sim_time, x_e );
         plotter->plot( 2, sim_time, tau_cmd );
-        vpColVector aux(2,0);
         aux[0] = sqrt( x_e.extract(0, 3).sumSquare() ) ;
         aux[1] = sqrt( x_e.extract(3, 3).sumSquare() );
         plotter->plot( 3, sim_time,  aux );
