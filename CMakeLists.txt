@@ -173,6 +173,16 @@ if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
   target_link_libraries(${PROJECT_NAME}_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
 endif()
 
+######################################################################
+## Build tutorial for real franka robot to compare with coppeliasim ##
+######################################################################
+add_executable(tutorial-franka-real-ibvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-ibvs-apriltag.cpp)
+add_executable(tutorial-franka-real-pbvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-pbvs-apriltag.cpp)
+add_executable(tutorial-franka-real-joint-impedance-control tutorial/franka/real-robot/tutorial-franka-real-joint-impedance-control.cpp)
+target_link_libraries(tutorial-franka-real-ibvs-apriltag ${catkin_LIBRARIES})
+target_link_libraries(tutorial-franka-real-pbvs-apriltag ${catkin_LIBRARIES})
+target_link_libraries(tutorial-franka-real-joint-impedance-control ${catkin_LIBRARIES})
+
 ##############################################################
 ## Build tutorial to simulate franka robot with coppeliasim ##
 ##############################################################
