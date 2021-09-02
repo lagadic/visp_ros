@@ -46,7 +46,7 @@
 #include <visp3/core/vpPoseVector.h>
 #include <visp3/core/vpThetaUVector.h>
 #include <visp3/robot/vpRobot.h>
-#define VISP_HAVE_OROCOS_KDL
+
 #if defined( VISP_HAVE_OROCOS_KDL )
 
 #ifdef VISP_HAVE_OROCOS_KDL
@@ -86,7 +86,7 @@ public:
   void getGravity( vpColVector &gravity );
   void getMass( vpMatrix &mass );
   void getCoriolis( vpColVector &coriolis );
-  void getCoriolisMatrix(vpMatrix &coriolis);
+  void getCoriolisMatrix( vpMatrix &coriolis );
   void getFriction( vpColVector &friction );
 
   virtual void getForceTorque( const vpRobot::vpControlFrameType frame, vpColVector &force );
@@ -104,7 +104,6 @@ public:
   virtual void set_flMe( const vpHomogeneousMatrix &flMe );
   virtual void set_g0( const vpColVector &g0 );
 
-
   /*!
    * Enable/disable verbose mode to print additional info.
    * \param verbose : true to enable verbose mode, false otherwise.
@@ -116,12 +115,12 @@ protected:
   vpColVector m_dq;    // Joint Velocities
   vpColVector m_tau_J; // Joint efforts
 
-  double m_mL;                 // payload mass
-  vpHomogeneousMatrix m_flMcom;// payload Center of Mass pose in flange frame
-  vpMatrix m_Il;               // payload inertia tensor
-  vpHomogeneousMatrix m_flMe;  // End-effector pose in flange frame
-  bool m_toolMounted;          // flag to indicate the presence of a tool
-  bool m_camMounted;           // flag to indicate the presence of a camera
+  double m_mL;                  // payload mass
+  vpHomogeneousMatrix m_flMcom; // payload Center of Mass pose in flange frame
+  vpMatrix m_Il;                // payload inertia tensor
+  vpHomogeneousMatrix m_flMe;   // End-effector pose in flange frame
+  bool m_toolMounted;           // flag to indicate the presence of a tool
+  bool m_camMounted;            // flag to indicate the presence of a camera
 
   vpColVector m_g0; // Absolute gravitational acceleration vector in base frame
 
