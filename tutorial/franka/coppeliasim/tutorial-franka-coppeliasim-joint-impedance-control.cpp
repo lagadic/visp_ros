@@ -1,26 +1,41 @@
-/*
- * \example  tutorial-franka-coppeliasim-joint-impedance-control.cpp
+/****************************************************************************
  *
- *  Created on: May 1, 2021
- *      Author: oliva
- */
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See https://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
 
 //! \example tutorial-franka-coppeliasim-joint-impedance-control.cpp
 
 #include <iostream>
 
-#include <visp3/core/vpCameraParameters.h>
-#include <visp3/core/vpImagePoint.h>
-#include <visp3/detection/vpDetectorAprilTag.h>
-#include <visp3/gui/vpDisplayOpenCV.h>
 #include <visp3/gui/vpPlot.h>
-#include <visp3/io/vpImageIo.h>
-#include <visp3/visual_features/vpFeatureThetaU.h>
-#include <visp3/visual_features/vpFeatureTranslation.h>
-#include <visp3/vs/vpServo.h>
-#include <visp3/vs/vpServoDisplay.h>
 
-#include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 int
@@ -44,7 +59,6 @@ main( int argc, char **argv )
       std::cout << argv[0] << "[--enable-coppeliasim-sync-mode] "
                 << "[--verbose] [-v] "
                 << "[--help] [-h]" << std::endl;
-      ;
       return EXIT_SUCCESS;
     }
   }
@@ -119,9 +133,8 @@ main( int argc, char **argv )
     plotter->setLegend( 3, 0, "||qd - d||" );
 
     // Create joint array
-    vpColVector q( 7, 0 ), qd( 7, 0 ), dq( 7, 0 ), dqd( 7, 0 ), ddqd( 7, 0 ),
-    		    tau_d( 7, 0 ), C( 7, 0 ), q0( 7, 0 ), F( 7, 0 ), tau_d0( 7, 0 ),
-				tau_cmd( 7, 0 );
+    vpColVector q( 7, 0 ), qd( 7, 0 ), dq( 7, 0 ), dqd( 7, 0 ), ddqd( 7, 0 ), tau_d( 7, 0 ), C( 7, 0 ), q0( 7, 0 ),
+        F( 7, 0 ), tau_d0( 7, 0 ), tau_cmd( 7, 0 );
     vpMatrix B( 7, 7 );
 
     std::cout << "Reading current joint position" << std::endl;
@@ -132,13 +145,13 @@ main( int argc, char **argv )
     qd = q0;
 
     bool final_quit = false;
-    bool send_cmd = true;
-    bool restart = false;
+    bool send_cmd   = true;
+    bool restart    = false;
     bool first_time = true;
 
     vpMatrix K( 7, 7 ), D( 7, 7 );
-    K.diag({600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 150.0});
-    D.diag({50.0, 50.0, 50.0, 50.0, 30.0, 25.0, 25.0});
+    K.diag( { 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 150.0 } );
+    D.diag( { 50.0, 50.0, 50.0, 50.0, 30.0, 25.0, 25.0 } );
 
     double sim_time       = robot.getCoppeliasimSimulationTime();
     double sim_time_start = sim_time;
@@ -171,9 +184,9 @@ main( int argc, char **argv )
       qd[2]   = q0[2] + ( M_PI / 16 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
       dqd[2]  = M_PI * ( M_PI / 8 ) * std::cos( 2 * M_PI * ( sim_time - sim_time_start ) );
       ddqd[2] = -M_PI * M_PI * ( M_PI / 4 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
-      qd[4]   = q0[4] + ( M_PI / 16 ) * std::sin( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
-      dqd[4]  = M_PI * ( M_PI / 8 ) * 0.5 * std::cos( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
-      ddqd[4] = -M_PI * M_PI * ( M_PI / 4 ) *0.5 *0.5 * std::sin( 2 * M_PI * 0.5 *( sim_time - sim_time_start ) );
+      qd[4]   = q0[4] + ( M_PI / 16 ) * std::sin( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
+      dqd[4]  = M_PI * ( M_PI / 8 ) * 0.5 * std::cos( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
+      ddqd[4] = -M_PI * M_PI * ( M_PI / 4 ) * 0.5 * 0.5 * std::sin( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
       qd[6]   = q0[6] + std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
       dqd[6]  = 2 * M_PI * 0.25 * std::cos( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
       ddqd[6] = -std::pow( 2 * 0.25 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
@@ -181,18 +194,21 @@ main( int argc, char **argv )
       // Compute the control law
       tau_d = B * ( K * ( qd - q ) + D * ( dqd - dq ) + ddqd ) + C + F;
 
-      if (!send_cmd) {
-    	  tau_cmd = 0; // Stop the robot
-    	  restart = true;
-      }else{
-    	  if(restart){
-    		  c_time = sim_time;
-    		  tau_d0 = tau_d;
-    		  restart = false;
-    	  }
-    	tau_cmd = tau_d - tau_d0*std::exp(-mu*(sim_time - c_time));
+      if ( !send_cmd )
+      {
+        tau_cmd = 0; // Stop the robot
+        restart = true;
       }
-
+      else
+      {
+        if ( restart )
+        {
+          c_time  = sim_time;
+          tau_d0  = tau_d;
+          restart = false;
+        }
+        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( sim_time - c_time ) );
+      }
 
       // Send command to the torque robot
       robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
@@ -203,8 +219,9 @@ main( int argc, char **argv )
       plotter->plot( 2, sim_time, tau_cmd );
       plotter->plot( 3, sim_time, norm );
 
-      if(opt_verbose){
-    	std::cout << "dt: " << sim_time - sim_time_prev << std::endl;
+      if ( opt_verbose )
+      {
+        std::cout << "dt: " << sim_time - sim_time_prev << std::endl;
       }
 
       robot.wait( sim_time, 0.0019 ); // Simulate a loop at 500 Hz (2 ms)
@@ -216,8 +233,9 @@ main( int argc, char **argv )
         {
           final_quit = true;
         }
-        if(button == vpMouseButton::button1){
-        	send_cmd = !send_cmd;
+        if ( button == vpMouseButton::button1 )
+        {
+          send_cmd = !send_cmd;
         }
       }
 

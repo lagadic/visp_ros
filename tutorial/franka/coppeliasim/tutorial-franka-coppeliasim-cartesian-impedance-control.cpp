@@ -1,97 +1,63 @@
-/*
- * tutorial-franka-coppeliasim-cartesian-impedance-control.cpp
+/****************************************************************************
  *
- *  Created on: Aug 31, 2021
- *      Author: oliva
- */
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See https://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
+
+//! \example tutorial-franka-coppeliasim-cartesian-impedance-control.cpp
 
 #include <iostream>
 
-#include <visp3/core/vpCameraParameters.h>
-#include <visp3/core/vpImagePoint.h>
-#include <visp3/detection/vpDetectorAprilTag.h>
-#include <visp3/gui/vpDisplayOpenCV.h>
 #include <visp3/gui/vpPlot.h>
-#include <visp3/io/vpImageIo.h>
-#include <visp3/visual_features/vpFeatureThetaU.h>
-#include <visp3/visual_features/vpFeatureTranslation.h>
-#include <visp3/vs/vpServo.h>
-#include <visp3/vs/vpServoDisplay.h>
-
-#include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
-#include "geometry_msgs/WrenchStamped.h"
-
-void
-display_point_trajectory( const vpImage< unsigned char > &I, const std::vector< vpImagePoint > &vip,
-                          std::vector< vpImagePoint > *traj_vip )
+vpMatrix
+Ta( const vpHomogeneousMatrix &edMe )
 {
-  for ( size_t i = 0; i < vip.size(); i++ )
-  {
-    if ( traj_vip[i].size() )
-    {
-      // Add the point only if distance with the previous > 1 pixel
-      if ( vpImagePoint::distance( vip[i], traj_vip[i].back() ) > 1. )
-      {
-        traj_vip[i].push_back( vip[i] );
-      }
-    }
-    else
-    {
-      traj_vip[i].push_back( vip[i] );
-    }
-  }
-  for ( size_t i = 0; i < vip.size(); i++ )
-  {
-    for ( size_t j = 1; j < traj_vip[i].size(); j++ )
-    {
-      vpDisplay::displayLine( I, traj_vip[i][j - 1], traj_vip[i][j], vpColor::green, 2 );
-    }
-  }
-}
-
-vpMatrix Ta(const vpHomogeneousMatrix &edMe){
-  vpMatrix Lx(6,6), Lw(3,3), skew_u(3,3);
+  vpMatrix Lx( 6, 6 ), Lw( 3, 3 ), skew_u( 3, 3 );
 
   Lx.eye();
-  vpThetaUVector tu(edMe);
+  vpThetaUVector tu( edMe );
 
   vpColVector u;
   double theta;
 
-  tu.extract(theta, u);
-  skew_u = vpColVector::skew(u);
+  tu.extract( theta, u );
+  skew_u = vpColVector::skew( u );
   Lw.eye();
-  if(theta != 0.0){
-    Lw -= 0.5*theta*skew_u;
-    Lw += (1-((vpMath::sinc(theta))/(vpMath::sqr(vpMath::sinc(theta*0.5)))))*skew_u*skew_u;
+  if ( theta != 0.0 )
+  {
+    Lw -= 0.5 * theta * skew_u;
+    Lw += ( 1 - ( ( vpMath::sinc( theta ) ) / ( vpMath::sqr( vpMath::sinc( theta * 0.5 ) ) ) ) ) * skew_u * skew_u;
   }
 
-
-  Lx.insert(Lw, 3, 3);
-
-  return Lx;
-}
-
-
-vpMatrix compute_interaction_matrix_3D(const vpHomogeneousMatrix &cdMc){
-  vpMatrix Lx(6,6), Lw(3,3), skew_u(3,3);
-
-  vpRotationMatrix cdRc(cdMc);
-  vpThetaUVector tu(cdMc);
-
-  vpColVector u;
-  double theta;
-
-  tu.extract(theta, u);
-  skew_u = vpColVector::skew(u);
-  Lw.eye();
-  Lw += 0.5*theta*skew_u;
-  Lw += (1-((vpMath::sinc(theta))/(vpMath::sqr(vpMath::sinc(theta*0.5)))))*skew_u*skew_u;
-
-  Lx.insert(cdRc, 0, 0);
-  Lx.insert(Lw, 3, 3);
+  Lx.insert( Lw, 3, 3 );
 
   return Lx;
 }
@@ -99,7 +65,6 @@ vpMatrix compute_interaction_matrix_3D(const vpHomogeneousMatrix &cdMc){
 int
 main( int argc, char **argv )
 {
-
   bool opt_verbose               = false;
   bool opt_coppeliasim_sync_mode = false;
 
@@ -118,7 +83,6 @@ main( int argc, char **argv )
       std::cout << argv[0] << "[--enable-coppeliasim-sync-mode] "
                 << "[--verbose] [-v] "
                 << "[--help] [-h]" << std::endl;
-      ;
       return EXIT_SUCCESS;
     }
   }
@@ -141,7 +105,6 @@ main( int argc, char **argv )
     robot.coppeliasimStopSimulation(); // Allows to reset simulation, moving the robot to initial position
     robot.setCoppeliasimSyncMode( false );
     robot.coppeliasimStartSimulation();
-
 
     vpPlot *plotter = nullptr;
 
@@ -180,138 +143,136 @@ main( int argc, char **argv )
     plotter->setLegend( 3, 0, "||e_p||" );
     plotter->setLegend( 3, 1, "||e_o||" );
 
-
     bool final_quit                           = false;
     bool send_cmd                             = false;
     bool restart                              = false;
     std::vector< vpImagePoint > *traj_corners = nullptr; // To memorize point trajectory
 
-    double sim_time             = robot.getCoppeliasimSimulationTime();
-    double sim_time_prev        = sim_time;
-    double sim_time_start       = sim_time;
-    double dt                   = 0.0;
-
+    double sim_time       = robot.getCoppeliasimSimulationTime();
+    double sim_time_prev  = sim_time;
+    double sim_time_start = sim_time;
+    double dt             = 0.0;
 
     vpMatrix K( 6, 6 ), D( 6, 6 );
     double wp = 50;
     double wo = 20;
-    K.diag({wp*wp,wp*wp,wp*wp,wo*wo,wo*wo,wo*wo});
-    D.diag({2*wp,2*wp,2*wp,2*wo,2*wo,2*wo});
+    K.diag( { wp * wp, wp * wp, wp * wp, wo * wo, wo * wo, wo * wo } );
+    D.diag( { 2 * wp, 2 * wp, 2 * wp, 2 * wo, 2 * wo, 2 * wo } );
 
     double c_time = 0.0;
     double mu     = 2.0;
 
-
-    vpColVector dq( 7, 0 ), tau_d( 7, 0 ), C( 7, 0 ),F( 7, 0 ), tau_d0( 7, 0 ),
-    		    tau_cmd( 7, 0 ), x_e( 6, 0 ), dx_e( 6, 0 ), dx_ed( 6, 0 ), ddx_ed( 6, 0 );
-    vpMatrix J( 6, 7 ), Ja( 6, 7 ), dJa( 6, 7 ), Ja_old( 6, 7 ), B( 7, 7 ),
-    		 I7( 7, 7 ), Ja_pinv_B_t( 6, 7 );
+    vpColVector dq( 7, 0 ), tau_d( 7, 0 ), C( 7, 0 ), F( 7, 0 ), tau_d0( 7, 0 ), tau_cmd( 7, 0 ), x_e( 6, 0 ),
+        dx_e( 6, 0 ), dx_ed( 6, 0 ), ddx_ed( 6, 0 );
+    vpMatrix J( 6, 7 ), Ja( 6, 7 ), dJa( 6, 7 ), Ja_old( 6, 7 ), B( 7, 7 ), I7( 7, 7 ), Ja_pinv_B_t( 6, 7 );
 
     I7.eye();
 
-    robot.setRobotState( vpRobot::STATE_FORCE_TORQUE_CONTROL);
+    robot.setRobotState( vpRobot::STATE_FORCE_TORQUE_CONTROL );
     robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
-
 
     vpHomogeneousMatrix wMed, wMed0;
     wMed0 = robot.get_fMe();
-    wMed = wMed0;
-
+    wMed  = wMed0;
 
     // control loop
     while ( !final_quit )
     {
-		sim_time = robot.getCoppeliasimSimulationTime();
-		dt = sim_time - sim_time_prev;
-		sim_time_prev = sim_time;
-		if(opt_verbose){
-			std::cout << "dt: " << dt<< std::endl;
-		}
+      sim_time      = robot.getCoppeliasimSimulationTime();
+      dt            = sim_time - sim_time_prev;
+      sim_time_prev = sim_time;
+      if ( opt_verbose )
+      {
+        std::cout << "dt: " << dt << std::endl;
+      }
 
+      robot.getVelocity( vpRobot::JOINT_STATE, dq );
+      robot.getMass( B );
+      robot.getCoriolis( C );
+      robot.getFriction( F );
+      robot.get_fJe( J );
 
-		robot.getVelocity( vpRobot::JOINT_STATE, dq );
-		robot.getMass( B );
-		robot.getCoriolis( C );
-		robot.getFriction( F );
-		robot.get_fJe(J);
+      wMed[1][3] = wMed0[1][3] + 0.1 * sin( 2 * M_PI * 0.3 * ( sim_time - sim_time_start ) );
+      wMed[2][3] = wMed0[2][3] - 0.05 * sin( 2 * M_PI * 0.6 * ( sim_time - sim_time_start ) );
 
+      dx_ed[1] = 2 * M_PI * 0.3 * 0.1 * cos( 2 * M_PI * 0.3 * ( sim_time - sim_time_start ) );
+      dx_ed[2] = -2 * M_PI * 0.6 * 0.05 * cos( 2 * M_PI * 0.6 * ( sim_time - sim_time_start ) );
 
-	    wMed[1][3] = wMed0[1][3] + 0.1*sin(2*M_PI*0.3*(sim_time - sim_time_start)) ;
-	    wMed[2][3] = wMed0[2][3] - 0.05*sin(2*M_PI*0.6*(sim_time - sim_time_start)) ;
+      ddx_ed[1] = -2 * M_PI * 0.3 * 2 * M_PI * 0.3 * 0.1 * sin( 2 * M_PI * 0.3 * ( sim_time - sim_time_start ) );
+      ddx_ed[2] = 2 * M_PI * 0.6 * 2 * M_PI * 0.6 * 0.05 * sin( 2 * M_PI * 0.6 * ( sim_time - sim_time_start ) );
 
-	    dx_ed[1] =  2*M_PI*0.3*0.1*cos(2*M_PI*0.3*(sim_time - sim_time_start));
-	    dx_ed[2] = -2*M_PI*0.6*0.05*cos(2*M_PI*0.6*(sim_time - sim_time_start));
+      vpMatrix RR( 6, 6 );
+      RR.insert( wMed.getRotationMatrix().t(), 0, 0 );
+      RR.insert( wMed.getRotationMatrix().t(), 3, 3 );
 
-	    ddx_ed[1] = -2*M_PI*0.3*2*M_PI*0.3*0.1*sin(2*M_PI*0.3*(sim_time - sim_time_start));
-	    ddx_ed[2] =  2*M_PI*0.6*2*M_PI*0.6*0.05*sin(2*M_PI*0.6*(sim_time - sim_time_start));
+      x_e = (vpColVector)vpPoseVector( wMed.inverse() * robot.get_fMe() );
+      Ja  = Ta( wMed.inverse() * robot.get_fMe() ) * RR * J;
 
+      dx_e = Ta( wMed.inverse() * robot.get_fMe() ) * RR * ( dx_ed - J * dq );
 
-        vpMatrix RR(6,6);
-        RR.insert(wMed.getRotationMatrix().t(), 0, 0);
-        RR.insert(wMed.getRotationMatrix().t(), 3, 3);
+      if ( dt != 0 )
+      {
+        dJa = ( Ja - Ja_old ) / dt;
+      }
+      else
+      {
+        dJa = 0;
+      }
+      Ja_old = Ja;
 
-        x_e = (vpColVector)vpPoseVector(wMed.inverse() * robot.get_fMe());
-        Ja = Ta(wMed.inverse() * robot.get_fMe()) * RR * J ;
+      Ja_pinv_B_t = ( Ja * B.inverseByCholesky() * Ja.t() ).inverseByCholesky() * Ja * B.inverseByCholesky();
 
-        dx_e = Ta(wMed.inverse()*robot.get_fMe()) * RR * (dx_ed-J*dq);
+      // Compute the control law
+      tau_d = B * Ja.pseudoInverse() * ( -K * ( x_e ) + D * (dx_e)-dJa * dq + ddx_ed ) + C + F -
+              ( I7 - Ja.t() * Ja_pinv_B_t ) * B * dq * 100;
 
-        if(dt != 0){
-      	  dJa = (Ja - Ja_old)/dt;
-        }else{
-      	  dJa = 0;
-        }
-        Ja_old = Ja;
-
-        Ja_pinv_B_t = (Ja*B.inverseByCholesky()*Ja.t()).inverseByCholesky()*Ja*B.inverseByCholesky();
-
-        // Compute the control law
-        tau_d = B*Ja.pseudoInverse()* ( - K * ( x_e ) + D * ( dx_e ) - dJa*dq + ddx_ed)
-      		  + C + F - (I7 - Ja.t()*Ja_pinv_B_t)*B*dq*100;
-
-
-        if (!send_cmd) {
-      	  tau_cmd = 0;
-      	  restart = true;
-        }else{
-      	  if(restart){
-      		  c_time = sim_time;
-      		  tau_d0 = tau_d;
-      		  restart = false;
-      	  }
-      	tau_cmd = tau_d - tau_d0*std::exp(-mu*(sim_time - c_time));
-        }
-
-        robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
-
-        vpColVector aux( 2, 0 ), tau_J( 7, 0 );
-        robot.getForceTorque(vpRobot::JOINT_STATE, tau_J);
-        plotter->plot( 0, sim_time, tau_J);
-        plotter->plot( 1, sim_time, x_e );
-        plotter->plot( 2, sim_time, tau_cmd );
-        aux[0] = sqrt( x_e.extract(0, 3).sumSquare() ) ;
-        aux[1] = sqrt( x_e.extract(3, 3).sumSquare() );
-        plotter->plot( 3, sim_time,  aux );
-
-        vpMouseButton::vpMouseButtonType button;
-        if ( vpDisplay::getClick( plotter->I, button, false ) )
+      if ( !send_cmd )
+      {
+        tau_cmd = 0;
+        restart = true;
+      }
+      else
+      {
+        if ( restart )
         {
-        	switch ( button )
-        	{
-        	case vpMouseButton::button1:
-        		send_cmd = !send_cmd;
-        		break;
-        	case vpMouseButton::button3:
-        		final_quit = true;
-        		tau_cmd = 0;
-        		break;
-        	default:
-        		break;
-        	}
+          c_time  = sim_time;
+          tau_d0  = tau_d;
+          restart = false;
         }
+        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( sim_time - c_time ) );
+      }
+
+      robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
+
+      vpColVector aux( 2, 0 ), tau_J( 7, 0 );
+      robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
+      plotter->plot( 0, sim_time, tau_J );
+      plotter->plot( 1, sim_time, x_e );
+      plotter->plot( 2, sim_time, tau_cmd );
+      aux[0] = sqrt( x_e.extract( 0, 3 ).sumSquare() );
+      aux[1] = sqrt( x_e.extract( 3, 3 ).sumSquare() );
+      plotter->plot( 3, sim_time, aux );
+
+      vpMouseButton::vpMouseButtonType button;
+      if ( vpDisplay::getClick( plotter->I, button, false ) )
+      {
+        switch ( button )
+        {
+        case vpMouseButton::button1:
+          send_cmd = !send_cmd;
+          break;
+        case vpMouseButton::button3:
+          final_quit = true;
+          tau_cmd    = 0;
+          break;
+        default:
+          break;
+        }
+      }
 
       robot.wait( sim_time, 0.002 );
 
-    }// end while
+    } // end while
 
     if ( plotter != nullptr )
     {
@@ -319,9 +280,7 @@ main( int argc, char **argv )
       plotter = nullptr;
     }
     robot.coppeliasimStopSimulation();
-    robot.setRobotState( vpRobot::STATE_STOP);
-
-
+    robot.setRobotState( vpRobot::STATE_STOP );
   }
   catch ( const vpException &e )
   {
@@ -332,8 +291,3 @@ main( int argc, char **argv )
 
   return 0;
 }
-
-
-
-
-

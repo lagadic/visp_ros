@@ -1,13 +1,40 @@
-/*
- * \example tutorial-franka-coppeliasim-ibvs-apriltag.cpp
- */
+/****************************************************************************
+ *
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See https://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
 
 //! \example tutorial-franka-coppeliasim-ibvs-apriltag.cpp
 
 #include <iostream>
 
 #include <visp3/core/vpCameraParameters.h>
-#include <visp3/core/vpImagePoint.h>
 #include <visp3/detection/vpDetectorAprilTag.h>
 #include <visp3/gui/vpDisplayOpenCV.h>
 #include <visp3/gui/vpPlot.h>
@@ -106,7 +133,6 @@ main( int argc, char **argv )
                 << "[--enable-coppeliasim-sync-mode] "
                 << "[--verbose] [-v] "
                 << "[--help] [-h]" << std::endl;
-      ;
       return EXIT_SUCCESS;
     }
   }
@@ -247,8 +273,6 @@ main( int argc, char **argv )
     }
     std::cout << "eMc:\n" << robot.get_eMc() << std::endl;
 
-    vpColVector v_c( 6 );
-
     robot.setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
 
     robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
@@ -271,6 +295,8 @@ main( int argc, char **argv )
            << ", right click to quit.";
         vpDisplay::displayText( I, 20, 20, ss.str(), vpColor::red );
       }
+
+      vpColVector v_c( 6 );
 
       // Only one tag is detected
       if ( cMo_vec.size() == 1 )
@@ -381,7 +407,7 @@ main( int argc, char **argv )
         vpDisplay::displayText( I, 20, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
 
         if ( opt_verbose )
-          std::cout << "error: " << error << std::endl;
+          std::cout << ss.str() << std::endl;
 
         if ( !has_converged && error < convergence_threshold )
         {
