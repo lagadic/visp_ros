@@ -90,7 +90,7 @@ There is also the possibility to build the dependencies from source.
 
 - Download the last edu version of `CoppeliaSim` for Ubuntu 18.04 or 20.04 from [here](https://coppeliarobotics.com/downloads) (at the time this tutorial was written it was `CoppeliaSim_Edu_V4_2_0_Ubuntu18_04.tar.xz` or `CoppeliaSim_Edu_V4_2_0_Ubuntu20_04.tar.xz` respectively).
 - Extract the archive content in `~/software` workspace.
-- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04/` folder or similar
+- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04/` folder or in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04/` depending which Ubuntu version you are using. 
 
 
 \subsection franka_coppeliasim_install_ros_interface Install ROSInterface for CoppeliaSim
@@ -135,7 +135,8 @@ At this point the installation depends on installed ROS version.
   \endverbatim
 
 
-\section franka_coppeliasim_run_sim Run the Franka simulator
+\section franka_coppeliasim_example Franka simulator examples
+\subsection franka_coppeliasim_example_single_vs Single Arm Visual Servoing 
 
 To properly run the simulator, you will need three terminals, one for `roscore`, one for `CoppeliaSim`, and one for the ROS node that does for example the visual-servo (note that `roscore` should be started before `CoppeliaSim`):
 
@@ -146,9 +147,16 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   \endverbatim
 
 - **In terminal 2 run:**
+  - If you are using ROS noetic on Ubuntu 20.04 use:
   \verbatim
   $ source /opt/ros/$ROS_DISTRO/setup.bash
   $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04
+  $ ./coppeliaSim.sh
+  \endverbatim
+  - If you are rather using ROS melodic on Ubuntu 18.04 use:
+  \verbatim
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04
   $ ./coppeliaSim.sh
   \endverbatim
 
@@ -207,13 +215,50 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --help
   \endverbatim
 
-  There is also a **joint impedance control** example that could be launched using:
-  \verbatim
-  $ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
-  \endverbatim
-  The following video show the resulting robot behavior:
-  \htmlonly
+\subsection franka_coppeliasim_example_joint_impedance Joint Impedance Control 
+
+To run the **joint impedance control** example the general principle remain the same as in the previous section except that in **in terminal 3** you may launch:
+\verbatim
+$ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
+\endverbatim
+The following video show the resulting robot behavior:
+\htmlonly
 <p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/n4udNlUmKSo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
-  \endhtmlonly
+\endhtmlonly
+
+\subsection franka_coppeliasim_example_dual_vs Dual Arm Visual Servoing 
+
+We provide also a CoppeliaSim scene with 2 Franka arms.
+
+The general principle remain the same as in the previous section. The differences are that:
+- **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene
+- **in terminal 3** you may run a dual arm example where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a joint impedance controller:
+  \verbatim
+  $ source ~/catkin_ws/devel/setup.bash
+  $ rosrun visp_ros tutorial-franka-coppeliasim-dual-arm --adaptive_gain --enable-coppeliasim-sync-mode
+  \endverbatim
+  At this point, if in terminal 3 you get a segfault like
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-duar-arm --adaptive_gain --enable-coppeliasim-sync-mode
+  ROS is initialized ? yes
+  ROS is initialized ? yes
+  Coppeliasim sync mode enabled: yes
+  Segmentation fault (core dumped)
+  \endverbatim
+  and in the same time in CoppeliaSim a popup window like the following:
+  \image html img-coppeliasim-vortex-error-popup.jpeg
+  you should do the following:
+  - close CoppeliaSim
+  - as stated in the popup do the following:
+    \verbatim
+    $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04 (or CoppeliaSim_Edu_V4_2_0_Ubuntu20_04)
+    $ cp vortexPlugin/* .
+    \endverbatim
+  Now if you run again the simulation a new popup should appear in CoppeliaSim
+  \image html img-coppeliasim-vortex-engine-popup.jpeg
+  indicating that you should install a Vortex engine.
+  - Browse to https://www.cm-labs.com/. In `"Simulation Software"` menu, select `"Vortex Studio Academic"` and apply for accademic access
+
+  
 
 */
