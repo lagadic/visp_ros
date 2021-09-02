@@ -232,7 +232,7 @@ We provide also a CoppeliaSim scene with 2 Franka arms.
 
 The general principle remain the same as in the previous section. The differences are that:
 - **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene
-- **in terminal 3** you may run a dual arm example where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a joint impedance controller:
+- **in terminal 3** you may run a dual arm example where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a cartesian impedance controller:
   \verbatim
   $ source ~/catkin_ws/devel/setup.bash
   $ rosrun visp_ros tutorial-franka-coppeliasim-dual-arm --adaptive_gain --enable-coppeliasim-sync-mode
