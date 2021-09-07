@@ -41,7 +41,7 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 Enter in catkin source folder and source ROS setup:
 
 	$ cd ~/catkin_ws/src
-	$ source /opt/ros/<version>
+	$ source /opt/ros/<version>/setup.bash
 
 Get `vision_visp` stack that contains `visp_bridge` package:
 
