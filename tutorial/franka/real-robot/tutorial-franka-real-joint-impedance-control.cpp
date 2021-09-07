@@ -37,11 +37,29 @@
 #include <visp3/gui/vpPlot.h>
 #include <visp3/robot/vpRobotFranka.h>
 
+vpColVector
+sign( const vpColVector &v )
+{
+
+  vpColVector s( v.size(), 0 );
+  for ( size_t i = 0; i < v.size(); i++ )
+  {
+    if ( v[i] >= 0 )
+    {
+      s[i] = 1;
+    }
+    else
+    {
+      s[i] = -1;
+    }
+  }
+  return s;
+}
+
 int
 main( int argc, char **argv )
 {
   std::string opt_robot_ip = "192.168.1.1";
-  bool opt_verbose         = false;
 
   for ( int i = 1; i < argc; i++ )
   {
@@ -49,23 +67,25 @@ main( int argc, char **argv )
     {
       opt_robot_ip = std::string( argv[i + 1] );
     }
-    else if ( std::string( argv[i] ) == "--verbose" || std::string( argv[i] ) == "-v" )
-    {
-      opt_verbose = true;
-    }
     else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
     {
-      std::cout << argv[0] << "[--verbose] [-v] "
-                << "[--help] [-h]" << std::endl;
+      std::cout << argv[0] << " [--ip <default " << opt_robot_ip << ">]"
+                << " [--help] [-h] " << std::endl;
       return EXIT_SUCCESS;
     }
   }
 
   vpRobotFranka robot;
-
+  std::cout << "ip: " << opt_robot_ip << std::endl;
   try
   {
     robot.connect( opt_robot_ip );
+
+    vpColVector q_init( { 0, vpMath::rad( -45 ), 0, vpMath::rad( -135 ), 0, vpMath::rad( 90 ), vpMath::rad( 45 ) } );
+
+    robot.setRobotState( vpRobot::STATE_POSITION_CONTROL );
+    robot.setPosition( vpRobot::JOINT_STATE, q_init );
+    vpTime::wait( 500 );
 
     vpPlot *plotter = nullptr;
 
@@ -121,20 +141,25 @@ main( int argc, char **argv )
     bool restart    = false;
     bool first_time = true;
 
-    vpMatrix K( 7, 7 ), D( 7, 7 );
-    K.diag( { 600.0, 600.0, 600.0, 600.0, 250.0, 150.0, 150.0 } );
-    D.diag( { 50.0, 50.0, 50.0, 50.0, 30.0, 25.0, 25.0 } );
+    vpMatrix K( 7, 7 ), D( 7, 7 ), I( 7, 7 );
+    K.diag( { 400.0, 400.0, 400.0, 400.0, 400.0, 400.0, 900.0 } );
+    D.diag( { 20.0, 45.0, 45.0, 45.0, 45.0, 45.0, 60.0 } );
+    I.diag( { 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 60.0 } );
 
-    double sim_time       = vpTime::measureTimeSecond();
-    double sim_time_start = sim_time;
-    double sim_time_prev  = sim_time;
+    vpColVector integral( 7, 0 );
+    vpColVector eps( 7, 0 ), P( 7, 0.1 ), Kt( 7, 0 ), delt( 7, 0.5 ), G( 7, 0 ), tau_J( 7, 0 ), sig( 7, 0 );
+
+    double time       = vpTime::measureTimeSecond();
+    double time_start = time;
+    double time_prev  = time;
 
     double c_time = 0.0;
-    double mu     = 10.0;
+    double mu     = 0.01;
+    double dt     = 0;
 
     while ( !final_quit )
     {
-      sim_time = vpTime::measureTimeSecond();
+      time = vpTime::measureTimeSecond();
 
       robot.getPosition( vpRobot::JOINT_STATE, q );
       robot.getVelocity( vpRobot::JOINT_STATE, dq );
@@ -144,25 +169,30 @@ main( int argc, char **argv )
 
       if ( first_time )
       {
-        sim_time_start = sim_time;
-        first_time     = false;
+        time_start = time;
+        first_time = false;
       }
-      // compute some joint trajectories
-      qd[0]   = q0[0] + std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
-      dqd[0]  = 2 * M_PI * 0.25 * std::cos( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
-      ddqd[0] = -std::pow( 2 * 0.25 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
-      qd[2]   = q0[2] + ( M_PI / 16 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
-      dqd[2]  = M_PI * ( M_PI / 8 ) * std::cos( 2 * M_PI * ( sim_time - sim_time_start ) );
-      ddqd[2] = -M_PI * M_PI * ( M_PI / 4 ) * std::sin( 2 * M_PI * ( sim_time - sim_time_start ) );
-      qd[4]   = q0[4] + ( M_PI / 16 ) * std::sin( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
-      dqd[4]  = M_PI * ( M_PI / 8 ) * 0.5 * std::cos( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
-      ddqd[4] = -M_PI * M_PI * ( M_PI / 4 ) * 0.5 * 0.5 * std::sin( 2 * M_PI * 0.5 * ( sim_time - sim_time_start ) );
-      qd[6]   = q0[6] + std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
-      dqd[6]  = 2 * M_PI * 0.25 * std::cos( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
-      ddqd[6] = -std::pow( 2 * 0.25 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.25 * ( sim_time - sim_time_start ) );
+      // Compute some joint trajectories
+      qd[0]   = q0[0] + std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
+      dqd[0]  = 2 * M_PI * 0.1 * std::cos( 2 * M_PI * 0.1 * ( time - time_start ) );
+      ddqd[0] = -std::pow( 2 * 0.1 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
+
+      qd[2]   = q0[2] + ( M_PI / 16 ) * std::sin( 2 * M_PI * 0.2 * ( time - time_start ) );
+      dqd[2]  = M_PI * ( M_PI / 8 ) * 0.2 * std::cos( 2 * M_PI * 0.2 * ( time - time_start ) );
+      ddqd[2] = -M_PI * M_PI * 0.2 * ( M_PI / 4 ) * std::sin( 2 * M_PI * 0.2 * ( time - time_start ) );
+
+      qd[3]   = q0[3] + 0.25 * std::sin( 2 * M_PI * 0.05 * ( time - time_start ) );
+      dqd[3]  = 2 * M_PI * 0.05 * 0.25 * std::cos( 2 * M_PI * 0.05 * ( time - time_start ) );
+      ddqd[3] = -0.25 * std::pow( 2 * 0.05 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.05 * ( time - time_start ) );
+
+      //      qd[6]   = q0[6] + std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
+      //      dqd[6]  = 2 * M_PI * 0.1 * std::cos( 2 * M_PI * 0.1 * ( time - time_start ) );
+      //      ddqd[6] = -std::pow( 2 * 0.1 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
+
+      integral += ( qd - q ) * dt;
 
       // Compute the control law
-      tau_d = B * ( K * ( qd - q ) + D * ( dqd - dq ) + ddqd ) + C + F;
+      tau_d = B * ( K * ( qd - q ) + D * ( dqd - dq ) + I * ( integral ) + ddqd ) + C + F;
 
       if ( !send_cmd )
       {
@@ -173,28 +203,36 @@ main( int argc, char **argv )
       {
         if ( restart )
         {
-          c_time  = sim_time;
+          c_time  = time;
           tau_d0  = tau_d;
           restart = false;
         }
-        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( sim_time - c_time ) );
+        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time - c_time ) );
+      }
+
+      robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
+      robot.getGravity( G );
+      vpColVector aux( 7, 0 );
+      sig = sign( dq );
+      for ( size_t i = 0; i < 7; i++ )
+      {
+        eps[i] = ( tau_cmd[i] + G[i] - tau_J[i] ) - sig[i] * delt[i];
+        Kt[i]  = ( P[i] * sig[i] ) / ( 1 + P[i] );
+        delt[i] += Kt[i] * eps[i];
+        P[i] += -Kt[i] * P[i] * sig[i];
+
+        aux[i] = sig[i] * delt[i];
+        tau_cmd[i] += aux[i];
       }
 
       // Send command to the torque robot
       robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
 
       vpColVector norm( 1, vpMath::deg( std::sqrt( ( qd - q ).sumSquare() ) ) );
-      plotter->plot( 0, sim_time, q );
-      plotter->plot( 1, sim_time, qd - q );
-      plotter->plot( 2, sim_time, tau_cmd );
-      plotter->plot( 3, sim_time, norm );
-
-      if ( opt_verbose )
-      {
-        std::cout << "dt: " << sim_time - sim_time_prev << std::endl;
-      }
-
-      vpTime::wait( sim_time / 1000., 2 ); // Sync loop at 500 Hz (2 ms)
+      plotter->plot( 0, time - time_start, q );
+      plotter->plot( 1, time - time_start, qd - q );
+      plotter->plot( 2, time - time_start, tau_cmd );
+      plotter->plot( 3, time - time_start, norm );
 
       vpMouseButton::vpMouseButtonType button;
       if ( vpDisplay::getClick( plotter->I, button, false ) )
@@ -202,6 +240,9 @@ main( int argc, char **argv )
         if ( button == vpMouseButton::button3 )
         {
           final_quit = true;
+          tau_cmd    = 0;
+          std::cout << "Stop the robot " << std::endl;
+          robot.setRobotState( vpRobot::STATE_STOP );
         }
         if ( button == vpMouseButton::button1 )
         {
@@ -209,7 +250,9 @@ main( int argc, char **argv )
         }
       }
 
-      sim_time_prev = sim_time;
+      dt        = time - time_prev;
+      time_prev = time;
+      vpTime::wait( time / 1000., 1 ); // Sync loop at 1000 Hz (1 ms)
     }
 
     if ( plotter != nullptr )
@@ -217,9 +260,6 @@ main( int argc, char **argv )
       delete plotter;
       plotter = nullptr;
     }
-
-    std::cout << "Stop the robot " << std::endl;
-    robot.setRobotState( vpRobot::STATE_STOP );
   }
   catch ( const vpException &e )
   {
