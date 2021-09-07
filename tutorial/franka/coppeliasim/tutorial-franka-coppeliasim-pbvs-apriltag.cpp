@@ -218,7 +218,7 @@ main( int argc, char **argv )
 
     if ( opt_adaptive_gain )
     {
-      std::cout << "Enable adptive gain" << std::endl;
+      std::cout << "Enable adaptive gain" << std::endl;
       vpAdaptiveGain lambda( 4, 1.2, 25 ); // lambda(0)=4, lambda(oo)=1.2 and lambda'(0)=25
       task.setLambda( lambda );
     }
