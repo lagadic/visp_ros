@@ -172,7 +172,7 @@ main( int argc, char **argv )
         time_start = time;
         first_time = false;
       }
-      // Compute some joint trajectories
+      // Compute joint trajectories
       qd[0]   = q0[0] + std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
       dqd[0]  = 2 * M_PI * 0.1 * std::cos( 2 * M_PI * 0.1 * ( time - time_start ) );
       ddqd[0] = -std::pow( 2 * 0.1 * M_PI, 2 ) * std::sin( 2 * M_PI * 0.1 * ( time - time_start ) );
@@ -210,6 +210,7 @@ main( int argc, char **argv )
         tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time - c_time ) );
       }
 
+      // Filter to compensate for static friction
       robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
       robot.getGravity( G );
       vpColVector aux( 7, 0 );
