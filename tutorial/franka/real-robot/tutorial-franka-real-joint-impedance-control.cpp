@@ -211,19 +211,21 @@ main( int argc, char **argv )
       }
 
       // Filter to compensate for static friction
-      robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
-      robot.getGravity( G );
-      vpColVector aux( 7, 0 );
-      sig = sign( dq );
-      for ( size_t i = 0; i < 7; i++ )
       {
-        eps[i] = ( tau_cmd[i] + G[i] - tau_J[i] ) - sig[i] * delt[i];
-        Kt[i]  = ( P[i] * sig[i] ) / ( 1 + P[i] );
-        delt[i] += Kt[i] * eps[i];
-        P[i] += -Kt[i] * P[i] * sig[i];
+        robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
+        robot.getGravity( G );
+        vpColVector aux( 7, 0 );
+        sig = sign( dq );
+        for ( size_t i = 0; i < 7; i++ )
+        {
+          eps[i] = ( tau_cmd[i] + G[i] - tau_J[i] ) - sig[i] * delt[i];
+          Kt[i]  = ( P[i] * sig[i] ) / ( 1 + P[i] );
+          delt[i] += Kt[i] * eps[i];
+          P[i] += -Kt[i] * P[i] * sig[i];
 
-        aux[i] = sig[i] * delt[i];
-        tau_cmd[i] += aux[i];
+          aux[i] = sig[i] * delt[i];
+          tau_cmd[i] += aux[i];
+        }
       }
 
       // Send command to the torque robot
