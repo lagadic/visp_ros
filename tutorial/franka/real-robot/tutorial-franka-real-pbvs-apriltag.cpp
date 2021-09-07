@@ -31,7 +31,7 @@
  *****************************************************************************/
 
 /*!
-  \example tutorial-franka-real-pbvs-apriltag.cpp.cpp
+  \example tutorial-franka-real-pbvs-apriltag.cpp
   Example of eye-in-hand image-based control law. We control here a real robot, the
   Franka Emika Panda robot (arm with 7 degrees of freedom). The velocity is
   computed in the camera frame. The inverse jacobian that converts cartesian
@@ -102,7 +102,7 @@ display_point_trajectory( const vpImage< unsigned char > &I, const std::vector< 
 int
 main( int argc, char **argv )
 {
-  double opt_tagSize             = 0.120;
+  double opt_tagSize             = 0.08;
   std::string opt_robot_ip       = "192.168.1.1";
   std::string opt_eMc_filename   = "";
   bool display_tag               = true;
@@ -180,13 +180,16 @@ main( int argc, char **argv )
 
     // Get camera extrinsics
     vpPoseVector ePc;
-    // Set camera extrinsics default values
-    ePc[0] = 0.0337731;
-    ePc[1] = -0.00535012;
-    ePc[2] = -0.0523339;
-    ePc[3] = -0.247294;
-    ePc[4] = -0.306729;
-    ePc[5] = 1.53055;
+    // Set camera extrinsics default values corresponding to
+    // - an Intel RealSense D435 camera
+    // - attached to the Franka end-effector using the mechanical interface corresponding to
+    //   the cad model given in franka-rs-D435-camera-holder.stl file
+    ePc[0] = 0.0621407;
+    ePc[1] = -0.0330388;
+    ePc[2] = -0.184842;
+    ePc[3] = 0.0147918;
+    ePc[4] = 0.00474268;
+    ePc[5] = 1.56873;
 
     // If provided, read camera extrinsics from --eMc <file>
     if ( !opt_eMc_filename.empty() )
