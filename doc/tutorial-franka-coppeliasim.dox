@@ -223,7 +223,14 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 
 \subsection franka_coppeliasim_example_joint_impedance Joint Impedance Control 
 
-To run the **joint impedance control** example the general principle remain the same as in the previous section except that in **in terminal 3** you may launch:
+To run the **joint impedance control** example the general principle remains the same as in the previous section except that:
+
+- **in terminal 2** where CoppeliaSim is launched, you should modify simulation step time to 3 ms. To this end, enter CoppeliaSim `"Simulation > Simulation settings"` menu. In the new "Simulation Settings" panel, modify `"Time Step [s]"` to 0.003, press Enter and close the panel.
+\image html img-coppeliasim-sim-time-3ms.jpeg
+Now you should have something similat to:
+\image html img-coppeliasim-single-arm-sim-time-3ms.jpeg
+
+- **in terminal 3** you may launch:
 \verbatim
 $ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --plot --enable-coppeliasim-sync-mode
 \endverbatim
@@ -236,7 +243,7 @@ The following video show the resulting robot behavior:
 
 We provide also a CoppeliaSim scene with 2 Franka arms. Here the show how to achieve PBVS with one arm while the other is moving an 8cm AprilTag target.
 
-The general principle remain the same as in the previous section. The differences are that:
+The general principle remains the same as in the previous section. The differences are that:
 - **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene and see something similar to the next image
 
   \image html img-coppeliasim-franka-dual-arm-scene.jpeg
