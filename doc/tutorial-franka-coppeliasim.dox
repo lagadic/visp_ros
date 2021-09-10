@@ -90,7 +90,7 @@ There is also the possibility to build the dependencies from source.
 
 - Download the last edu version of `CoppeliaSim` for Ubuntu 18.04 or 20.04 from [here](https://coppeliarobotics.com/downloads) (at the time this tutorial was written it was `CoppeliaSim_Edu_V4_2_0_Ubuntu18_04.tar.xz` or `CoppeliaSim_Edu_V4_2_0_Ubuntu20_04.tar.xz` respectively).
 - Extract the archive content in `~/software` workspace.
-- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04/` folder or similar
+- At this point you should have `CoppeliaSim` in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04/` folder or in `~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04/` depending which Ubuntu version you are using. 
 
 
 \subsection franka_coppeliasim_install_ros_interface Install ROSInterface for CoppeliaSim
@@ -135,7 +135,10 @@ At this point the installation depends on installed ROS version.
   \endverbatim
 
 
-\section franka_coppeliasim_run_sim Run the Franka simulator
+\section franka_coppeliasim_example Examples with Franka simulator
+\subsection franka_coppeliasim_example_single_vs Single Arm Visual Servoing 
+
+Here we show how to run a position-based visual-servoing (PBVS) or an image-based visual-servoing simulation (IBVS) over an 8 cm Apriltag target.
 
 To properly run the simulator, you will need three terminals, one for `roscore`, one for `CoppeliaSim`, and one for the ROS node that does for example the visual-servo (note that `roscore` should be started before `CoppeliaSim`):
 
@@ -146,9 +149,16 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   \endverbatim
 
 - **In terminal 2 run:**
+  - If you are using ROS noetic on Ubuntu 20.04 use:
   \verbatim
   $ source /opt/ros/$ROS_DISTRO/setup.bash
   $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu20_04
+  $ ./coppeliaSim.sh
+  \endverbatim
+  - If you are rather using ROS melodic on Ubuntu 18.04 use:
+  \verbatim
+  $ source /opt/ros/$ROS_DISTRO/setup.bash
+  $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04
   $ ./coppeliaSim.sh
   \endverbatim
 
@@ -158,11 +168,14 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 
   At this point, in `CoppeliaSim` GUI you should see the following feedback:
   \verbatim
-  [sandboxScript:info]   Simulator launched, welcome!
-  [CoppeliaSim:info]   Default scene was set-up.
-  [CoppeliaSim:info]   Loading scene ($HOME/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene/frankaSim.ttt). Serialization version is 22.
-  [CoppeliaSim:info]   File was previously written with CoppeliaSim version 4.01.00 (rev 1)
-  [CoppeliaSim:info]   Scene opened.
+  [sandboxScript:info] Simulator launched, welcome!
+  [CoppeliaSim:loadinfo] checking for an updated CoppeliaSim version...
+  [CoppeliaSim:loadinfo] This CoppeliaSim version is up-to-date.
+  [CoppeliaSim:info] Loading scene...
+  [CoppeliaSim:info] Default scene was set-up.
+  [CoppeliaSim:info] Loading scene (/home/user/catkin_ws/src/visp_ros/tutorial/franka/coppeliasim/scene/frankaSim.ttt).  Serialization version is 23.
+  [CoppeliaSim:info] File was previously written with CoppeliaSim version 4.02.00 (rev 5)
+  [CoppeliaSim:info] Scene opened.
   ROS interface was found.
   \endverbatim
   Be sure that ROS interface is found. If this is not the case, it means:
@@ -170,8 +183,8 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   - either that you forget to `source ~/catkin_ws/devel/setup.bash`, 
   - either that you have an issue that comes from ROS interface build step described [here](#franka_coppeliasim_install_ros_interface).
 
-  Note that a circular motion could be applied to the AprilTag. To this end, in the `Scene hierarchy` double-click on the document icon
-  just at the right of `Tag36h11` (see previous image) to open the Lua script. A new window should open, where setting the value of
+  Note that a circular motion could be applied to the AprilTag. To this end, in the `"frankaSim Scene hierarchy"` tab, double-click on the document icon
+  just at the right of `Cuboid` (see previous image) to open the Lua script. A new window should open, where setting the value of
   `w` variable for example to 0.2 in function `sysCall_actuation()` and restarting the script allows to make the AprilTag moving when simulation is started.
   \code
   function sysCall_actuation()
@@ -187,16 +200,16 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   To run a **position-based visual-servoing** (PBVS) over an Apriltag target, run:
   \verbatim
   $ source ~/catkin_ws/devel/setup.bash
-  $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
+  $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag --adaptive_gain --plot --enable-coppeliasim-sync-mode
   \endverbatim
-  Here you should be able to see something similar to the following video:
+  After applying a user click in the window that displays images acquired by the camera, you should be able to see something similar to the following video:
   \htmlonly
 <p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/QQ89sbmufZE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
   \endhtmlonly
 
   To run an **image-based visual-servoing** (IBVS) example, run rather:
   \verbatim
-  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --adaptive_gain --enable-coppeliasim-sync-mode
+  $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --adaptive_gain --plot --enable-coppeliasim-sync-mode
   \endverbatim
   Here you should rather see something similar to the next video:
   \htmlonly
@@ -206,14 +219,125 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
   \verbatim
   $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --help
   \endverbatim
+  In particular, there is the `--plot` option that could be interesting to activate to display visual features error and camera velocities.
 
-  There is also a **joint impedance control** example that could be launched using:
-  \verbatim
-  $ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
-  \endverbatim
-  The following video show the resulting robot behavior:
-  \htmlonly
+\subsection franka_coppeliasim_example_joint_impedance Joint Impedance Control 
+
+To run the **joint impedance control** example the general principle remains the same as in the previous section except that:
+
+- **in terminal 2** where CoppeliaSim is launched, you should modify simulation step time to 3 ms. To this end, enter CoppeliaSim `"Simulation > Simulation settings"` menu. In the new "Simulation Settings" panel, modify `"Time Step [s]"` to 0.003, press Enter and close the panel.
+\image html img-coppeliasim-sim-time-3ms.jpeg
+Now you should have something similat to:
+\image html img-coppeliasim-single-arm-sim-time-3ms.jpeg
+
+- **in terminal 3** you may launch:
+\verbatim
+$ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --plot --enable-coppeliasim-sync-mode
+\endverbatim
+The following video show the resulting robot behavior:
+\htmlonly
 <p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/n4udNlUmKSo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
+\endhtmlonly
+
+\subsection franka_coppeliasim_example_dual_vs Dual Arm Visual Servoing 
+
+We provide also a CoppeliaSim scene with 2 Franka arms. Here the show how to achieve PBVS with one arm while the other is moving an 8cm AprilTag target.
+
+The general principle remains the same as in the previous section. The differences are that:
+- **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene and see something similar to the next image
+
+  \image html img-coppeliasim-franka-dual-arm-scene.jpeg
+
+- **in terminal 3** you may run the dual arm example where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a cartesian impedance controller:
+  \verbatim
+  $ source ~/catkin_ws/devel/setup.bash
+  $ rosrun visp_ros tutorial-franka-coppeliasim-dual-arm --adaptive_gain --enable-coppeliasim-sync-mode
+  \endverbatim
+  \note At this point, if in terminal 3 you get a segfault like
+  \verbatim
+  $ rosrun visp_ros tutorial-franka-coppeliasim-duar-arm --adaptive_gain --enable-coppeliasim-sync-mode
+  ROS is initialized ? yes
+  ROS is initialized ? yes
+  Coppeliasim sync mode enabled: yes
+  Segmentation fault (core dumped)
+  \endverbatim
+  and in the same time in CoppeliaSim a popup window like the following:
+  \image html img-coppeliasim-vortex-error-popup.jpeg
+  you should do the following:
+  - close CoppeliaSim
+  - as stated in the popup do the following:
+    \verbatim
+    $ cd ~/software/CoppeliaSim_Edu_V4_2_0_Ubuntu18_04 (or CoppeliaSim_Edu_V4_2_0_Ubuntu20_04)
+    $ cp vortexPlugin/* .
+    \endverbatim
+  Now if you run again the simulation a new popup should appear in CoppeliaSim
+  \image html img-coppeliasim-vortex-engine-popup.jpeg
+  indicating that you should install a Vortex engine.
+  - Browse to https://www.cm-labs.com/. In `"Simulation Software"` menu, select `"Vortex Studio Academic"` and apply for accademic access
+
+\section franka_real_example Examples with a real Franka robot
+
+We provide also the material to experiment with a real Franka robot equipped with an Intel Realsense D435 RGB-D camera.
+- The camera is attached to the robot end-effector thanks to a 3D printed mechanical interface.
+The STL file is available in `tutorial/franka/real-robot/franka-rs-D435-camera-holder.stl` or could be downloaded
+[here](https://github.com/lagadic/visp_ros/blob/master/tutorial/franka/real-robot/franka-rs-D435-camera-holder.stl). 
+- The extrinsic transformation between the end-effector and the camera frame is given in 
+`~/catkin_ws/src/visp_ros/tutorial/franka/real-robot/eMc.yaml` or could be downloaded
+[here](https://github.com/lagadic/visp_ros/blob/master/tutorial/franka/real-robot/eMc.yaml). 
+To estimate this extrinsic transformation, you can also run an extrinsic calibration explained in this
+[tutorial](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-calibration-extrinsic.html).
+- Camera intrinsic parameters are retrieved thanks to the camera firmware. There is no need to run an intrinsic camera calibration step.
+- An image of an AprilTag with ID 0 and size 8 cm that is ready to print is available in
+`~/catkin_ws/src/visp_ros/tutorial/franka/real-robot/tag36_11_00000-8cm.png` or could be downloaded
+[here](https://github.com/lagadic/visp_ros/blob/master/tutorial/franka/real-robot/tag36_11_00000-8cm.png).
+
+\subsection franka_real_example_single_vs Single Arm Visual Servoing  
+
+  To run a **position-based visual-servoing** (PBVS) over an 8 cm Apriltag target, run:
+  \verbatim
+  $ cd ~/catkin_ws
+  $ ./devel/lib/visp_ros/tutorial-franka-real-pbvs-apriltag --adaptive_gain --plot
+  \endverbatim
+  After applying a user click in the window that displays images acquired by the camera, you should be able to see something similar to the following video:
+  \htmlonly
+<p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/7A5cqUEKXHg" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></p>
   \endhtmlonly
+  Here it is interesting to notice that the source code used for simulation available in
+  tutorial-franka-coppeliasim-pbvs-apriltag.cpp and the one used to control a real robot
+  in tutorial-franka-real-pbvs-apriltag.cpp are similar. 
+
+  To run an **image-based visual-servoing** (IBVS) example again on an 8 cm AprilTag target, run rather:
+  \verbatim
+  $ cd ~/catkin_ws
+  $ ./devel/lib/visp_ros/tutorial-franka-real-ibvs-apriltag --adaptive_gain --plot
+  \endverbatim
+  Here also the source code used for simulation available in
+  tutorial-franka-coppeliasim-ibvs-apriltag.cpp and the one used to control a real robot
+  in tutorial-franka-real-ibvs-apriltag.cpp are similar. 
+
+  To access advanced options, you may add `--help` command line option. For the IBVS (same for PBVS) example run:
+  \verbatim
+  $ ./devel/lib/visp_ros/tutorial-franka-real-ibvs-apriltag --help
+  \endverbatim
+  In particular, there is the:
+  - `--plot` option that could be interesting to display real-time visual features error and camera velocities
+  - `--eMc <transform.yaml>` option that allows to specify your setup extrinsic end-effector to camera transformation.
+    Default usage is equivalent to use `--eMc ~/catkin_ws/src/visp_ros/tutorial/franka/real-robot/eMc.yaml`
+  - `--ip <address>` option to specify your robot controller Ethernet address.
+    Default usage is equivalent to use `--ip 192.168.1.1`.
+  - `--tag_size <size in meter>` option to specify the AprilTag black square side lenght in [m].
+    Default usage is `--tag_size 0.08` corresponding to an 8 cm AprilTag.
+
+\subsection franka_real_example_joint_impedance Joint Impedance Control 
+
+To run a **joint impedance control** example on a real Franka robot, you can run:
+\verbatim
+$ cd ~/catkin_ws
+$ ./devel/lib/visp_ros/tutorial-franka-real-joint-impedance-control
+\endverbatim
+
+As for the previous examples, you can see that the source code used for simulation available in
+tutorial-franka-coppeliasim-joint-impedance-control.cpp and the one used to control a real robot
+in tutorial-franka-real-joint-impedance-control.cpp are similar. 
 
 */

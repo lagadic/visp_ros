@@ -41,9 +41,9 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 Enter in catkin source folder and source ROS setup:
 
 	$ cd ~/catkin_ws/src
-	$ source /opt/ros/<version>
+	$ source /opt/ros/<version>/setup.bash
 
-Get vision_visp stack that contains visp_bridge package:
+Get `vision_visp` stack that contains `visp_bridge` package:
 
 	$ git clone https://github.com/lagadic/vision_visp.git -b $ROS_DISTRO
 
@@ -53,16 +53,30 @@ Get `visp_ros` package:
 
 ## Build visp_ros package
 
+If you want to use the Franka simulator install `Orocos-kdl` package
+
+    $ sudo apt-get install liborocos-kdl-dev
+
+Then build `visp_ros` package:
+
 	$ cd ~/catkin_ws
 	$ catkin_make -DCMAKE_BUILD_TYPE=Release --pkg visp_ros
 
 ## Build documentation and tutorials
+
+There is the documentation available in ros wiki page: http://wiki.ros.org/visp_ros
+
+It is also possible to build the package documentation from your own:
 
 	$ cd ~/catkin_ws
 	$ rosdoc_lite src/visp_ros
 
 Documentation is available in `~/catkin_ws/doc/html/index.html`
 
+From this main page you will get access to:
+- Tutorial: How to use ROS grabber
+- Tutorial: How to simulate Franka robot with Coppeliasim
+- Visual servoing with Parrot Bebop 2 drone using visp_ros
 
 # Usage
 

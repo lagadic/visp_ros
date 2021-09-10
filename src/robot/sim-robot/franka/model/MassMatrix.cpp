@@ -2,18 +2,17 @@
  * MassMatrix.cpp
  *
  *  Created on: 19 jun 2021
- *     Authors: Oliva Alexander, Gaz Claudio, Cognetti Marco
+ *     Authors: Oliva Alexander
  *
  *  C. Gaz, M. Cognetti, A. Oliva, P. Robuffo Giordano, A. De Luca, 'Dynamic
  *  Identification of the Franka Emika Panda Robot With Retrieval of Feasible
  *  Parameters Using Penalty-Based Optimization'. IEEE RA-L, 2019.
  *
  *  ver: 2.0
- *   This version is parametrized w.r.t. the payload parameters
- *   (mass mL, Center-of-Mass cl and inertia tensor I_L).
- *    - fMcom is the Homogeneous matrix of the CoM in flange frame.
+ *   This version is parametrized w.r.t. the payload parameters.
+ *    - flMcom is the Homogeneous matrix of the CoM in flange frame.
  *    - mL is the total mass of the payload.   [kg]
- *    - I_L is the inertia tensor of the payload in the frame given by fMcom
+ *    - I_L is the inertia tensor of the payload in the frame given by flMcom
  *
  */
 
@@ -23,7 +22,7 @@ namespace franka_model
 {
 
 vpMatrix
-massMatrix( const vpColVector &q, const double mL, const vpHomogeneousMatrix &fMcom, const vpMatrix &I_L )
+massMatrix( const vpColVector &q, const double mL, const vpHomogeneousMatrix &flMcom, const vpMatrix &I_L )
 {
   vpMatrix B( njoints, njoints ), J( 3, 3 );
   double cq1, cq2, cq3, cq4, cq5, cq6, sq1, sq2, sq3, sq4, sq5, sq6, pcq1, pcq2, pcq3, pcq4, pcq5, pcq6, psq1, psq2,
@@ -31,15 +30,17 @@ massMatrix( const vpColVector &q, const double mL, const vpHomogeneousMatrix &fM
   double clx, cly, clz, XXL, XYL, XZL, YYL, YZL, ZZL;
   double sq12, sq14, sq15, sq16, sq23, sq24, sq25, sq26, sq34, sq35, sq36, sq45, sq46, sq56;
 
-  clx = fMcom[0][3];
-  cly = fMcom[1][3];
-  clz = 0.107 + fMcom[2][3];
+  clx = flMcom[0][3];
+  cly = flMcom[1][3];
+  clz = 0.107 + flMcom[2][3];
 
   vpColVector cl( { clx, cly, clz } );
 
   // Using the Steiner theorem to express the inertia tensor in link 7 frame
-  J = fMcom.getRotationMatrix() * I_L * fMcom.getRotationMatrix().t() +
+  // note that 7Rfl = I
+  J = flMcom.getRotationMatrix() * I_L * flMcom.getRotationMatrix().t() +
       mL * vpColVector::skew( cl ).t() * vpColVector::skew( cl );
+
 
   XXL = J[0][0];
   XYL = J[0][1];

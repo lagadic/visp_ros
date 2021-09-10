@@ -173,13 +173,25 @@ if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
   target_link_libraries(${PROJECT_NAME}_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
 endif()
 
+######################################################################
+## Build tutorial for real franka robot to compare with coppeliasim ##
+######################################################################
+add_executable(tutorial-franka-real-ibvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-ibvs-apriltag.cpp)
+add_executable(tutorial-franka-real-pbvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-pbvs-apriltag.cpp)
+add_executable(tutorial-franka-real-joint-impedance-control tutorial/franka/real-robot/tutorial-franka-real-joint-impedance-control.cpp)
+target_link_libraries(tutorial-franka-real-ibvs-apriltag ${catkin_LIBRARIES})
+target_link_libraries(tutorial-franka-real-pbvs-apriltag ${catkin_LIBRARIES})
+target_link_libraries(tutorial-franka-real-joint-impedance-control ${catkin_LIBRARIES})
+
 ##############################################################
 ## Build tutorial to simulate franka robot with coppeliasim ##
 ##############################################################
 if(orocos_kdl_FOUND)
   add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
   add_executable(tutorial-franka-coppeliasim-pbvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp)
+  add_executable(tutorial-franka-coppeliasim-dual-arm tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-dual-arm.cpp)
   add_executable(tutorial-franka-coppeliasim-joint-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp)
+  add_executable(tutorial-franka-coppeliasim-cartesian-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-cartesian-impedance-control.cpp)
   add_executable(test-vel tutorial/franka/coppeliasim/test-vel.cpp)
   set(franka_sim_LIBRARIES ${catkin_LIBRARIES} ${PROJECT_NAME} ${orocos_kdl_LIBRARIES})
   if(iir_FOUND)
@@ -187,7 +199,9 @@ if(orocos_kdl_FOUND)
   endif()
   target_link_libraries(tutorial-franka-coppeliasim-ibvs-apriltag ${franka_sim_LIBRARIES})
   target_link_libraries(tutorial-franka-coppeliasim-pbvs-apriltag ${franka_sim_LIBRARIES})
+  target_link_libraries(tutorial-franka-coppeliasim-dual-arm ${franka_sim_LIBRARIES})
   target_link_libraries(tutorial-franka-coppeliasim-joint-impedance-control ${franka_sim_LIBRARIES})
+  target_link_libraries(tutorial-franka-coppeliasim-cartesian-impedance-control ${franka_sim_LIBRARIES})
   target_link_libraries(test-vel ${franka_sim_LIBRARIES})
 
   install(

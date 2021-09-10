@@ -49,7 +49,7 @@ vpRobotFrankaSim::vpRobotFrankaSim()
   , m_dq( 7, 0 )
   , m_tau_J( 7, 0 )
   , m_mL( 0.0 )
-  , m_fMcom()
+  , m_flMcom()
   , m_Il( 3, 3 )
   , m_flMe()
   , m_g0( { 0.0, 0.0, -9.80665 } )
@@ -172,7 +172,6 @@ void
 vpRobotFrankaSim::set_flMe( const vpHomogeneousMatrix &flMe )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  m_flMe = flMe;
 
 #ifdef VISP_HAVE_OROCOS_KDL
   KDL::Frame frame8Mfl_kdl;
@@ -186,7 +185,7 @@ vpRobotFrankaSim::set_flMe( const vpHomogeneousMatrix &flMe )
     }
     f8Mfl[i][3] = frame8Mfl_kdl.p.data[i];
   }
-  f8Me = f8Mfl * flMe;
+  f8Me = f8Mfl * m_flMe.inverse() * flMe;
 
   KDL::Rotation f8Re( f8Me[0][0], f8Me[0][1], f8Me[0][2], f8Me[1][0], f8Me[1][1], f8Me[0][2], f8Me[2][0], f8Me[2][1],
                       f8Me[2][2] );
@@ -194,6 +193,7 @@ vpRobotFrankaSim::set_flMe( const vpHomogeneousMatrix &flMe )
   KDL::Frame f8Me_kdl( f8Re, f8te );
 
   m_chain_kdl.segments[7].setFrameToTip( f8Me_kdl );
+  m_flMe = flMe;
 #endif
 }
 
@@ -210,17 +210,16 @@ vpRobotFrankaSim::set_g0( const vpColVector &g0 )
 
 /*!
  * Set the tool extrinsics as the homogeneous transformation between the robot
- *  flange and the end-effector frame. It modifies the robot kinematics of the
- *  last link as well as the dynamic model due to the mass and center of mass (CoM)
- *  of the plugged tool
- * \param[in] flMe : Homogeneous transformation between the robot flange
- * and the new pose of the end-effector frame.
- * \param[in] mL : Mass of the tool
- * \param[in] fMcom : tool Center-of-Mass pose in flange frame
- * \param[in] I_L : tool inertia tensor in CoM frame
+ * flange and the end-effector frame. It modifies the robot kinematics of the
+ * last link as well as the dynamic model due to the mass and center of mass (CoM)
+ * of the plugged tool
+ * \param[in] flMe : Homogeneous transformation between the robot flange and end-effector frame.
+ * \param[in] mL : Mass of the tool attached to the end-effector.
+ * \param[in] flMcom : Homogeneous transformation between the robot flange and tool Center-of-Mass.
+ * \param[in] I_L : Tool inertia tensor in CoM frame.
  */
 void
-vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &fMcom,
+vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &flMcom,
                             const vpMatrix &I_L )
 {
   this->set_flMe( flMe );
@@ -233,7 +232,7 @@ vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, co
   {
     m_mL = mL;
   }
-  m_fMcom       = fMcom;
+  m_flMcom      = flMcom;
   m_Il          = I_L;
   m_toolMounted = true;
 
@@ -242,8 +241,8 @@ vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, co
     std::cout << "A tool has been mounted on the robot.\n";
     std::cout << "Mass: " << m_mL << " [kg]\n";
     std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
-    std::cout << "CoM position in flange frame: " << m_fMcom.getTranslationVector().t() << " [m]\n";
-    std::cout << "CoM orientation in flange frame: \n" << m_fMcom.getRotationMatrix() << std::endl;
+    std::cout << "CoM position in flange frame: " << m_flMcom.getTranslationVector().t() << " [m]\n";
+    std::cout << "CoM orientation in flange frame: \n" << m_flMcom.getRotationMatrix() << std::endl;
   }
 }
 
@@ -330,8 +329,8 @@ vpRobotFrankaSim::get_eJe( vpMatrix &eJe )
   get_fJe( fJe );
   vpHomogeneousMatrix fMe( get_fMe() );
   vpMatrix eVf( 6, 6 );
-  eVf.insert( fMe.getRotationMatrix().inverse(), 0, 0 );
-  eVf.insert( fMe.getRotationMatrix().inverse(), 3, 3 );
+  eVf.insert( fMe.getRotationMatrix().t(), 0, 0 );
+  eVf.insert( fMe.getRotationMatrix().t(), 3, 3 );
 
   eJe = eVf * fJe;
 }
@@ -353,8 +352,8 @@ vpRobotFrankaSim::get_eJe( const vpColVector &q, vpMatrix &eJe )
   get_fJe( q, fJe );
   vpHomogeneousMatrix fMe( get_fMe( q ) );
   vpMatrix eVf( 6, 6 );
-  eVf.insert( fMe.getRotationMatrix().inverse(), 0, 0 );
-  eVf.insert( fMe.getRotationMatrix().inverse(), 3, 3 );
+  eVf.insert( fMe.getRotationMatrix().t(), 0, 0 );
+  eVf.insert( fMe.getRotationMatrix().t(), 3, 3 );
 
   eJe = eVf * fJe;
 }
@@ -367,6 +366,36 @@ vpHomogeneousMatrix
 vpRobotFrankaSim::get_eMc() const
 {
   return m_eMc;
+}
+
+/*!
+ * Get flange to end-effector constant homogeneous transformation.
+ * \return Flange to end-effector homogeneous transformation.
+ */
+vpHomogeneousMatrix
+vpRobotFrankaSim::get_flMe() const
+{
+  return m_flMe;
+}
+
+/*!
+ * Get flange to tool CoM constant homogeneous transformation.
+ * \return Flange to tool CoM homogeneous transformation.
+ */
+vpHomogeneousMatrix
+vpRobotFrankaSim::get_flMcom() const
+{
+  return m_flMcom;
+}
+
+/*!
+ * Get the mass of the attached tool in kg.
+ * \return Tool mass [kg].
+ */
+double
+vpRobotFrankaSim::get_tool_mass() const
+{
+  return m_mL;
 }
 
 /*!
@@ -539,8 +568,9 @@ vpRobotFrankaSim::solveIK( const vpHomogeneousMatrix &wMe )
   vpColVector q_solved( 7, 0 );
 #ifdef VISP_HAVE_OROCOS_KDL
   KDL::JntArray q_out( 7 );
-  KDL::Rotation wRe( wMe[0][0], wMe[0][1], wMe[0][2], wMe[1][0], wMe[1][1], wMe[0][2], wMe[2][0], wMe[2][1],
+  KDL::Rotation wRe( wMe[0][0], wMe[0][1], wMe[0][2], wMe[1][0], wMe[1][1], wMe[1][2], wMe[2][0], wMe[2][1],
                      wMe[2][2] );
+
   KDL::Vector wte( wMe[0][3], wMe[1][3], wMe[2][3] );
   KDL::Frame wMe_kdl( wRe, wte );
   m_mutex.lock();
@@ -979,7 +1009,7 @@ void
 vpRobotFrankaSim::getMass( vpMatrix &mass )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  mass = franka_model::massMatrix( m_q, m_mL, m_fMcom, m_Il );
+  mass = franka_model::massMatrix( m_q, m_mL, m_flMcom, m_Il );
 }
 
 /*!
@@ -990,7 +1020,7 @@ void
 vpRobotFrankaSim::getGravity( vpColVector &gravity )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  gravity = franka_model::gravityVector( m_q, m_mL, m_fMcom, m_g0 );
+  gravity = franka_model::gravityVector( m_q, m_mL, m_flMcom, m_g0 );
 }
 
 /*!
@@ -1003,8 +1033,20 @@ vpRobotFrankaSim::getCoriolis( vpColVector &coriolis )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
   vpMatrix C( 7, 7 );
-  C        = franka_model::coriolisMatrix( m_q, m_dq, m_mL, m_fMcom, m_Il );
+  C        = franka_model::coriolisMatrix( m_q, m_dq, m_mL, m_flMcom, m_Il );
   coriolis = C * m_dq;
+}
+
+/*!
+ * Get the Coriolis matrix (state-space equation) calculated from the current
+ * robot state: \f$ C \f$, in \f$[Kg m^2 / s]\f$.
+ * \param[out] coriolis : 7x7 Coriolis matrix, row-major.
+ */
+void
+vpRobotFrankaSim::getCoriolisMatrix( vpMatrix &coriolis )
+{
+  std::lock_guard< std::mutex > lock( m_mutex );
+  coriolis = franka_model::coriolisMatrix( m_q, m_dq, m_mL, m_flMcom, m_Il );
 }
 
 #elif !defined( VISP_BUILD_SHARED_LIBS )

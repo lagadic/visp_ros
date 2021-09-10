@@ -1,31 +1,40 @@
-/*
- * \example tutorial-franka-coppeliasim-ibvs-apriltag.cpp
- */
+/****************************************************************************
+ *
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See https://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
+
+//! \example test-vel.cpp
 
 #include <iostream>
 #include <mutex>
 
-#include <visp3/core/vpCameraParameters.h>
-#include <visp3/core/vpImagePoint.h>
-#include <visp3/detection/vpDetectorAprilTag.h>
-#include <visp3/gui/vpDisplayOpenCV.h>
-#include <visp3/gui/vpPlot.h>
-#include <visp3/io/vpImageIo.h>
-#include <visp3/visual_features/vpFeatureBuilder.h>
-#include <visp3/visual_features/vpFeaturePoint.h>
-#include <visp3/vs/vpServo.h>
-#include <visp3/vs/vpServoDisplay.h>
-
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <geometry_msgs/WrenchStamped.h>
-#include <ros/ros.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Float32.h>
-
-#include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 static bool s_simStepDone = true;

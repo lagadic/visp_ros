@@ -10,9 +10,9 @@
  *
  *  ver: 2.0
  *   This version is parametrized w.r.t. both the gravitational acceleration
- *   vector g0 and the payload parameters (mass mL and Center-of-Mass cl).
- *    - g0 must be expressed in base frame: g0 = bRw * [0, 0, -9.80665]^T [m/s^2]
- *    - cl must be expressed in flange frame.  [m]
+ *   vector g0 and the payload parameters.
+ *    - flMcom is the Homogeneous matrix of the CoM in flange frame.
+ *    - g0 must be expressed in floor frame: g0 = fRw * [0, 0, -9.80665]^T [m/s^2]
  *    - mL is the total mass of the payload.   [kg]
  *
  */
@@ -23,16 +23,16 @@ namespace franka_model
 {
 
 vpColVector
-gravityVector( const vpColVector &q, const double mL, const vpHomogeneousMatrix &fMcom, const vpColVector &g0 )
+gravityVector( const vpColVector &q, const double mL, const vpHomogeneousMatrix &flMcom, const vpColVector &g0 )
 {
 
   vpColVector g( njoints, 0 );
   double clx, cly, clz, gx, gy, gz, cq1, cq2, cq3, cq4, cq5, cq6, cq7, sq1, sq2, sq3, sq4, sq5, sq6, sq7, cq12, cq13,
       cq14, cq15;
 
-  clx = fMcom[0][3];
-  cly = fMcom[1][3];
-  clz = 0.107 + fMcom[2][3];
+  clx = flMcom[0][3];
+  cly = flMcom[1][3];
+  clz = 0.107 + flMcom[2][3];
 
   gx = g0[0];
   gy = g0[1];

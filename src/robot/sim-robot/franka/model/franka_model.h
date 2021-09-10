@@ -68,16 +68,16 @@ namespace franka_model
   const double TAU_F_CONST_7 = FI_17/(1+exp(-FI_27*FI_37));
 
   vpMatrix massMatrix(const vpColVector &q, const double mL = 0,
-		              const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+		              const vpHomogeneousMatrix &flMcom = vpHomogeneousMatrix(),
 					  const vpMatrix &I_L = vpMatrix(3,3));
 
   vpMatrix coriolisMatrix(const vpColVector &q,const vpColVector &dq,
 		                  const double mL = 0,
-						  const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+						  const vpHomogeneousMatrix &flMcom = vpHomogeneousMatrix(),
 						  const vpMatrix &I_L  = vpMatrix(3,3));
 
   vpColVector gravityVector(const vpColVector &q, const double mL = 0 ,
-		                    const vpHomogeneousMatrix &fMcom = vpHomogeneousMatrix(),
+		                    const vpHomogeneousMatrix &flMcom = vpHomogeneousMatrix(),
 							const vpColVector &g0 = vpColVector({0.0,0.0,-9.80665}));
 
   vpColVector friction(const vpColVector &dq);
