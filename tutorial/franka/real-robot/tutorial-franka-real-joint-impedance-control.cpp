@@ -60,6 +60,7 @@ int
 main( int argc, char **argv )
 {
   std::string opt_robot_ip = "192.168.1.1";
+  bool opt_save_data       = false;
 
   for ( int i = 1; i < argc; i++ )
   {
@@ -67,9 +68,14 @@ main( int argc, char **argv )
     {
       opt_robot_ip = std::string( argv[i + 1] );
     }
+    else if ( std::string( argv[i] ) == "--save" )
+    {
+      opt_save_data = true;
+    }
     else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
     {
       std::cout << argv[0] << " [--ip <default " << opt_robot_ip << ">]"
+                << " [--save]"
                 << " [--help] [-h] " << std::endl;
       return EXIT_SUCCESS;
     }
@@ -258,6 +264,13 @@ main( int argc, char **argv )
       vpTime::wait( time / 1000., 1 ); // Sync loop at 1000 Hz (1 ms)
     }
 
+    if ( opt_save_data )
+    {
+      plotter->saveData( 0, "real-joint-position.txt", "# " );
+      plotter->saveData( 1, "real-joint-position-error.txt", "# " );
+      plotter->saveData( 2, "real-joint-torque-cmd.txt", "# " );
+      plotter->saveData( 3, "real-joint-error-norm.txt", "# " );
+    }
     if ( plotter != nullptr )
     {
       delete plotter;

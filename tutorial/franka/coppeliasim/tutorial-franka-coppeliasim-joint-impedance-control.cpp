@@ -62,6 +62,7 @@ main( int argc, char **argv )
 {
   bool opt_verbose               = false;
   bool opt_coppeliasim_sync_mode = false;
+  bool opt_save_data             = false;
 
   for ( int i = 1; i < argc; i++ )
   {
@@ -73,11 +74,16 @@ main( int argc, char **argv )
     {
       opt_coppeliasim_sync_mode = true;
     }
+    else if ( std::string( argv[i] ) == "--save" )
+    {
+      opt_save_data = true;
+    }
     else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
     {
-      std::cout << argv[0] << "[--enable-coppeliasim-sync-mode] "
-                << "[--verbose] [-v] "
-                << "[--help] [-h]" << std::endl;
+      std::cout << argv[0] << " [--enable-coppeliasim-sync-mode]"
+                << " [--save]"
+                << " [--verbose] [-v]"
+                << " [--help] [-h]" << std::endl;
       return EXIT_SUCCESS;
     }
   }
@@ -295,6 +301,13 @@ main( int argc, char **argv )
       time_prev = time;
     }
 
+    if ( opt_save_data )
+    {
+      plotter->saveData( 0, "sim-joint-position.txt", "# " );
+      plotter->saveData( 1, "sim-joint-position-error.txt", "# " );
+      plotter->saveData( 2, "sim-joint-torque-cmd.txt", "# " );
+      plotter->saveData( 3, "sim-joint-error-norm.txt", "# " );
+    }
     if ( plotter != nullptr )
     {
       delete plotter;
