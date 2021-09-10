@@ -129,7 +129,7 @@ main( int argc, char **argv )
     vpPlot *plotter = nullptr;
 
     plotter = new vpPlot( 4, 800, 800, 10, 10, "Real time curves plotter" );
-    plotter->setTitle( 0, "Joint Positions [rad]" );
+    plotter->setTitle( 0, "Joint positions [rad]" );
     plotter->initGraph( 0, 7 );
     plotter->setLegend( 0, 0, "q1" );
     plotter->setLegend( 0, 1, "q2" );
@@ -185,8 +185,7 @@ main( int argc, char **argv )
     D.diag( { 20.0, 45.0, 45.0, 45.0, 45.0, 45.0, 60.0 } );
     I.diag( { 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 60.0 } );
 
-    vpColVector integral( 7, 0 );
-    vpColVector eps( 7, 0 ), P( 7, 0.1 ), Kt( 7, 0 ), delt( 7, 0.5 ), G( 7, 0 ), tau_J( 7, 0 ), sig( 7, 0 );
+    vpColVector integral( 7, 0 ), G( 7, 0 ), tau_J( 7, 0 ), sig( 7, 0 );
 
     double time       = robot.getCoppeliasimSimulationTime();
     double time_start = time;
@@ -251,28 +250,11 @@ main( int argc, char **argv )
         tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time - c_time ) );
       }
 
-      // Filter to compensate for static friction
-      {
-        robot.getForceTorque( vpRobot::JOINT_STATE, tau_J );
-        robot.getGravity( G );
-        vpColVector aux( 7, 0 );
-        sig = sign( dq );
-        for ( size_t i = 0; i < 7; i++ )
-        {
-          eps[i] = ( tau_cmd[i] + G[i] - tau_J[i] ) - sig[i] * delt[i];
-          Kt[i]  = ( P[i] * sig[i] ) / ( 1 + P[i] );
-          delt[i] += Kt[i] * eps[i];
-          P[i] += -Kt[i] * P[i] * sig[i];
-
-          aux[i] = sig[i] * delt[i];
-          tau_cmd[i] += aux[i];
-        }
-      }
-
       // Send command to the torque robot
       robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
 
       vpColVector norm( 1, vpMath::deg( std::sqrt( ( qd - q ).sumSquare() ) ) );
+
       plotter->plot( 0, time, q );
       plotter->plot( 1, time, qd - q );
       plotter->plot( 2, time, tau_cmd );
@@ -283,7 +265,7 @@ main( int argc, char **argv )
         std::cout << "dt: " << time - time_prev << std::endl;
       }
 
-      robot.wait( time, 0.003 ); // Simulate a loop at 3 ms
+      robot.wait( time, 0.001 ); // Simulate a loop at 1 ms
 
       vpMouseButton::vpMouseButtonType button;
       if ( vpDisplay::getClick( plotter->I, button, false ) )
