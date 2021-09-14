@@ -40,7 +40,7 @@
   controller. Visual features are the image coordinates of 4 points corresponding
   too the corners of an AprilTag.
 
-  The device used to acquire images is a Realsense SR300 device.
+  The device used to acquire images is a Realsense D435 device.
 
   Camera extrinsic (eMc) parameters are set by default to a value that will not match
   Your configuration. Use --eMc command line option to read the values from a file.
@@ -169,7 +169,9 @@ main( int argc, char **argv )
 
   try
   {
+    std::cout << "Try to connect to robot ip: " << opt_robot_ip << std::endl;
     robot.connect( opt_robot_ip );
+    std::cout << "Panda robot connected" << std::endl;
 
     vpRealSense2 rs;
     rs2::config config;
@@ -177,7 +179,9 @@ main( int argc, char **argv )
     config.enable_stream( RS2_STREAM_COLOR, 640, 480, RS2_FORMAT_RGBA8, 30 );
     config.enable_stream( RS2_STREAM_DEPTH, 640, 480, RS2_FORMAT_Z16, 30 );
     config.enable_stream( RS2_STREAM_INFRARED, 640, 480, RS2_FORMAT_Y8, 30 );
+    std::cout << "Try to connect to Realsense camera " << std::endl;
     rs.open( config );
+    std::cout << "Camera connected" << std::endl;
 
     // Get camera extrinsics
     vpPoseVector ePc;
@@ -185,12 +189,12 @@ main( int argc, char **argv )
     // - an Intel RealSense D435 camera
     // - attached to the Franka end-effector using the mechanical interface corresponding to
     //   the cad model given in franka-rs-D435-camera-holder.stl file
-    ePc[0] = 0.0621407;
-    ePc[1] = -0.0330388;
-    ePc[2] = -0.184842;
-    ePc[3] = 0.0147918;
-    ePc[4] = 0.00474268;
-    ePc[5] = 1.56873;
+    ePc[0] = 0.0564668;
+    ePc[1] = -0.0375079;
+    ePc[2] = -0.150416 ;
+    ePc[3] = 0.0102548;
+    ePc[4] = -0.0012236;
+    ePc[5] = 1.5412;
 
     // If provided, read camera extrinsics from --eMc <file>
     if ( !opt_eMc_filename.empty() )
@@ -204,6 +208,7 @@ main( int argc, char **argv )
     }
     vpHomogeneousMatrix eMc( ePc );
     std::cout << "eMc:\n" << eMc << "\n";
+    std::cout << "ePc:\n" << vpPoseVector(eMc).t() << "\n";
 
     // Get camera intrinsics
     vpCameraParameters cam =
