@@ -119,7 +119,6 @@ vpROSRobotFrankaCoppeliasim::~vpROSRobotFrankaCoppeliasim()
   {
     m_acquisitionThread.join();
   }
-
 }
 
 /*!
@@ -134,14 +133,14 @@ vpROSRobotFrankaCoppeliasim::connect( const std::string &robot_ID )
 {
   ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
 
-  if(robot_ID != "")// TODO: regex to check name is valid for ROS topic
+  if ( robot_ID != "" ) // TODO: regex to check name is valid for ROS topic
   {
-    m_topic_jointState = "/coppeliasim/franka/" + robot_ID + "/joint_state";
-    m_topic_g0 = "/coppeliasim/franka/" + robot_ID + "/g0";
-    m_topic_eMc = "/coppeliasim/franka/" + robot_ID + "/eMc";
-    m_topic_flMe = "/coppeliasim/franka/" + robot_ID + "/flMe";
-    m_topic_flMcom = "/coppeliasim/franka/" + robot_ID + "/flMcom";
-    m_topic_toolInertia = "/coppeliasim/franka/" + robot_ID + "/tool/inertia";
+    m_topic_jointState    = "/coppeliasim/franka/" + robot_ID + "/joint_state";
+    m_topic_g0            = "/coppeliasim/franka/" + robot_ID + "/g0";
+    m_topic_eMc           = "/coppeliasim/franka/" + robot_ID + "/eMc";
+    m_topic_flMe          = "/coppeliasim/franka/" + robot_ID + "/flMe";
+    m_topic_flMcom        = "/coppeliasim/franka/" + robot_ID + "/flMcom";
+    m_topic_toolInertia   = "/coppeliasim/franka/" + robot_ID + "/tool/inertia";
     m_topic_jointStateCmd = "/fakeFCI/" + robot_ID + "/joint_state";
     m_topic_robotStateCmd = "/fakeFCI/" + robot_ID + "/robot_state";
   }
@@ -157,9 +156,9 @@ vpROSRobotFrankaCoppeliasim::connect( const std::string &robot_ID )
   }
   m_sub_coppeliasim_jointState =
       n->subscribe( m_topic_jointState, 1, &vpROSRobotFrankaCoppeliasim::callbackJointState, this );
-  m_sub_coppeliasim_g0     = n->subscribe( m_topic_g0, 1, &vpROSRobotFrankaCoppeliasim::callback_g0, this );
-  m_sub_coppeliasim_eMc    = n->subscribe( m_topic_eMc, 1, &vpROSRobotFrankaCoppeliasim::callback_eMc, this );
-  m_sub_coppeliasim_flMe   = n->subscribe( m_topic_flMe, 1, &vpROSRobotFrankaCoppeliasim::callback_flMe, this );
+  m_sub_coppeliasim_g0   = n->subscribe( m_topic_g0, 1, &vpROSRobotFrankaCoppeliasim::callback_g0, this );
+  m_sub_coppeliasim_eMc  = n->subscribe( m_topic_eMc, 1, &vpROSRobotFrankaCoppeliasim::callback_eMc, this );
+  m_sub_coppeliasim_flMe = n->subscribe( m_topic_flMe, 1, &vpROSRobotFrankaCoppeliasim::callback_flMe, this );
   m_sub_coppeliasim_toolInertia =
       n->subscribe( m_topic_toolInertia, 1, &vpROSRobotFrankaCoppeliasim::callback_toolInertia, this );
 
@@ -405,7 +404,7 @@ vpROSRobotFrankaCoppeliasim::callbackJointState( const sensor_msgs::JointState &
   {
     m_q_kdl( i ) = m_q[i] = joint_state.position[i];
     m_dq[i]               = joint_state.velocity[i];
-    m_tau_J[i]            = joint_state.effort[i];
+    m_tau_J[i]            = -joint_state.effort[i]; // Using CoppeliaSim we need to inverse the sign
   }
 }
 
@@ -471,7 +470,6 @@ vpROSRobotFrankaCoppeliasim::callback_flMe( const geometry_msgs::Pose &pose_msg 
   }
 }
 
-
 /*!
  * Callback that updates the tool inertial parameters.
  * \param[in] inertia_msg : Message associated to the topic set by setTopic_toolInertia()
@@ -495,18 +493,15 @@ vpROSRobotFrankaCoppeliasim::callback_toolInertia( const geometry_msgs::Inertia 
     m_Il[1][2] = m_Il[2][1] = inertia_msg.iyz;
     m_Il[2][2]              = inertia_msg.izz;
 
-    vpMatrix R(3,3);
+    vpMatrix R( 3, 3 );
 
     vpColVector eig;
     m_Il.eigenValues( eig, R );
 
     m_Il = R.t() * m_Il * R;
 
-    m_flMcom = vpHomogeneousMatrix( vpTranslationVector ( inertia_msg.com.x,
-    		                                              inertia_msg.com.y,
-													      inertia_msg.com.z ),
-    		                       ( vpRotationMatrix ) R.t() );
-
+    m_flMcom = vpHomogeneousMatrix( vpTranslationVector( inertia_msg.com.x, inertia_msg.com.y, inertia_msg.com.z ),
+                                    (vpRotationMatrix)R.t() );
 
     m_overwrite_toolInertia = false;
 
