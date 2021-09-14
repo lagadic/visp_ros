@@ -232,7 +232,7 @@ Now you should have something similat to:
 
 - **in terminal 3** you may launch:
 \verbatim
-$ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --plot --enable-coppeliasim-sync-mode
+$ rosrun visp_ros tutorial-franka-coppeliasim-joint-impedance-control --enable-coppeliasim-sync-mode
 \endverbatim
 The following video show the resulting robot behavior:
 \htmlonly
