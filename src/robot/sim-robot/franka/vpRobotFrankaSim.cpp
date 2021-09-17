@@ -811,8 +811,15 @@ vpRobotFrankaSim::setVelocity( const vpRobot::vpControlFrameType frame, const vp
 
 /*!
  * Get robot force/torque.
- * \param[in] frame : Control frame to consider. Only vpRobot::JOINT_STATE is implemented yet.
- * \param[out] force : 7-dim vector corresponding to the joint torques in [Nm].
+ * \param[in] frame : Control frame to consider.
+ * \param[out] force : Measured force/torque.
+ * - When `frame` is set to vpRobot::JOINT_STATE, `force` is a 7-dim vector that contains torques in [Nm].
+ * - When `frame` is set to vpRobot::REFERENCE_FRAME, `force` is a 6-dim vector that contains cartesian
+ * end-effector forces/torques expressed in the reference frame. This vector contains 3 forces [Fx, Fy, Fz]
+ * in [N] followed by 3 torques [Tx, Ty, Tz] in [Nm].
+ * - When `frame` is set to vpRobot::END_EFFECTOR_FRAME, `force` is a 6-dim vector that contains cartesian
+ * end-effector forces/torques expressed in the end-effector frame. This vector contains 3 forces [Fx, Fy, Fz]
+ * in [N] followed by 3 torques [Tx, Ty, Tz] in [Nm].
  */
 void
 vpRobotFrankaSim::getForceTorque( const vpRobot::vpControlFrameType frame, vpColVector &force )
@@ -826,22 +833,25 @@ vpRobotFrankaSim::getForceTorque( const vpRobot::vpControlFrameType frame, vpCol
     force = m_tau_J;
     break;
   }
-    //  case vpRobot::END_EFFECTOR_FRAME: {//TODO
-    //    force.resize(6);
-    //    vpMatrix eJe;
-    //    this->get_eJe(eJe);
-    //    std::lock_guard<std::mutex> lock(m_mutex);
-    //    force = eJe * m_dq;
-    //    break;
-    //  }
-    //  case vpRobot::REFERENCE_FRAME: {//TODO
-    //    force.resize(6);
-    //    vpMatrix fJe;
-    //    this->get_fJe(fJe);
-    //    std::lock_guard<std::mutex> lock(m_mutex);
-    //    force = fJe * m_dq;
-    //    break;
-    //  }
+  case vpRobot::END_EFFECTOR_FRAME:
+  {
+    force.resize( 6 );
+    vpMatrix eJe;
+    this->get_eJe( eJe );
+    std::lock_guard< std::mutex > lock( m_mutex );
+    force = eJe.transpose().pseudoInverse() * m_tau_J;
+    break;
+  }
+  case vpRobot::REFERENCE_FRAME:
+  {
+    force.resize( 6 );
+    vpMatrix fJe;
+    this->get_fJe( fJe );
+    std::lock_guard< std::mutex > lock( m_mutex );
+    force = fJe.transpose().pseudoInverse() * m_tau_J;
+    break;
+  }
+
   default:
   {
     throw( vpException( vpException::fatalError, "Cannot get Franka position for the specified frame " ) );
