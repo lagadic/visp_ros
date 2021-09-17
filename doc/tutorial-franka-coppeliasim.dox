@@ -197,7 +197,7 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 
 - **In terminal 3 run:**
 
-  To run a **position-based visual-servoing** (PBVS) over an Apriltag target, run:
+  To run a **position-based visual-servoing** (PBVS) over an Apriltag target (source code in tutorial-franka-coppeliasim-pbvs-apriltag.cpp), run:
   \verbatim
   $ source ~/catkin_ws/devel/setup.bash
   $ rosrun visp_ros tutorial-franka-coppeliasim-pbvs-apriltag --adaptive_gain --plot --enable-coppeliasim-sync-mode
@@ -207,7 +207,7 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 <p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/QQ89sbmufZE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
   \endhtmlonly
 
-  To run an **image-based visual-servoing** (IBVS) example, run rather:
+  To run an **image-based visual-servoing** (IBVS) example (source code in tutorial-franka-coppeliasim-ibvs-apriltag.cpp), run rather:
   \verbatim
   $ rosrun visp_ros tutorial-franka-coppeliasim-ibvs-apriltag --adaptive_gain --plot --enable-coppeliasim-sync-mode
   \endverbatim
@@ -225,9 +225,9 @@ To properly run the simulator, you will need three terminals, one for `roscore`,
 
 To run the **joint impedance control** example the general principle remains the same as in the previous section except that:
 
-- **in terminal 2** where CoppeliaSim is launched, you should modify simulation step time to 3 ms. To this end, enter CoppeliaSim `"Simulation > Simulation settings"` menu. In the new "Simulation Settings" panel, modify `"Time Step [s]"` to 0.003, press Enter and close the panel.
+- **in terminal 2** where CoppeliaSim is launched, you should set simulation step time between 1 ms and 3 ms. To this end, enter CoppeliaSim `"Simulation > Simulation settings"` menu. In the new "Simulation Settings" panel, modify `"Time Step [s]"` to 0.001 or 0.003 max, press Enter and close the panel.
 \image html img-coppeliasim-sim-time-3ms.jpeg
-Now you should have something similat to:
+Now you should have something similar to:
 \image html img-coppeliasim-single-arm-sim-time-3ms.jpeg
 
 - **in terminal 3** you may launch:
@@ -238,17 +238,33 @@ The following video show the resulting robot behavior:
 \htmlonly
 <p align="center"><iframe width="560" height="315" src="https://www.youtube.com/embed/n4udNlUmKSo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></p>
 \endhtmlonly
+The source code is available in tutorial-franka-coppeliasim-joint-impedance-control.cpp.
+
+\subsection franka_coppeliasim_example_cart_impedance Cartesian Impedance Control
+
+To run the **Cartesian impedance control** example the general principle remains the same as in the previous section except that:
+
+- **in terminal 2** where CoppeliaSim is launched, if not already done you should set simulation step time between 1 ms and 3 ms. To this end, enter CoppeliaSim `"Simulation > Simulation settings"` menu. In the new "Simulation Settings" panel, modify `"Time Step [s]"` to 0.001 or 0.003 max, press Enter and close the panel.
+\image html img-coppeliasim-sim-time-3ms.jpeg
+Now you should have something similar to:
+\image html img-coppeliasim-single-arm-sim-time-3ms.jpeg
+
+- **in terminal 3** you may launch:
+\verbatim
+$ rosrun visp_ros tutorial-franka-coppeliasim-cartesian-impedance-control --enable-coppeliasim-sync-mode
+\endverbatim
+The source code is available in tutorial-franka-coppeliasim-cartesian-impedance-control.cpp.
 
 \subsection franka_coppeliasim_example_dual_vs Dual Arm Visual Servoing 
 
 We provide also a CoppeliaSim scene with 2 Franka arms. Here the show how to achieve PBVS with one arm while the other is moving an 8cm AprilTag target.
 
 The general principle remains the same as in the previous section. The differences are that:
-- **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene and see something similar to the next image
+- **in terminal 2** you should open `frankaSimDualArmSetup.ttt` scene and see something similar to the next image. Simulation step time should be set between 1 ms and 3 ms max.
 
   \image html img-coppeliasim-franka-dual-arm-scene.jpeg
 
-- **in terminal 3** you may run the dual arm example where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a cartesian impedance controller:
+- **in terminal 3** you may run the dual arm example (source code available in tutorial-franka-coppeliasim-dual-arm.cpp) where the right arm does à PBVS and the left arm applies a circular motion to an AprilTag target using a cartesian impedance controller:
   \verbatim
   $ source ~/catkin_ws/devel/setup.bash
   $ rosrun visp_ros tutorial-franka-coppeliasim-dual-arm --adaptive_gain --enable-coppeliasim-sync-mode
@@ -293,7 +309,7 @@ To estimate this extrinsic transformation, you can also run an extrinsic calibra
 
 \subsection franka_real_example_single_vs Single Arm Visual Servoing  
 
-  To run a **position-based visual-servoing** (PBVS) over an 8 cm Apriltag target, run:
+  To run a **position-based visual-servoing** (PBVS) over an 8 cm Apriltag target (source code available in tutorial-franka-real-pbvs-apriltag.cpp), run:
   \verbatim
   $ cd ~/catkin_ws
   $ ./devel/lib/visp_ros/tutorial-franka-real-pbvs-apriltag --adaptive_gain --plot
@@ -306,7 +322,7 @@ To estimate this extrinsic transformation, you can also run an extrinsic calibra
   tutorial-franka-coppeliasim-pbvs-apriltag.cpp and the one used to control a real robot
   in tutorial-franka-real-pbvs-apriltag.cpp are similar. 
 
-  To run an **image-based visual-servoing** (IBVS) example again on an 8 cm AprilTag target, run rather:
+  To run an **image-based visual-servoing** (IBVS) example again on an 8 cm AprilTag target (source code available in tutorial-franka-real-ibvs-apriltag.cpp), run rather:
   \verbatim
   $ cd ~/catkin_ws
   $ ./devel/lib/visp_ros/tutorial-franka-real-ibvs-apriltag --adaptive_gain --plot
@@ -330,7 +346,7 @@ To estimate this extrinsic transformation, you can also run an extrinsic calibra
 
 \subsection franka_real_example_joint_impedance Joint Impedance Control 
 
-To run a **joint impedance control** example on a real Franka robot, you can run:
+To run a **joint impedance control** example on a real Franka robot (source code available in tutorial-franka-real-joint-impedance-control.cpp), you can run:
 \verbatim
 $ cd ~/catkin_ws
 $ ./devel/lib/visp_ros/tutorial-franka-real-joint-impedance-control
