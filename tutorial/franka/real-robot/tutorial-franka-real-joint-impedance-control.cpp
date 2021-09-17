@@ -132,8 +132,6 @@ main( int argc, char **argv )
     qd = q0;
 
     bool final_quit       = false;
-    bool send_cmd         = true;
-    bool restart          = false;
     bool first_time       = true;
     bool start_trajectory = false;
 
@@ -205,21 +203,8 @@ main( int argc, char **argv )
       {
         tau_d0 = tau_d;
       }
-      if ( !send_cmd )
-      {
-        tau_cmd = 0; // Stop the robot
-        restart = true;
-      }
-      else
-      {
-        if ( restart )
-        {
-          time_start_trajectory = time_cur;
-          tau_d0                = tau_d;
-          restart               = false;
-        }
-        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time_cur - time_start_trajectory ) );
-      }
+
+      tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time_cur - time_start_trajectory ) );
 
       // Send command to the torque robot
       robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
@@ -239,10 +224,6 @@ main( int argc, char **argv )
           tau_cmd    = 0;
           std::cout << "Stop the robot " << std::endl;
           robot.setRobotState( vpRobot::STATE_STOP );
-        }
-        if ( button == vpMouseButton::button1 )
-        {
-          send_cmd = !send_cmd;
         }
       }
 

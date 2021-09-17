@@ -64,7 +64,6 @@ main( int argc, char **argv )
                 << " [--save]"
                 << " [--verbose] [-v] "
                 << " [--help] [-h]" << std::endl;
-      ;
       return EXIT_SUCCESS;
     }
   }
@@ -101,6 +100,13 @@ main( int argc, char **argv )
     robot.coppeliasimStopSimulation(); // Allows to reset simulation, moving the robot to initial position
     robot.setCoppeliasimSyncMode( false );
     robot.coppeliasimStartSimulation();
+
+    // Move to a secure initial position
+    vpColVector q_init( { 0, vpMath::rad( -45 ), 0, vpMath::rad( -135 ), 0, vpMath::rad( 90 ), vpMath::rad( 45 ) } );
+
+    robot.setRobotState( vpRobot::STATE_POSITION_CONTROL );
+    robot.setPosition( vpRobot::JOINT_STATE, q_init );
+    vpTime::wait( 500 );
 
     vpPlot *plotter = nullptr;
 
@@ -149,11 +155,11 @@ main( int argc, char **argv )
     std::cout << "Initial joint position: " << q0.t() << std::endl;
 
     robot.setRobotState( vpRobot::STATE_FORCE_TORQUE_CONTROL );
+    robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
+
     qd = q0;
 
     bool final_quit       = false;
-    bool send_cmd         = true;
-    bool restart          = false;
     bool first_time       = false;
     bool start_trajectory = false;
 
@@ -162,18 +168,17 @@ main( int argc, char **argv )
     D.diag( { 20.0, 45.0, 45.0, 45.0, 45.0, 45.0, 60.0 } );
     I.diag( { 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 60.0 } );
 
-    vpColVector integral( 7, 0 ), G( 7, 0 ), tau_J( 7, 0 ), sig( 7, 0 );
+    vpColVector integral( 7, 0 );
 
     double mu = 4;
     double dt = 0;
 
     double time_start_trajectory, time_prev, time_cur;
-    double delay_before_trajectory = 0.5; // Start sinusoidal trajectory after this delay in [s]
+    double delay_before_trajectory = 0.5; // Start sinusoidal joint trajectory after this delay in [s]
 
+    // Control loop
     while ( !final_quit )
     {
-      ros::spinOnce();
-
       time_cur = robot.getCoppeliasimSimulationTime();
 
       robot.getPosition( vpRobot::JOINT_STATE, q );
@@ -226,24 +231,11 @@ main( int argc, char **argv )
       {
         tau_d0 = tau_d;
       }
-      if ( !send_cmd )
-      {
-        tau_cmd = 0; // Stop the robot
-        restart = true;
-      }
-      else
-      {
-        if ( restart )
-        {
-          time_start_trajectory = time_cur;
-          tau_d0                = tau_d;
-          restart               = false;
-        }
-        tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time_cur - time_start_trajectory ) );
-      }
+
+      tau_cmd = tau_d - tau_d0 * std::exp( -mu * ( time_cur - time_start_trajectory ) );
 
       // Send command to the torque robot
-      robot.setForceTorque( vpRobot::JOINT_STATE, tau_d );
+      robot.setForceTorque( vpRobot::JOINT_STATE, tau_cmd );
 
       vpColVector norm( 1, vpMath::deg( std::sqrt( ( qd - q ).sumSquare() ) ) );
       plotter->plot( 0, time_cur, q );

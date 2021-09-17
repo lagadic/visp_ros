@@ -272,13 +272,10 @@ main( int argc, char **argv )
     std::cout << "eMc:\n" << robot.get_eMc() << std::endl;
 
     robot.setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
-
     robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
 
     while ( !final_quit )
     {
-      ros::spinOnce();
-
       sim_time = robot.getCoppeliasimSimulationTime();
 
       g.acquire( I, sim_time_img );
