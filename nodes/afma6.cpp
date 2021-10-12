@@ -31,38 +31,40 @@ public:
   void publish();
 
 protected:
-  ros::NodeHandle n;
-  ros::Publisher pose_pub;
-  ros::Publisher vel_pub;
-  ros::Subscriber cmd_camvel_sub;
+  ros::NodeHandle m_nh;
+  ros::Publisher m_pose_pub;
+  ros::Publisher m_vel_pub;
+  ros::Subscriber m_cmd_camvel_sub;
 
-  ros::Time veltime;
+  ros::Time m_veltime;
 
-  std::string serial_port;
+  std::string m_serial_port;
 
-  vpRobotAfma6 *robot;
-  geometry_msgs::PoseStamped position;
+  vpRobotAfma6 *m_robot;
+  geometry_msgs::PoseStamped m_position;
 
   // for odom->base_link transform
-  tf::TransformBroadcaster odom_broadcaster;
-  geometry_msgs::TransformStamped odom_trans;
+  tf::TransformBroadcaster m_odom_broadcaster;
+  geometry_msgs::TransformStamped m_odom_trans;
   // for resolving tf names.
-  std::string tf_prefix;
-  std::string frame_id_odom;
-  std::string frame_id_base_link;
+  std::string m_tf_prefix;
+  std::string m_frame_id_odom;
+  std::string m_frame_id_base_link;
 
-  vpHomogeneousMatrix wMc; // world to camera transformation
-  vpColVector q;           // measured joint position
+  vpHomogeneousMatrix m_wMc; // world to camera transformation
+  vpColVector m_q;           // measured joint position
+
+  int m_tool_type = 0; // See https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType
 };
 
 RosAfma6Node::RosAfma6Node( ros::NodeHandle nh )
 {
   // read in config options
-  n = nh;
+  m_n = nh;
 
-  ROS_INFO( "using Afma6 robot" );
+  ROS_INFO( "Using Afma6 robot" );
 
-  robot = NULL;
+  m_robot = NULL;
   /*
    * Figure out what frame_id's to use. if a tf_prefix param is specified,
    * it will be added to the beginning of the frame_ids.
@@ -73,41 +75,44 @@ RosAfma6Node::RosAfma6Node( ros::NodeHandle nh )
    * rather than /odom. This is useful for Multi Robot Systems.
    * See ROS Wiki for further details.
    */
-  tf_prefix = tf::getPrefixParam( n );
-  //  frame_id_odom = tf::resolve(tf_prefix, "odom");
-  //  frame_id_base_link = tf::resolve(tf_prefix, "base_link");
+  m_tf_prefix = tf::getPrefixParam( m_nh );
+  //  m_frame_id_odom = tf::resolve(tf_prefix, "odom");
+  //  m_frame_id_base_link = tf::resolve(tf_prefix, "base_link");
+
+  m_nh.getParam( "tool_type", m_tool_type );
 
   // advertise services
-  pose_pub = n.advertise< geometry_msgs::PoseStamped >( "pose", 1000 );
-  vel_pub  = n.advertise< geometry_msgs::TwistStamped >( "velocity", 1000 );
+  m_pose_pub = n.advertise< geometry_msgs::PoseStamped >( "pose", 1000 );
+  m_vel_pub  = n.advertise< geometry_msgs::TwistStamped >( "velocity", 1000 );
 
   // subscribe to services
-  cmd_camvel_sub = n.subscribe( "cmd_camvel", 1,
-                                (boost::function< void( const geometry_msgs::TwistStampedConstPtr & ) >)boost::bind(
-                                    &RosAfma6Node::setCameraVel, this, _1 ) );
+  m_cmd_camvel_sub =
+      m_nh.subscribe( "cmd_camvel", 1,
+                      (boost::function< void( const geometry_msgs::TwistStampedConstPtr & ) >)boost::bind(
+                          &RosAfma6Node::setCameraVel, this, _1 ) );
 }
 
 RosAfma6Node::~RosAfma6Node()
 {
   if ( robot )
   {
-    robot->stopMotion();
-    delete robot;
-    robot = NULL;
+    m_robot->stopMotion();
+    delete m_robot;
+    m_robot = NULL;
   }
 }
 
 int
 RosAfma6Node::setup()
 {
-  robot = new vpRobotAfma6;
+  m_robot = new vpRobotAfma6;
 
-  robot->init( vpAfma6::TOOL_CCMOP, vpCameraParameters::perspectiveProjWithDistortion );
+  m_robot->init( static_cast< vpAfma6ToolType >( m_tool_type ), vpCameraParameters::perspectiveProjWithDistortion );
   vpCameraParameters cam;
-  robot->getCameraParameters( cam, 640, 480 );
+  m_robot->getCameraParameters( cam, 640, 480 );
   std::cout << "Camera parameters (640 x 480):\n" << cam << std::endl;
 
-  robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
+  m_robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
 
   return 0;
 }
@@ -129,20 +134,20 @@ void
 RosAfma6Node::publish()
 {
   double timestamp;
-  robot->getPosition( vpRobot::ARTICULAR_FRAME, q, timestamp );
-  wMc                   = robot->get_fMc( q );
-  position.pose         = visp_bridge::toGeometryMsgsPose( wMc );
-  position.header.stamp = ros::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
+  m_robot->getPosition( vpRobot::ARTICULAR_FRAME, m_q, timestamp );
+  m_wMc                   = robot->get_fMc( m_q );
+  m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
+  m_position.header.stamp = ros::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
 
   //  ROS_INFO( "Afma6 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
   //            position.header.stamp.toSec(),
   //            position.pose.position.x, position.pose.position.y, position.pose.position.z,
   //            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y,
   //            position.pose.orientation.z);
-  pose_pub.publish( position );
+  m_pose_pub.publish( m_position );
 
   vpColVector vel( 6 );
-  robot->getVelocity( vpRobot::CAMERA_FRAME, vel, timestamp );
+  m_robot->getVelocity( vpRobot::CAMERA_FRAME, vel, timestamp );
   geometry_msgs::TwistStamped vel_msg;
   vel_msg.header.stamp    = ros::Time( timestamp );
   vel_msg.twist.linear.x  = vel[0];
@@ -151,7 +156,7 @@ RosAfma6Node::publish()
   vel_msg.twist.angular.x = vel[3];
   vel_msg.twist.angular.y = vel[4];
   vel_msg.twist.angular.z = vel[5];
-  vel_pub.publish( vel_msg );
+  m_vel_pub.publish( vel_msg );
 
   //	ros::Duration(1e-3).sleep();
 }
@@ -174,7 +179,7 @@ RosAfma6Node::setCameraVel( const geometry_msgs::TwistStampedConstPtr &msg )
   //  ROS_INFO( "Afma6 new camera vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s",
   //            veltime.toSec(),
   //            vc[0], vc[1], vc[2], vc[3], vc[4], vc[5]);
-  robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
+  m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
 
   //  this->publish();
 }

@@ -1,6 +1,9 @@
 <launch>
-	<!-- Robot -->
-	<node pkg="visp_ros" type="visp_ros_afma6_node" name="afma6">
-	</node>
+  <!-- Parameters -->
+  <param name="tool_type" type="int"   value="4"/>  <!-- Values must conform vpAfma6ToolType: 0 (CCMOP), 1 (2 fingers gripper), 2 (vaccum gripper), 3 (generic camera), 4 (Realsense D435). See  https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType --> 
+
+  <!-- Robot -->
+  <node pkg="visp_ros" type="visp_ros_afma6_node" name="afma6" output="screen">
+  </node>
 </launch>
 
