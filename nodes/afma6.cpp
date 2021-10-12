@@ -21,7 +21,7 @@
 class RosAfma6Node
 {
 public:
-  RosAfma6Node( ros::NodeHandle n );
+  RosAfma6Node();
   virtual ~RosAfma6Node();
 
 public:
@@ -57,11 +57,8 @@ protected:
   int m_tool_type = 0; // See https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType
 };
 
-RosAfma6Node::RosAfma6Node( ros::NodeHandle nh )
+RosAfma6Node::RosAfma6Node()
 {
-  // read in config options
-  m_n = nh;
-
   ROS_INFO( "Using Afma6 robot" );
 
   m_robot = NULL;
@@ -82,8 +79,8 @@ RosAfma6Node::RosAfma6Node( ros::NodeHandle nh )
   m_nh.getParam( "tool_type", m_tool_type );
 
   // advertise services
-  m_pose_pub = n.advertise< geometry_msgs::PoseStamped >( "pose", 1000 );
-  m_vel_pub  = n.advertise< geometry_msgs::TwistStamped >( "velocity", 1000 );
+  m_pose_pub = m_nh.advertise< geometry_msgs::PoseStamped >( "pose", 1000 );
+  m_vel_pub  = m_nh.advertise< geometry_msgs::TwistStamped >( "velocity", 1000 );
 
   // subscribe to services
   m_cmd_camvel_sub =
@@ -94,7 +91,7 @@ RosAfma6Node::RosAfma6Node( ros::NodeHandle nh )
 
 RosAfma6Node::~RosAfma6Node()
 {
-  if ( robot )
+  if ( m_robot )
   {
     m_robot->stopMotion();
     delete m_robot;
@@ -107,7 +104,7 @@ RosAfma6Node::setup()
 {
   m_robot = new vpRobotAfma6;
 
-  m_robot->init( static_cast< vpAfma6ToolType >( m_tool_type ), vpCameraParameters::perspectiveProjWithDistortion );
+  m_robot->init( static_cast< vpAfma6::vpAfma6ToolType >( m_tool_type ), vpCameraParameters::perspectiveProjWithDistortion );
   vpCameraParameters cam;
   m_robot->getCameraParameters( cam, 640, 480 );
   std::cout << "Camera parameters (640 x 480):\n" << cam << std::endl;
@@ -135,15 +132,15 @@ RosAfma6Node::publish()
 {
   double timestamp;
   m_robot->getPosition( vpRobot::ARTICULAR_FRAME, m_q, timestamp );
-  m_wMc                   = robot->get_fMc( m_q );
+  m_wMc                   = m_robot->get_fMc( m_q );
   m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
   m_position.header.stamp = ros::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
 
   //  ROS_INFO( "Afma6 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
-  //            position.header.stamp.toSec(),
-  //            position.pose.position.x, position.pose.position.y, position.pose.position.z,
-  //            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y,
-  //            position.pose.orientation.z);
+  //            m_position.header.stamp.toSec(),
+  //            m_position.pose.position.x, m_position.pose.position.y, m_position.pose.position.z,
+  //            m_position.pose.orientation.w, m_position.pose.orientation.x, m_position.pose.orientation.y,
+  //            m_position.pose.orientation.z);
   m_pose_pub.publish( m_position );
 
   vpColVector vel( 6 );
@@ -164,7 +161,7 @@ RosAfma6Node::publish()
 void
 RosAfma6Node::setCameraVel( const geometry_msgs::TwistStampedConstPtr &msg )
 {
-  veltime = ros::Time::now();
+  m_veltime = ros::Time::now();
 
   vpColVector vc( 6 ); // Vel in m/s and rad/s
 
@@ -177,7 +174,7 @@ RosAfma6Node::setCameraVel( const geometry_msgs::TwistStampedConstPtr &msg )
   vc[5] = msg->twist.angular.z;
 
   //  ROS_INFO( "Afma6 new camera vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s",
-  //            veltime.toSec(),
+  //            m_veltime.toSec(),
   //            vc[0], vc[1], vc[2], vc[3], vc[4], vc[5]);
   m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
 
@@ -191,19 +188,22 @@ main( int argc, char **argv )
 {
 #ifdef VISP_HAVE_AFMA6
   ros::init( argc, argv, "RosAfma6" );
-  ros::NodeHandle n( std::string( "~" ) );
 
-  RosAfma6Node *node = new RosAfma6Node( n );
+  RosAfma6Node node;
 
-  if ( node->setup() != 0 )
-  {
-    printf( "Afma6 setup failed... \n" );
-    return -1;
+  try {
+    if ( node.setup() != 0 )
+    {
+      printf( "Afma6 setup failed... \n" );
+      return -1;
+    }
+
+    node.spin();
   }
-
-  node->spin();
-
-  delete node;
+  catch(const vpException &e)
+  {
+    std::cout << "Catch exception: " << e.getMessage() << std::endl;
+  }
 
   printf( "\nQuitting... \n" );
 #else
