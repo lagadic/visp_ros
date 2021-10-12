@@ -1,6 +1,6 @@
 project(tutorial-ros-grabber)
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 find_package(visp_ros REQUIRED)
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.12.0)
+cmake_minimum_required(VERSION 3.0)
 project(visp_ros)
 
 find_package(catkin REQUIRED COMPONENTS
