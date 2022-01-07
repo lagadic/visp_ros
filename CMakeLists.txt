@@ -43,13 +43,16 @@ find_package(VISP REQUIRED)
 find_package(orocos_kdl QUIET)
 find_package(iir QUIET)
 
-if(orocos_kdl_FOUND)
+set(orocos_kdl_VERSION_MINIMUM "1.3.2")
+if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
   add_definitions("-DVISP_HAVE_OROCOS_KDL")
-  message("-- orocos kdl found: We can build franka simulator")
+  message("-- orocos kdl ${orocos_kdl_VERSION} found: We can build franka simulator")
   if(iir_FOUND)
     message("-- iir found")
     add_definitions("-DVISP_HAVE_IIR")
   endif()
+elseif(orocos_kdl_FOUND AND ((${orocos_kdl_VERSION} VERSION_EQUAL ${orocos_kdl_VERSION_MINIMUM}) OR (${orocos_kdl_VERSION} VERSION_LESS ${orocos_kdl_VERSION_MINIMUM})))
+  message("-- orocos kdl ${orocos_kdl_VERSION} found: but version to old to build franka simulator")
 else()
   message("-- orocos kdl not found: Unable to build franka simulator")
 endif()
@@ -104,7 +107,7 @@ set(srcs
   src/robot/vpROSRobot.cpp
   )
 
-if(orocos_kdl_FOUND)
+if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
   # With Franka simulator
   set(srcs
     include/${PROJECT_NAME}/vpROSGrabber.h
@@ -186,7 +189,7 @@ target_link_libraries(tutorial-franka-real-joint-impedance-control ${catkin_LIBR
 ##############################################################
 ## Build tutorial to simulate franka robot with coppeliasim ##
 ##############################################################
-if(orocos_kdl_FOUND)
+if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
   add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
   add_executable(tutorial-franka-coppeliasim-pbvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp)
   add_executable(tutorial-franka-coppeliasim-dual-arm tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-dual-arm.cpp)
