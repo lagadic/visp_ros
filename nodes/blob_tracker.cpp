@@ -62,8 +62,6 @@ class BlobTracker : public rclcpp::Node
     QUIT   //!< Exit
   };
 
-  // std::shared_ptr< rclcpp::Node > m_nh;
-  // image_transport::ImageTransport m_it;
   rclcpp::Subscription< sensor_msgs::msg::Image >::SharedPtr m_image_sub;
   rclcpp::Publisher< visp_ros::msg::BlobTracker >::SharedPtr m_tracker_publisher;
   rclcpp::Publisher< std_msgs::msg::Int8 >::SharedPtr m_status_publisher;
