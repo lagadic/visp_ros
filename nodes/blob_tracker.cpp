@@ -1,8 +1,39 @@
-#include <boost/thread/mutex.hpp>
-#include <image_transport/image_transport.h>
-#include <ros/ros.h>
-#include <std_msgs/Int8.h>
-#include <std_msgs/String.h>
+/****************************************************************************
+ *
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2022 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See http://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
+
+#include <mutex>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/int8.hpp>
+#include <std_msgs/msg/string.h>
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -16,11 +47,11 @@
 #include <visp3/gui/vpDisplayX.h>
 #include <visp3/vision/vpPose.h>
 
-#include <visp_ros/BlobTracker.h>
+#include <visp_ros/msg/blob_tracker.hpp>
 
 namespace
 {
-class BlobTracker
+class BlobTracker : public rclcpp::Node
 {
   enum STATE_T
   {
@@ -31,14 +62,15 @@ class BlobTracker
     QUIT   //!< Exit
   };
 
-  ros::NodeHandle m_nh;
-  image_transport::ImageTransport m_it;
-  image_transport::Subscriber m_image_sub;
-  ros::Publisher m_tracker_publisher;
-  ros::Publisher m_status_publisher;
+  // std::shared_ptr< rclcpp::Node > m_nh;
+  // image_transport::ImageTransport m_it;
+  rclcpp::Subscription< sensor_msgs::msg::Image >::SharedPtr m_image_sub;
+  rclcpp::Publisher< visp_ros::msg::BlobTracker >::SharedPtr m_tracker_publisher;
+  rclcpp::Publisher< std_msgs::msg::Int8 >::SharedPtr m_status_publisher;
+
   unsigned int m_queue_size;
   STATE_T m_state;
-  boost::mutex m_lock;
+  std::mutex m_lock;
 #ifdef VISP_HAVE_X11
   vpDisplayX *m_display;
 #elif defined( VISP_HAVE_GDI )
@@ -64,10 +96,7 @@ class BlobTracker
 
 public:
   BlobTracker()
-    : m_it( m_nh )
-    , m_image_sub()
-    , m_tracker_publisher()
-    , m_status_publisher()
+    : Node( "blob_tracker_node" )
     , m_queue_size( 1 )
     , m_state( START )
     , m_lock()
@@ -75,41 +104,35 @@ public:
     , m_I_grayscale()
     , m_blob()
     , m_nblobs( 4 )
-    , m_square_size( 0.12 )
     , m_cam()
     , m_points_3d()
     , m_points_2d()
     , m_cMo()
     , m_thickness( 2 )
-    , m_cam_px( -1 )
-    , m_cam_py( -1 )
-    , m_cam_u0( -1 )
-    , m_cam_v0( -1 )
-    , m_cam_kud( -1 )
-    , m_cam_kdu( -1 )
   {
-    m_image_sub         = m_it.subscribe( "/camera/image_raw", m_queue_size, &BlobTracker::callback, this );
-    m_tracker_publisher = m_nh.advertise< visp_ros::BlobTracker >( "blob_tracker/data", m_queue_size );
-    m_status_publisher  = m_nh.advertise< std_msgs::Int8 >( "blob_tracker/status", m_queue_size );
+    m_image_sub = this->create_subscription< sensor_msgs::msg::Image >(
+        "/camera/image_raw", m_queue_size, std::bind( &BlobTracker::callback, this, std::placeholders::_1 ) );
+    m_tracker_publisher = this->create_publisher< visp_ros::msg::BlobTracker >( "blob_tracker/data", m_queue_size );
+    m_status_publisher  = this->create_publisher< std_msgs::msg::Int8 >( "blob_tracker/status", m_queue_size );
 
     m_blob.resize( m_nblobs );
     m_points_3d.resize( m_nblobs );
     m_points_2d.resize( m_nblobs );
 
     // Load object size
-    m_nh.getParam( "square_size", m_square_size );
+    m_square_size = this->declare_parameter( "square_size", 0.12 );
 
     // Load camera parameters
-    m_nh.getParam( "cam_px", m_cam_px );
-    m_nh.getParam( "cam_py", m_cam_py );
-    m_nh.getParam( "cam_u0", m_cam_u0 );
-    m_nh.getParam( "cam_v0", m_cam_v0 );
-    m_nh.getParam( "cam_kud", m_cam_kud );
-    m_nh.getParam( "cam_kdu", m_cam_kdu );
+    m_cam_px  = this->declare_parameter< double >( "cam_px", -1. );
+    m_cam_py  = this->declare_parameter< double >( "cam_py", -1. );
+    m_cam_u0  = this->declare_parameter< double >( "cam_u0", -1. );
+    m_cam_v0  = this->declare_parameter< double >( "cam_v0", -1. );
+    m_cam_kud = this->declare_parameter< double >( "cam_kud", -1. );
+    m_cam_kdu = this->declare_parameter< double >( "cam_kdu", -1. );
 
     if ( m_cam_px < 0 || m_cam_py < 0 || m_cam_u0 < 0 || m_cam_v0 < 0 )
     {
-      ROS_ERROR( "Camera parameters are not set" );
+      RCLCPP_ERROR( this->get_logger(), "Camera parameters are not set" );
     }
 
     if ( m_cam_kud == -1 || m_cam_kdu == -1 )
@@ -141,12 +164,12 @@ public:
 
   void spin()
   {
-    ros::Rate loop_rate( 60 );
+    rclcpp::Rate loop_rate( 60 );
     bool quit = false;
-    while ( m_nh.ok() && !quit )
+    while ( rclcpp::ok() && !quit )
     {
       {
-        boost::mutex::scoped_lock( m_lock );
+        std::unique_lock< std::mutex > lock( m_lock );
         switch ( m_state )
         {
         case START:
@@ -170,7 +193,8 @@ public:
         }
       }
 
-      ros::spinOnce();
+      auto node = std::make_shared< BlobTracker >();
+      rclcpp::spin_some( node );
       loop_rate.sleep();
     }
     if ( m_display )
@@ -198,7 +222,7 @@ public:
     }
   }
 
-  void display( const sensor_msgs::ImageConstPtr &msg )
+  void display( const sensor_msgs::msg::Image::ConstSharedPtr &msg )
   {
     try
     {
@@ -219,24 +243,24 @@ public:
         m_state = INIT;
       }
     }
-    catch ( cv_bridge::Exception &e )
+    catch ( const cv_bridge::Exception &e )
     {
-      ROS_ERROR( "cv_bridge exception: %s", e.what() );
+      RCLCPP_ERROR( this->get_logger(), "cv_bridge exception: %s", e.what() );
       return;
     }
   }
 
-  void callback( const sensor_msgs::ImageConstPtr &msg )
+  void callback( const sensor_msgs::msg::Image::ConstSharedPtr &msg )
   {
-    boost::mutex::scoped_lock( m_lock );
+    std::unique_lock< std::mutex > lock( m_lock );
 
     switch ( m_state )
     {
     case START:
     {
-      std_msgs::Int8 status_msg;
+      std_msgs::msg::Int8 status_msg;
       status_msg.data = 0;
-      m_status_publisher.publish( status_msg );
+      m_status_publisher->publish( status_msg );
 
       display( msg );
       break;
@@ -244,9 +268,9 @@ public:
 
     case INIT:
     {
-      std_msgs::Int8 status_msg;
+      std_msgs::msg::Int8 status_msg;
       status_msg.data = 0;
-      m_status_publisher.publish( status_msg );
+      m_status_publisher->publish( status_msg );
 
       cv::Mat cv_frame = cv_bridge::toCvShare( msg, "bgr8" )->image;
       vpImageConvert::convert( cv_frame, m_I_grayscale );
@@ -293,7 +317,7 @@ public:
       vpDisplay::displayText( m_I_grayscale, 20, 20, "Tracking in progress", vpColor::red );
       vpDisplay::displayText( m_I_grayscale, 40, 20, "Right click to quit", vpColor::red );
 
-      visp_ros::BlobTracker blob_tracker_msg;
+      visp_ros::msg::BlobTracker blob_tracker_msg;
       try
       {
         for ( unsigned int i = 0; i < m_blob.size(); i++ )
@@ -308,8 +332,8 @@ public:
         vpDisplay::displayFrame( m_I_grayscale, m_cMo, m_cam, m_square_size / 2., vpColor::none, m_thickness );
 
         // Publish tracker results
-        ros::Time now = ros::Time::now();
-        geometry_msgs::PoseStamped msg_pose;
+        rclcpp::Time now = rclcpp::Node::now();
+        geometry_msgs::msg::PoseStamped msg_pose;
         msg_pose.header.stamp         = now;
         msg_pose.header.frame_id      = msg->header.frame_id;
         msg_pose.pose                 = visp_bridge::toGeometryMsgsPose( m_cMo ); // convert
@@ -319,18 +343,18 @@ public:
 
         for ( unsigned int i = 0; i < m_blob.size(); i++ )
         {
-          visp_ros::ImagePoint ip;
+          visp_ros::msg::ImagePoint ip;
           ip.i = m_blob[i].getCog().get_i();
           ip.j = m_blob[i].getCog().get_j();
           blob_tracker_msg.blob_cogs.push_back( ip );
 
-          visp_ros::ProjectedPoint pp;
+          visp_ros::msg::ProjectedPoint pp;
           vpPixelMeterConversion::convertPoint( m_cam, m_blob[i].getCog(), pp.x, pp.y );
           blob_tracker_msg.blob_proj.push_back( pp );
         }
         vpDisplay::flush( m_I_grayscale );
 
-        std_msgs::Int8 status_msg;
+        std_msgs::msg::Int8 status_msg;
         status_msg.data = 1;
 
         vpMouseButton::vpMouseButtonType button;
@@ -343,17 +367,17 @@ public:
           }
         }
 
-        m_tracker_publisher.publish( blob_tracker_msg );
-        m_status_publisher.publish( status_msg );
+        m_tracker_publisher->publish( blob_tracker_msg );
+        m_status_publisher->publish( status_msg );
       }
       catch ( ... )
       {
         std::cout << "Tracking failed" << std::endl;
         m_state = START;
 
-        std_msgs::Int8 status_msg;
+        std_msgs::msg::Int8 status_msg;
         status_msg.data = 0;
-        m_status_publisher.publish( status_msg );
+        m_status_publisher->publish( status_msg );
       }
 
       break;
@@ -361,9 +385,9 @@ public:
 
     case END:
     {
-      std_msgs::Int8 status_msg;
+      std_msgs::msg::Int8 status_msg;
       status_msg.data = 0;
-      m_status_publisher.publish( status_msg );
+      m_status_publisher->publish( status_msg );
 
       if ( m_display )
       {
@@ -434,8 +458,10 @@ public:
 int
 main( int argc, char **argv )
 {
-  ros::init( argc, argv, "visp_ros_blob_tracker_node" );
-  BlobTracker blobTracker;
-  blobTracker.spin();
+  rclcpp::init( argc, argv );
+
+  rclcpp::spin( std::make_shared< BlobTracker >() );
+
+  rclcpp::shutdown();
   return 0;
 }

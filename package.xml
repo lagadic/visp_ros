@@ -1,41 +1,64 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model
+  href="http://download.ros.org/schema/package_format3.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>visp_ros</name>
   <version>1.0.0</version>
-    <description>
+
+  <description>
      An extension of ViSP library that interfaces ROS into usual ViSP classes and a basket of generic ros nodes based on ViSP.
   </description>
+
   <author>Francois Pasteau</author>
   <author>Fabien Spindler</author>
   <author>Gatien Gaumerais</author>
   <author>Alexander Oliva</author>
-  <license>GPLv2</license>
-  <url>http://ros.org/wiki/visp_ros</url>
   <maintainer email="Fabien.Spindler@inria.fr">Fabien Spindler</maintainer>
-  <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>roscpp</depend>
-  <depend>rospy</depend>
-  <depend>std_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>cv_bridge</depend>
-  <depend>image_geometry</depend>
-  <depend>image_transport</depend>
+  <license>GPLv2</license>
+  <url type="website">http://ros.org/wiki/visp_ros</url>
+  <url type="repository">https://github.com/lagadic/visp_ros/tree/ros2</url>
+  <url type="bugtracker">https://github.com/lagadic/visp_ros/issues</url>
+
+  <buildtool_depend>ament_cmake_ros</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
   <depend>visp_bridge</depend>
-  <depend>tf</depend>
-  <depend>nodelet</depend>
-  <depend>liborocos-kdl-dev</depend>
-  <build_depend>message_generation</build_depend>
   <depend>kdl_parser</depend>
+  <depend>liborocos-kdl-dev</depend>
+  <depend>cv_bridge</depend>
 
-  <exec_depend>image_view</exec_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>visp</build_depend>
+
+  <exec_depend>camera_calibration_parsers</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <!--exec_depend>image_view</exec_depend -->
+  <exec_depend>message_generation</exec_depend>
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>rqt_console</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
   <exec_depend>usb_cam</exec_depend>
+  <exec_depend>visp</exec_depend>
+
+  <!-- Recommanded: https://docs.ros.org/en/foxy/Tutorials/Intermediate/Launch/Creating-Launch-Files.html -->
+  <exec_depend>ros2launch</exec_depend>
+
+  <!-- To test blob_tracker -->
+  <exec_depend>v4l2_camera</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
-     <rosdoc config="${prefix}/rosdoc.yaml" />
-     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+    <build_type>ament_cmake</build_type>
   </export>
 
 </package>
