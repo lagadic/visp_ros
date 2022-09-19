@@ -9,7 +9,6 @@
   <node pkg="visp_ros" exec="visp_ros_blob_tracker_node" name="blob_tracker" output="screen">
 
     <!-- Camera parameters without distorsion -->
-    <param name="square_size" value="0.12"/>        <!-- Square size in [m] corresponding to the distance between blobs center -->
     <param name="cam_px" value="1109.8389473004"/>  <!-- Intrinsic camera parameter px -->
     <param name="cam_py" value="1111.6863942763"/>  <!-- Intrinsic camera parameter py -->
     <param name="cam_u0" value="333.5848028848"/>   <!-- Intrinsic camera parameter u0 -->
