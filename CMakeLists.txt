@@ -93,12 +93,24 @@ rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_t
 target_include_directories(${PROJECT_NAME}_common PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-
-  # ${VISP_INCLUDE_DIRS}
+  ${VISP_INCLUDE_DIRS}
 )
 
-add_executable(${PROJECT_NAME}_blob_tracker_node nodes/blob_tracker.cpp)
+# Node to control Afma6 robot
+add_executable(${PROJECT_NAME}_afma6_node nodes/afma6.cpp)
+target_link_libraries(${PROJECT_NAME}_afma6_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_afma6_node
+  geometry_msgs
+  nav_msgs
+  rclcpp
+  visp_bridge
+  VISP
+)
 
+# Node to track a square made of 4 blobs
+add_executable(${PROJECT_NAME}_blob_tracker_node nodes/blob_tracker.cpp)
 target_link_libraries(${PROJECT_NAME}_blob_tracker_node
 
   # ${PROJECT_NAME}_common
@@ -106,20 +118,17 @@ target_link_libraries(${PROJECT_NAME}_blob_tracker_node
 
   # ${VISP_LIBRARIES}
 )
-
 ament_target_dependencies(${PROJECT_NAME}_blob_tracker_node
   cv_bridge
   rclcpp
   std_msgs
-
-  # sensor_msgs
-  # geometry_msgs
   visp_bridge
   VISP
 )
 
 install(
   TARGETS
+  ${PROJECT_NAME}_afma6_node
   ${PROJECT_NAME}_blob_tracker_node
   DESTINATION lib/${PROJECT_NAME}
 )
