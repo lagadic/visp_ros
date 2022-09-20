@@ -51,20 +51,18 @@
 
 #include <visp_ros/vpROSRobot.h>
 
-#include <ros/ros.h>
-#include <ros/time.h>
+#include <rclcpp/rclcpp.hpp>
 
 //! constructor
 vpROSRobot::vpROSRobot()
   : isInitialized( false )
-  , odom_mutex( true )
   , q( 0, 0, 0, 1 )
   , p( 0, 0, 0 )
-  , _sec( 0 )
-  , _nsec( 0 )
-  , displacement( 6 )
   , pose_prev( 6 )
-  , _master_uri( "http://127.0.0.1:11311" )
+  , displacement( 6 )
+  , _sec( 0 )
+  , _nanosec( 0 )
+  , odom_mutex( true )
   , _topic_cmd( "/RosAria/cmd_vel" )
   , _topic_odom( "odom" )
   , _nodespace( "" )
@@ -77,10 +75,10 @@ vpROSRobot::~vpROSRobot()
   if ( isInitialized )
   {
     isInitialized = false;
-    spinner->stop();
-    delete spinner;
-    delete n;
+    // spinner->stop(); TODO
+    // delete spinner;
   }
+  rclcpp::shutdown();
 }
 
 /*!
@@ -93,14 +91,15 @@ vpROSRobot::init( int argc, char **argv )
 {
   if ( !isInitialized )
   {
-    if ( !ros::isInitialized() )
-      ros::init( argc, argv, "visp_node", ros::init_options::AnonymousName );
-    n       = new ros::NodeHandle;
-    cmdvel  = n->advertise< geometry_msgs::Twist >( _nodespace + _topic_cmd, 1 );
-    odom    = n->subscribe( _nodespace + _topic_odom, 1, &vpROSRobot::odomCallback, this,
-                         ros::TransportHints().tcpNoDelay() );
-    spinner = new ros::AsyncSpinner( 1 );
-    spinner->start();
+    // if ( !rclcpp::is_initialized() )
+    rclcpp::init( argc, argv ); // "visp_node", rclcpp::init_options::AnonymousName );
+    n      = rclcpp::Node::make_shared( "ros_robot" );
+    cmdvel = n->create_publisher< geometry_msgs::msg::Twist >( _nodespace + _topic_cmd, 1 );
+    odom   = n->create_subscription< nav_msgs::msg::Odometry >(
+        _nodespace + _topic_odom, 1, std::bind( &vpROSRobot::odomCallback, this, std::placeholders::_1 ) );
+
+    // spinner = new ros::AsyncSpinner( 1 ); TODO
+    // spinner->start();
     isInitialized = true;
   }
 }
@@ -112,27 +111,21 @@ vpROSRobot::init( int argc, char **argv )
 void
 vpROSRobot::init()
 {
-  if ( ros::isInitialized() && ros::master::getURI() != _master_uri )
-  {
-    throw( vpRobotException( vpRobotException::constructionError,
-                             "ROS robot already initialised with a different master_URI (" + ros::master::getURI() +
-                                 " != " + _master_uri + ")" ) );
-  }
-  if ( !isInitialized )
-  {
-    int argc = 2;
-    char *argv[2];
-    argv[0] = new char[255];
-    argv[1] = new char[255];
+  // if ( rclcpp::is_initialized() )
+  // {
+  //   throw( vpRobotException( vpRobotException::constructionError, "ROS robot already initialised" ) );
+  // }
+  // if ( !isInitialized )
+  // {
+  int argc = 1;
+  char *argv[1];
+  argv[0] = new char[255];
 
-    std::string exe = "ros.exe", arg1 = "__master:=";
-    strcpy( argv[0], exe.c_str() );
-    arg1.append( _master_uri );
-    strcpy( argv[1], arg1.c_str() );
-    init( argc, argv );
-    delete[] argv[0];
-    delete[] argv[1];
-  }
+  std::string exe = "ros.exe";
+  strcpy( argv[0], exe.c_str() );
+  init( argc, argv );
+  delete[] argv[0];
+  // }
 }
 
 /*!
@@ -148,7 +141,7 @@ vpROSRobot::init()
 void
 vpROSRobot::setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &vel )
 {
-  geometry_msgs::Twist msg;
+  geometry_msgs::msg::Twist msg;
   if ( frame == vpRobot::REFERENCE_FRAME )
   {
     msg.linear.x  = vel[0];
@@ -157,7 +150,7 @@ vpROSRobot::setVelocity( const vpRobot::vpControlFrameType frame, const vpColVec
     msg.angular.x = vel[3];
     msg.angular.y = vel[4];
     msg.angular.z = vel[5];
-    cmdvel.publish( msg );
+    cmdvel->publish( msg );
   }
   else
   {
@@ -219,11 +212,12 @@ void
 vpROSRobot::getDisplacement( const vpRobot::vpControlFrameType frame, vpColVector &dis, struct timespec &timestamp )
 {
   while ( !odom_mutex )
-    ;
+  {
+  };
   odom_mutex = false;
   vpColVector pose_cur( displacement );
   timestamp.tv_sec  = _sec;
-  timestamp.tv_nsec = _nsec;
+  timestamp.tv_nsec = _nanosec;
   odom_mutex        = true;
   if ( frame == vpRobot::REFERENCE_FRAME )
   {
@@ -256,19 +250,20 @@ vpROSRobot::getDisplacement( const vpRobot::vpControlFrameType frame, vpColVecto
 }
 
 void
-vpROSRobot::odomCallback( const nav_msgs::Odometry::ConstPtr &msg )
+vpROSRobot::odomCallback( const nav_msgs::msg::Odometry::SharedPtr msg )
 {
   while ( !odom_mutex )
-    ;
+  {
+  };
   odom_mutex = false;
   p.set( msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z );
   q.set( msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z,
          msg->pose.pose.orientation.w );
 
-  if ( _sec != 0 || _nsec != 0 )
+  if ( _sec != 0 || _nanosec != 0 )
   {
     double dt = ( (double)msg->header.stamp.sec - (double)_sec ) +
-                ( (double)msg->header.stamp.nsec - (double)_nsec ) / 1000000000.0;
+                ( (double)msg->header.stamp.nanosec - (double)_nanosec ) / 1000000000.0;
     displacement[0] += msg->twist.twist.linear.x * dt;
     displacement[1] += msg->twist.twist.linear.y * dt;
     displacement[2] += msg->twist.twist.linear.z * dt;
@@ -277,21 +272,21 @@ vpROSRobot::odomCallback( const nav_msgs::Odometry::ConstPtr &msg )
     displacement[5] += msg->twist.twist.angular.z * dt;
   }
   _sec       = msg->header.stamp.sec;
-  _nsec      = msg->header.stamp.nsec;
+  _nanosec   = msg->header.stamp.nanosec;
   odom_mutex = true;
 }
 
 void
 vpROSRobot::stopMotion()
 {
-  geometry_msgs::Twist msg;
+  geometry_msgs::msg::Twist msg;
   msg.linear.x  = 0;
   msg.linear.y  = 0;
   msg.linear.z  = 0;
   msg.angular.x = 0;
   msg.angular.y = 0;
   msg.angular.z = 0;
-  cmdvel.publish( msg );
+  cmdvel->publish( msg );
 }
 
 /*!
@@ -318,19 +313,6 @@ void
 vpROSRobot::setOdomTopic( std::string topic_name )
 {
   _topic_odom = topic_name;
-}
-
-/*!
-
-    Set the URI for ROS Master
-
-    \param master_uri URI of the master ("http://127.0.0.1:11311")
-
-*/
-void
-vpROSRobot::setMasterURI( std::string master_uri )
-{
-  _master_uri = master_uri;
 }
 
 /*!
