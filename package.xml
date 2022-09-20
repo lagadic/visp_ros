@@ -38,9 +38,6 @@
 
   <exec_depend>camera_calibration_parsers</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <!--exec_depend>image_view</exec_depend -->
-  <exec_depend>message_generation</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
   <exec_depend>rclcpp</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>rqt_console</exec_depend>
