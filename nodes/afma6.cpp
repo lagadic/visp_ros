@@ -34,14 +34,13 @@
 #include <sstream>
 #include <stdio.h>
 
-#include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <visp3/robot/vpRobotAfma6.h>
+
 #include <visp_bridge/3dpose.h>
 
 #ifdef VISP_HAVE_AFMA6
@@ -64,19 +63,12 @@ protected:
   rclcpp::Subscription< geometry_msgs::msg::TwistStamped >::SharedPtr m_cmd_camvel_sub;
 
   unsigned int m_queue_size;
-  rclcpp::Time m_veltime;
+  rclcpp::Time m_vel_time;
 
   std::string m_serial_port;
 
   vpRobotAfma6 *m_robot;
   geometry_msgs::msg::PoseStamped m_position;
-
-  // for odom->base_link transform
-  geometry_msgs::msg::TransformStamped m_odom_trans;
-  // for resolving tf names.
-  std::string m_tf_prefix;
-  std::string m_frame_id_odom;
-  std::string m_frame_id_base_link;
 
   vpHomogeneousMatrix m_wMc; // world to camera transformation
   vpColVector m_q;           // measured joint position
@@ -86,7 +78,7 @@ protected:
 
 RosAfma6Node::RosAfma6Node()
   : Node( "afma_node" )
-  , m_queue_size( 1000 )
+  , m_queue_size( 10 )
 {
   RCLCPP_INFO( this->get_logger(), "Using Afma6 robot" );
 
@@ -132,7 +124,6 @@ RosAfma6Node::setup()
 void
 RosAfma6Node::spin()
 {
-
   rclcpp::Rate loop_rate( 100 );
   while ( rclcpp::ok() )
   {
@@ -141,7 +132,6 @@ RosAfma6Node::spin()
     rclcpp::spin_some( node );
     loop_rate.sleep();
   }
-  //  ros::spin();
 }
 
 void
@@ -176,7 +166,7 @@ RosAfma6Node::publish()
 void
 RosAfma6Node::setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg )
 {
-  m_veltime = rclcpp::Node::now();
+  m_vel_time = rclcpp::Node::now();
 
   vpColVector vc( 6 ); // Vel in m/s and rad/s
 
@@ -189,12 +179,8 @@ RosAfma6Node::setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedP
   vc[5] = msg->twist.angular.z;
 
   //  RCLCPP_INFO( this->get_logger(), "Afma6 new camera vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f]
-  //  rad/s",
-  //            m_veltime.toSec(),
-  //            vc[0], vc[1], vc[2], vc[3], vc[4], vc[5]);
+  //  rad/s", m_vel_time.toSec(), vc[0], vc[1], vc[2], vc[3], vc[4], vc[5]);
   m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
-
-  //  this->publish();
 }
 
 #endif // #ifdef VISP_HAVE_AFMA6
@@ -210,8 +196,8 @@ main( int argc, char **argv )
   {
     if ( node->setup() != 0 )
     {
-      printf( "Afma6 setup failed... \n" );
-      return -1;
+      RCLCPP_ERROR( node->get_logger(), "Afma6 setup failed... \n" );
+      return EXIT_FAILURE;
     }
 
     rclcpp::spin( node );
@@ -221,10 +207,10 @@ main( int argc, char **argv )
     std::cout << "Catch exception: " << e.getMessage() << std::endl;
   }
 
-  printf( "\nQuitting... \n" );
+  RCLCPP_INFO( node->get_logger(), "Quitting... \n" );
   rclcpp::shutdown();
 #else
-  printf( "This node is node available since ViSP was \nnot build with Afma6 robot support...\n" );
+  std::cout << "This node is not available since ViSP was \nnot build with Afma6 robot support...\n" << std::endl;
 #endif
-  return 0;
+  return EXIT_SUCCESS;
 }
