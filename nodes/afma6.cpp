@@ -30,9 +30,7 @@
  *
  *****************************************************************************/
 
-#include <math.h>
-#include <sstream>
-#include <stdio.h>
+#include <chrono>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -42,6 +40,8 @@
 #include <visp3/robot/vpRobotAfma6.h>
 
 #include <visp_bridge/3dpose.h>
+
+using namespace std::chrono_literals;
 
 #ifdef VISP_HAVE_AFMA6
 
@@ -53,14 +53,14 @@ public:
 
 public:
   int setup();
-  void setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr & );
+  void setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr & );
   void spin();
   void publish();
 
 protected:
   rclcpp::Publisher< geometry_msgs::msg::PoseStamped >::SharedPtr m_pose_pub;
   rclcpp::Publisher< geometry_msgs::msg::TwistStamped >::SharedPtr m_vel_pub;
-  rclcpp::Subscription< geometry_msgs::msg::TwistStamped >::SharedPtr m_cmd_camvel_sub;
+  rclcpp::Subscription< geometry_msgs::msg::Twist >::SharedPtr m_cmd_camvel_sub;
 
   unsigned int m_queue_size;
   rclcpp::Time m_vel_time;
@@ -91,7 +91,7 @@ RosAfma6Node::RosAfma6Node()
   m_vel_pub  = this->create_publisher< geometry_msgs::msg::TwistStamped >( "velocity", m_queue_size );
 
   // Create subscribers
-  m_cmd_camvel_sub = this->create_subscription< geometry_msgs::msg::TwistStamped >(
+  m_cmd_camvel_sub = this->create_subscription< geometry_msgs::msg::Twist >(
       "cmd_camvel", m_queue_size, std::bind( &RosAfma6Node::setCameraVel, this, std::placeholders::_1 ) );
 }
 
@@ -114,7 +114,7 @@ RosAfma6Node::setup()
                  vpCameraParameters::perspectiveProjWithDistortion );
   vpCameraParameters cam;
   m_robot->getCameraParameters( cam, 640, 480 );
-  std::cout << "Camera parameters (640 x 480):\n" << cam << std::endl;
+  RCLCPP_INFO_STREAM(this->get_logger(), "Camera parameters (640 x 480):\n" << cam);
 
   m_robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
 
@@ -122,29 +122,18 @@ RosAfma6Node::setup()
 }
 
 void
-RosAfma6Node::spin()
-{
-  rclcpp::Rate loop_rate( 100 );
-  while ( rclcpp::ok() )
-  {
-    this->publish();
-    auto node = std::make_shared< RosAfma6Node >();
-    rclcpp::spin_some( node );
-    loop_rate.sleep();
-  }
-}
-
-void
 RosAfma6Node::publish()
 {
-  double timestamp;
+  double timestamp = 0;
   m_robot->getPosition( vpRobot::ARTICULAR_FRAME, m_q, timestamp );
-  m_wMc                   = m_robot->get_fMc( m_q );
+  int32_t timestamp_second = (int32_t)(std::floor(timestamp));
+  uint32_t timestamp_nanosecond = (uint32_t)((timestamp - std::floor(timestamp))*1e9);
+  m_wMc = m_robot->get_fMc( m_q );
   m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
-  m_position.header.stamp = rclcpp::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
+  m_position.header.stamp = rclcpp::Time( timestamp_second, timestamp_nanosecond ); // to improve: should be the timestamp returned by getPosition()
 
   //  RCLCPP_INFO( this->get_logger(), "Afma6 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
-  //            m_position.header.stamp.toSec(),
+  //            timestamp,
   //            m_position.pose.position.x, m_position.pose.position.y, m_position.pose.position.z,
   //            m_position.pose.orientation.w, m_position.pose.orientation.x, m_position.pose.orientation.y,
   //            m_position.pose.orientation.z);
@@ -153,7 +142,7 @@ RosAfma6Node::publish()
   vpColVector vel( 6 );
   m_robot->getVelocity( vpRobot::CAMERA_FRAME, vel, timestamp );
   geometry_msgs::msg::TwistStamped vel_msg;
-  vel_msg.header.stamp    = rclcpp::Time( timestamp );
+  vel_msg.header.stamp    = rclcpp::Time( timestamp_second, timestamp_nanosecond );
   vel_msg.twist.linear.x  = vel[0];
   vel_msg.twist.linear.y  = vel[1];
   vel_msg.twist.linear.z  = vel[2];
@@ -164,22 +153,22 @@ RosAfma6Node::publish()
 }
 
 void
-RosAfma6Node::setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg )
+RosAfma6Node::setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr &msg )
 {
   m_vel_time = rclcpp::Node::now();
 
   vpColVector vc( 6 ); // Vel in m/s and rad/s
 
-  vc[0] = msg->twist.linear.x;
-  vc[1] = msg->twist.linear.y;
-  vc[2] = msg->twist.linear.z;
+  vc[0] = msg->linear.x;
+  vc[1] = msg->linear.y;
+  vc[2] = msg->linear.z;
 
-  vc[3] = msg->twist.angular.x;
-  vc[4] = msg->twist.angular.y;
-  vc[5] = msg->twist.angular.z;
+  vc[3] = msg->angular.x;
+  vc[4] = msg->angular.y;
+  vc[5] = msg->angular.z;
 
-  //  RCLCPP_INFO( this->get_logger(), "Afma6 new camera vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f]
-  //  rad/s", m_vel_time.toSec(), vc[0], vc[1], vc[2], vc[3], vc[4], vc[5]);
+  // RCLCPP_INFO( this->get_logger(), "Afma6 new camera vel: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s", vc[0],
+  //              vc[1], vc[2], vc[3], vc[4], vc[5] );
   m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
 }
 
@@ -200,11 +189,23 @@ main( int argc, char **argv )
       return EXIT_FAILURE;
     }
 
-    rclcpp::spin( node );
+    rclcpp::WallRate loop_rate( 100ms );
+
+    while ( rclcpp::ok() )
+    {
+      node->publish();
+
+      rclcpp::spin_some( node );
+      loop_rate.sleep();
+    }
   }
   catch ( const vpException &e )
   {
-    std::cout << "Catch exception: " << e.getMessage() << std::endl;
+    RCLCPP_ERROR( node->get_logger(), "Catch ViSP exception: %s", e.getMessage() );
+  }
+  catch ( const rclcpp::exceptions::RCLError &e )
+  {
+    RCLCPP_ERROR( node->get_logger(), "Unexpectedly failed with %s", e.what() );
   }
 
   RCLCPP_INFO( node->get_logger(), "Quitting... \n" );

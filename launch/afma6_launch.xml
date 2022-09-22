@@ -1,8 +1,8 @@
 <!-- -*- xml -*- -->
 <launch>
   <!-- To test sending velocities in D435 camera frame: -->
-  <!-- ros2 topic pub -r 10 /cmd_vel geometry_msgs::msg::TwistStamped '{velocity: [0, 0, 0, 0, 0, 0]}' -->
-
+  <!-- ros2 topic pub -r 1 /cmd_camvel geometry_msgs/msg/Twist "{linear: {x: 0.0, y: 0.0, z: 0.05}, angular: {x: 0.0, y: 0.0, z: 0.0}}" -->
+  
   <!-- Afma6 robot node -->
   <node pkg="visp_ros" exec="visp_ros_afma6_node" name="afma6" output="screen">
     <!-- Tool type parameter. Values must conform vpAfma6ToolType:  -->
