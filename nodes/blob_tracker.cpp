@@ -30,7 +30,9 @@
  *
  *****************************************************************************/
 
+#include <chrono>
 #include <mutex>
+
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/int8.hpp>
 #include <std_msgs/msg/string.h>
@@ -48,6 +50,8 @@
 #include <visp3/vision/vpPose.h>
 
 #include <visp_ros/msg/blob_tracker.hpp>
+
+using namespace std::chrono_literals;
 
 namespace
 {
@@ -108,6 +112,7 @@ public:
     , m_cMo()
     , m_thickness( 2 )
   {
+    RCLCPP_INFO( this->get_logger(), "Start blob tracker" );
     m_image_sub = this->create_subscription< sensor_msgs::msg::Image >(
         "/camera/image_raw", m_queue_size, std::bind( &BlobTracker::callback, this, std::placeholders::_1 ) );
     m_tracker_publisher = this->create_publisher< visp_ros::msg::BlobTracker >( "blob_tracker/data", m_queue_size );
@@ -160,47 +165,13 @@ public:
     m_points_3d[3] = vpPoint( -m_square_size / 2., m_square_size / 2., 0 );  // bottom/left
   }
 
-  void spin()
+  virtual ~BlobTracker()
   {
-    rclcpp::Rate loop_rate( 60 );
-    bool quit = false;
-    while ( rclcpp::ok() && !quit )
-    {
-      {
-        std::unique_lock< std::mutex > lock( m_lock );
-        switch ( m_state )
-        {
-        case START:
-          break;
-
-        case INIT:
-          break;
-
-        case TRACK:
-          break;
-
-        case END:
-          break;
-
-        case QUIT:
-          quit = true;
-          break;
-
-        default:
-          break;
-        }
-      }
-
-      auto node = std::make_shared< BlobTracker >();
-      rclcpp::spin_some( node );
-      loop_rate.sleep();
-    }
     if ( m_display )
     {
       delete m_display;
       m_display = NULL;
     }
-    std::cout << "Image processing stopped..." << std::endl;
   }
 
   void init_display()
@@ -214,8 +185,8 @@ public:
 #endif
     if ( m_display )
     {
-      std::cout << "Image size: " << m_I_grayscale.getWidth() << " x " << m_I_grayscale.getHeight() << std::endl;
-      std::cout << "Camera parameters:\n" << m_cam << std::endl;
+      RCLCPP_INFO( this->get_logger(), "Image size: %d x %d", m_I_grayscale.getWidth(), m_I_grayscale.getHeight() );
+      RCLCPP_INFO_STREAM( this->get_logger(), "Camera parameters:\n" << m_cam );
       m_display->init( m_I_grayscale, 80, m_I_grayscale.getHeight() + 20, "Image processing" );
     }
   }
@@ -233,12 +204,21 @@ public:
       }
 
       vpDisplay::display( m_I_grayscale );
-      vpDisplay::displayText( m_I_grayscale, 20, 20, "Click to start initialisation", vpColor::red );
+      vpDisplay::displayText( m_I_grayscale, 20, 20, "Left click to start initialisation", vpColor::red );
+      vpDisplay::displayText( m_I_grayscale, 40, 20, "Right click to quit...", vpColor::red );
       vpDisplay::flush( m_I_grayscale );
 
-      if ( vpDisplay::getClick( m_I_grayscale, false ) )
+      vpMouseButton::vpMouseButtonType button;
+      if ( vpDisplay::getClick( m_I_grayscale, button, false ) )
       {
-        m_state = INIT;
+        if ( button == vpMouseButton::button3 )
+        {
+          m_state = QUIT;
+        }
+        else
+        {
+          m_state = INIT;
+        }
       }
     }
     catch ( const cv_bridge::Exception &e )
@@ -299,7 +279,7 @@ public:
       }
       catch ( ... )
       {
-        std::cout << "Tracking failed during initialisation" << std::endl;
+        RCLCPP_ERROR( this->get_logger(), "Tracking failed during initialisation" );
         m_state = START;
       }
 
@@ -386,12 +366,6 @@ public:
       std_msgs::msg::Int8 status_msg;
       status_msg.data = 0;
       m_status_publisher->publish( status_msg );
-
-      if ( m_display )
-      {
-        delete m_display;
-        m_display = NULL;
-      }
       m_state = QUIT;
 
       break;
@@ -450,6 +424,34 @@ public:
 
     return residual;
   }
+
+  bool check_state()
+  {
+    bool quit = false;
+    std::unique_lock< std::mutex > lock( m_lock );
+    switch ( m_state )
+    {
+    case START:
+      break;
+
+    case INIT:
+      break;
+
+    case TRACK:
+      break;
+
+    case END:
+      break;
+
+    case QUIT:
+      quit = true;
+      break;
+
+    default:
+      break;
+    }
+    return quit;
+  }
 };
 } // namespace
 
@@ -458,8 +460,32 @@ main( int argc, char **argv )
 {
   rclcpp::init( argc, argv );
 
-  rclcpp::spin( std::make_shared< BlobTracker >() );
+  auto node = std::make_shared< BlobTracker >();
 
+  try
+  {
+    rclcpp::WallRate loop_rate( 60ms );
+    bool quit = false;
+    while ( rclcpp::ok() && !quit )
+    {
+      quit = node->check_state();
+
+      rclcpp::spin_some( node );
+
+      loop_rate.sleep();
+    }
+  }
+  catch ( const vpException &e )
+  {
+    RCLCPP_ERROR( node->get_logger(), "Catch ViSP exception: %s", e.getMessage() );
+  }
+  catch ( const rclcpp::exceptions::RCLError &e )
+  {
+    RCLCPP_ERROR( node->get_logger(), "Unexpectedly failed with %s", e.what() );
+  }
+
+  RCLCPP_INFO( node->get_logger(), "Quit blob tracker node... \n" );
   rclcpp::shutdown();
-  return 0;
+
+  return EXIT_SUCCESS;
 }
