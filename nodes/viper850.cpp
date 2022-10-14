@@ -1,174 +1,178 @@
+/****************************************************************************
+ *
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2022 by Inria. All rights reserved.
+ *
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * See the file LICENSE.txt at the root directory of this source
+ * distribution for additional information about the GNU GPL.
+ *
+ * For using ViSP with software that can not be combined with the GNU
+ * GPL, please contact Inria about acquiring a ViSP Professional
+ * Edition License.
+ *
+ * See http://visp.inria.fr for more information.
+ *
+ * This software was developed at:
+ * Inria Rennes - Bretagne Atlantique
+ * Campus Universitaire de Beaulieu
+ * 35042 Rennes Cedex
+ * France
+ *
+ * If you have questions regarding the use of this file, please contact
+ * Inria at visp@inria.fr
+ *
+ * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
+ * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *****************************************************************************/
+
 #include <math.h>
 #include <sstream>
 #include <stdio.h>
 
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
-#include <std_msgs/Float64MultiArray.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_listener.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 
-#include <visp3/core/vpHomogeneousMatrix.h>
 #include <visp3/core/vpIoTools.h>
-#include <visp3/core/vpMath.h>
 #include <visp3/robot/vpRobotViper850.h>
 
-#include <visp_bridge/3dpose.h> // visp_bridge
+#include <visp_bridge/3dpose.h>
+
+using namespace std::chrono_literals;
 
 #ifdef VISP_HAVE_VIPER850
 
-class RosViper850Node
+class RosViper850Node : public rclcpp::Node
 {
 public:
-  RosViper850Node( ros::NodeHandle n );
+  RosViper850Node();
   virtual ~RosViper850Node();
 
 public:
   int setup();
-  void setCameraVel( const geometry_msgs::TwistStampedConstPtr & );
-  void setJointVel( const sensor_msgs::JointStateConstPtr & );
-  void setRefVel( const geometry_msgs::TwistStampedConstPtr & );
-  void spin();
+  void setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg );
+  void setJointVel( const sensor_msgs::msg::JointState::ConstSharedPtr &msg );
+  void setRefVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg );
   void publish();
 
 protected:
-  ros::NodeHandle n;
-  ros::Publisher pose_pub;
-  ros::Publisher vel_pub;
-  ros::Publisher jointState_pub;
-  ros::Publisher jacobian_pub;
-  ros::Subscriber cmd_camvel_sub;
-  ros::Subscriber cmd_jointvel_sub;
-  ros::Subscriber cmd_refvel_sub;
-  std::string setControlMode;  // "joint_space", "camera_frame" (default), "reference_frame"
-  std::string getStateSpace;   // "joint_space", "camera_frame" (default), "reference_frame"
-  std::string cmdVelTopicName; // default to /cmd_vel
-  std::string endEffectorType; // "TOOL_PTGREY_FLEA2_CAMERA" (default), "TOOL_GENERIC_CAMERA", "TOOL_CUSTOM"
-  std::string customToolTransformationFileName;
+  rclcpp::Publisher< geometry_msgs::msg::PoseStamped >::SharedPtr m_pose_pub;
+  rclcpp::Publisher< geometry_msgs::msg::TwistStamped >::SharedPtr m_vel_pub;
+  rclcpp::Publisher< sensor_msgs::msg::JointState >::SharedPtr m_jointState_pub;
+  rclcpp::Publisher< std_msgs::msg::Float64MultiArray >::SharedPtr m_jacobian_pub;
 
-  ros::Time veltime;
+  rclcpp::Subscription< geometry_msgs::msg::TwistStamped >::SharedPtr m_cmd_camvel_sub;
+  rclcpp::Subscription< geometry_msgs::msg::TwistStamped >::SharedPtr m_cmd_refvel_sub;
+  rclcpp::Subscription< sensor_msgs::msg::JointState >::SharedPtr m_cmd_jointvel_sub;
 
-  std::string serial_port;
+  unsigned int m_queue_size;
 
-  vpRobotViper850 *robot;
-  geometry_msgs::PoseStamped position;
-  sensor_msgs::JointState jointState;
-  std_msgs::Float64MultiArray jacobian;
+  std::string m_control_mode;       // "joint_space", "camera_frame" (default), "reference_frame"
+  std::string m_state_mode;         // "joint_space", "camera_frame" (default), "reference_frame"
+  std::string m_cmd_vel_topic_name; // default to /cmd_vel
+  int m_tool_type; // See https://visp-doc.inria.fr/doxygen/visp-daily/classvpViper850.html structure vpToolType
+  std::string m_tool_custom_transformation_file;
 
-  // for odom->base_link transform
-  tf::TransformBroadcaster odom_broadcaster;
-  geometry_msgs::TransformStamped odom_trans;
-  // for resolving tf names.
-  std::string tf_prefix;
-  std::string frame_id_odom;
-  std::string frame_id_base_link;
+  rclcpp::Time m_vel_time;
 
-  vpHomogeneousMatrix wMc; // world to camera transformation
-  vpColVector q;           // measured joint position
+  vpRobotViper850 *m_robot;
+  geometry_msgs::msg::PoseStamped m_position;
+  sensor_msgs::msg::JointState m_jointState;
+  std_msgs::msg::Float64MultiArray m_jacobian;
+
+  vpHomogeneousMatrix m_wMc; // world to camera transformation
+  vpColVector m_q;           // measured joint position
 };
 
-RosViper850Node::RosViper850Node( ros::NodeHandle nh )
+RosViper850Node::RosViper850Node()
+  : Node( "viper850_node" )
+  , m_queue_size( 10 )
 {
-  // read in config options
-  n = nh;
+  RCLCPP_INFO( this->get_logger(), "Using Viper850 robot" );
 
-  ROS_INFO( "Launch Viper850 robot ros node" );
+  m_robot = NULL;
 
-  robot = NULL;
-  n.param< std::string >( "set_control_mode", setControlMode, "tool_frame" );
-  n.param< std::string >( "get_state_space", getStateSpace, "tool_frame" );
-  n.param< std::string >( "cmd_vel_topic_name", cmdVelTopicName, "cmd_vel" );
-  n.param< std::string >( "end_effector", endEffectorType, "TOOL_PTGREY_FLEA2_CAMERA" );
-  n.param< std::string >( "custom_tool_transformation_filename", customToolTransformationFileName, "" );
-
-  /*
-   * Figure out what frame_id's to use. if a tf_prefix param is specified,
-   * it will be added to the beginning of the frame_ids.
-   *
-   * e.g. rosrun ... _tf_prefix:=MyRobot (or equivalently using <param>s in
-   * roslaunch files)
-   * will result in the frame_ids being set to /MyRobot/odom etc,
-   * rather than /odom. This is useful for Multi Robot Systems.
-   * See ROS Wiki for further details.
-   */
-  tf_prefix = tf::getPrefixParam( n );
-  //  frame_id_odom = tf::resolve(tf_prefix, "odom");
-  //  frame_id_base_link = tf::resolve(tf_prefix, "base_link");
-
-  // advertise services
-  //  pose_pub = n.advertise<geometry_msgs::PoseStamped>("pose", 1000);
-  //  vel_pub = n.advertise<geometry_msgs::TwistStamped>("velocity", 1000);
-  //  jointState_pub = n.advertise<sensor_msgs::JointState>("joint_state", 1000);
+  m_control_mode                    = this->declare_parameter< std::string >( "control_mode", "tool_frame" );
+  m_state_mode                      = this->declare_parameter< std::string >( "state_mode", "tool_frame" );
+  m_cmd_vel_topic_name              = this->declare_parameter< std::string >( "cmd_vel_topic_name", "cmd_vel" );
+  m_tool_type                       = this->declare_parameter< int >( "tool_type", 2 );
+  m_tool_custom_transformation_file = this->declare_parameter< std::string >( "tool_custom_transformation_file", "" );
 
   // subscribe to services
-  if ( setControlMode == "joint_space" )
+  if ( m_control_mode == "joint_space" )
   {
-    ROS_INFO( "Viper850 robot controlled in joint space" );
-    jointState_pub   = n.advertise< sensor_msgs::JointState >( "joint_state", 10 );
-    jacobian_pub     = n.advertise< std_msgs::Float64MultiArray >( "jacobian", 10 );
-    cmd_jointvel_sub = n.subscribe( cmdVelTopicName, 1,
-                                    (boost::function< void( const sensor_msgs::JointStateConstPtr & ) >)boost::bind(
-                                        &RosViper850Node::setJointVel, this, _1 ) );
+    RCLCPP_INFO( this->get_logger(), "Viper850 robot controlled in joint space" );
+    m_jointState_pub = this->create_publisher< sensor_msgs::msg::JointState >( "joint_state", m_queue_size );
+    m_jacobian_pub   = this->create_publisher< std_msgs::msg::Float64MultiArray >( "jacobian", m_queue_size );
+
+    m_cmd_jointvel_sub = this->create_subscription< sensor_msgs::msg::JointState >(
+        m_cmd_vel_topic_name, m_queue_size, std::bind( &RosViper850Node::setJointVel, this, std::placeholders::_1 ) );
   }
-  else if ( setControlMode == "camera_frame" )
+  else if ( m_control_mode == "camera_frame" )
   {
-    ROS_INFO( "Viper850 robot controlled in camera frame" );
-    pose_pub       = n.advertise< geometry_msgs::PoseStamped >( "pose", 10 );
-    vel_pub        = n.advertise< geometry_msgs::TwistStamped >( "velocity", 10 );
-    cmd_camvel_sub = n.subscribe( cmdVelTopicName, 1,
-                                  (boost::function< void( const geometry_msgs::TwistStampedConstPtr & ) >)boost::bind(
-                                      &RosViper850Node::setCameraVel, this, _1 ) );
+    RCLCPP_INFO( this->get_logger(), "Viper850 robot controlled in camera frame" );
+    // Create publishers
+    m_pose_pub = this->create_publisher< geometry_msgs::msg::PoseStamped >( "pose", m_queue_size );
+    m_vel_pub  = this->create_publisher< geometry_msgs::msg::TwistStamped >( "velocity", m_queue_size );
+
+    // Create subscribers
+    m_cmd_camvel_sub = this->create_subscription< geometry_msgs::msg::TwistStamped >(
+        m_cmd_vel_topic_name, m_queue_size, std::bind( &RosViper850Node::setCameraVel, this, std::placeholders::_1 ) );
   }
-  else if ( setControlMode == "reference_frame" )
+  else if ( m_control_mode == "reference_frame" )
   {
-    ROS_INFO( "Viper850 robot controlled in reference frame" );
-    pose_pub       = n.advertise< geometry_msgs::PoseStamped >( "pose", 10 );
-    vel_pub        = n.advertise< geometry_msgs::TwistStamped >( "velocity", 10 );
-    cmd_refvel_sub = n.subscribe( cmdVelTopicName, 1,
-                                  (boost::function< void( const geometry_msgs::TwistStampedConstPtr & ) >)boost::bind(
-                                      &RosViper850Node::setRefVel, this, _1 ) );
+    RCLCPP_INFO( this->get_logger(), "Viper850 robot controlled in reference frame" );
+    // Create publishers
+    m_pose_pub = this->create_publisher< geometry_msgs::msg::PoseStamped >( "pose", m_queue_size );
+    m_vel_pub  = this->create_publisher< geometry_msgs::msg::TwistStamped >( "velocity", m_queue_size );
+
+    // Create subscribers
+    m_cmd_refvel_sub = this->create_subscription< geometry_msgs::msg::TwistStamped >(
+        m_cmd_vel_topic_name, m_queue_size, std::bind( &RosViper850Node::setRefVel, this, std::placeholders::_1 ) );
   }
 }
 
 RosViper850Node::~RosViper850Node()
 {
-  if ( robot )
+  if ( m_robot )
   {
-    robot->stopMotion();
-    delete robot;
-    robot = NULL;
+    m_robot->stopMotion();
+    delete m_robot;
+    m_robot = NULL;
   }
 }
 
 int
 RosViper850Node::setup()
 {
-  robot = new vpRobotViper850;
+  m_robot = new vpRobotViper850;
 
-  if ( endEffectorType == "TOOL_PTGREY_FLEA2_CAMERA" )
+  if ( m_tool_type == (int)( vpViper850::TOOL_PTGREY_FLEA2_CAMERA ) )
   {
-    robot->init( vpViper850::TOOL_PTGREY_FLEA2_CAMERA, vpCameraParameters::perspectiveProjWithDistortion );
+    m_robot->init( vpViper850::TOOL_PTGREY_FLEA2_CAMERA, vpCameraParameters::perspectiveProjWithDistortion );
   }
-  else if ( endEffectorType == "TOOL_GENERIC_CAMERA" )
+  else if ( m_tool_type == (int)( vpViper850::TOOL_GENERIC_CAMERA ) )
   {
-    robot->init( vpViper850::TOOL_GENERIC_CAMERA, vpCameraParameters::perspectiveProjWithDistortion );
+    m_robot->init( vpViper850::TOOL_GENERIC_CAMERA, vpCameraParameters::perspectiveProjWithDistortion );
   }
-  else if ( endEffectorType == "TOOL_CUSTOM" )
+  else if ( m_tool_type == (int)( vpViper850::TOOL_CUSTOM ) )
   {
-    if ( vpIoTools::checkFilename( customToolTransformationFileName ) == false )
+    if ( vpIoTools::checkFilename( m_tool_custom_transformation_file ) == false )
     {
-      ROS_ERROR( "Viper850: Missing or bad filename for eMt custom tool transformation" );
+      RCLCPP_ERROR( this->get_logger(), "Viper850: Missing or bad filename for eMt custom tool transformation" );
       return -1;
     }
 
     vpHomogeneousMatrix eMt;
-    std::ifstream f( customToolTransformationFileName.c_str() );
+    std::ifstream f( m_tool_custom_transformation_file.c_str() );
     try
     {
       eMt.load( f );
@@ -176,127 +180,117 @@ RosViper850Node::setup()
     }
     catch ( vpException &e )
     {
-      ROS_ERROR_STREAM( "Viper850: Cannot load eMt custom tool transformation from \""
-                        << customToolTransformationFileName << "\": " << e.getStringMessage() );
+      RCLCPP_ERROR( this->get_logger(), "Viper850: Cannot load eMt custom tool transformation from \"%s\"",
+                    e.getMessage() );
       f.close();
       return -1;
     }
 
-    robot->init( vpViper850::TOOL_CUSTOM, eMt );
+    m_robot->init( vpViper850::TOOL_CUSTOM, eMt );
   }
 
-  robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
+  m_robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
 
   return 0;
 }
 
 void
-RosViper850Node::spin()
-{
-  ros::Rate loop_rate( 100 );
-  while ( ros::ok() )
-  {
-    this->publish();
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-}
-
-void
 RosViper850Node::publish()
 {
-  double timestamp;
-  robot->getPosition( vpRobot::ARTICULAR_FRAME, q, timestamp );
+  double timestamp = 0;
+  m_robot->getPosition( vpRobot::ARTICULAR_FRAME, m_q, timestamp );
+  int32_t timestamp_second      = (int32_t)( std::floor( timestamp ) );
+  uint32_t timestamp_nanosecond = (uint32_t)( ( timestamp - std::floor( timestamp ) ) * 1e9 );
 
-  if ( getStateSpace == "joint_space" )
+  if ( m_state_mode == "joint_space" )
   {
     vpColVector qdot;
-    robot->getVelocity( vpRobot::ARTICULAR_FRAME, qdot, timestamp );
-    jointState.position.clear();
-    jointState.velocity.clear();
-    jointState.header.stamp = ros::Time( timestamp );
+    m_robot->getVelocity( vpRobot::ARTICULAR_FRAME, qdot, timestamp );
+    m_jointState.position.clear();
+    m_jointState.velocity.clear();
+    m_jointState.header.stamp = rclcpp::Time( timestamp_second, timestamp_nanosecond );
     for ( unsigned int i = 0; i < qdot.size(); i++ )
     {
-      jointState.position.push_back( q[i] );
-      jointState.velocity.push_back( qdot[i] );
+      m_jointState.position.push_back( m_q[i] );
+      m_jointState.velocity.push_back( qdot[i] );
     }
-    jointState_pub.publish( jointState );
+    m_jointState_pub->publish( m_jointState );
 
     vpMatrix eJe;
-    robot->get_eJe( eJe );
+    m_robot->get_eJe( eJe );
     vpHomogeneousMatrix eMc;
-    robot->get_eMc( eMc );
+    m_robot->get_eMc( eMc );
     vpMatrix cJc = vpVelocityTwistMatrix( eMc.inverse() ) * eJe;
 
-    jacobian.data.clear();
-    jacobian.layout.dim.resize( 2 );
+    m_jacobian.data.clear();
+    m_jacobian.layout.dim.resize( 2 );
 
-    jacobian.layout.dim[0].label  = "height";
-    jacobian.layout.dim[0].size   = cJc.getRows();
-    jacobian.layout.dim[0].stride = cJc.size();
-    jacobian.layout.dim[1].label  = "width";
-    jacobian.layout.dim[1].size   = cJc.getCols();
-    jacobian.layout.dim[1].stride = cJc.getCols();
+    m_jacobian.layout.dim[0].label  = "height";
+    m_jacobian.layout.dim[0].size   = cJc.getRows();
+    m_jacobian.layout.dim[0].stride = cJc.size();
+    m_jacobian.layout.dim[1].label  = "width";
+    m_jacobian.layout.dim[1].size   = cJc.getCols();
+    m_jacobian.layout.dim[1].stride = cJc.getCols();
     for ( unsigned int i = 0; i < cJc.size(); i++ )
-      jacobian.data.push_back( cJc.data[i] );
-    jacobian_pub.publish( jacobian );
+    {
+      m_jacobian.data.push_back( cJc.data[i] );
+    }
+    m_jacobian_pub->publish( m_jacobian );
   }
-  else if ( getStateSpace == "camera_frame" )
+  else if ( m_state_mode == "camera_frame" )
   {
-    wMc                   = robot->get_fMc( q );
-    position.pose         = visp_bridge::toGeometryMsgsPose( wMc );
-    position.header.stamp = ros::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
-
-    //  ROS_INFO( "Viper850 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
-    //            position.header.stamp.toSec(),
-    //            position.pose.position.x, position.pose.position.y, position.pose.position.z,
-    //            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y,
-    //            position.pose.orientation.z);
-    pose_pub.publish( position );
+    m_wMc                   = m_robot->get_fMc( m_q );
+    m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
+    m_position.header.stamp = rclcpp::Time( timestamp_second, timestamp_nanosecond );
+    // RCLCPP_INFO( this->get_logger(), "Viper850 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f
+    // %0.2f]",
+    //              timestamp, m_position.pose.position.x, m_position.pose.position.y, m_position.pose.position.z,
+    //              m_position.pose.orientation.w, m_position.pose.orientation.x, m_position.pose.orientation.y,
+    //              m_position.pose.orientation.z );
+    m_pose_pub->publish( m_position );
 
     vpColVector vel( 6 );
-    robot->getVelocity( vpRobot::CAMERA_FRAME, vel, timestamp );
-    geometry_msgs::TwistStamped vel_msg;
-    vel_msg.header.stamp    = ros::Time( timestamp );
+    m_robot->getVelocity( vpRobot::CAMERA_FRAME, vel, timestamp );
+    geometry_msgs::msg::TwistStamped vel_msg;
+    vel_msg.header.stamp    = rclcpp::Time( timestamp );
     vel_msg.twist.linear.x  = vel[0];
     vel_msg.twist.linear.y  = vel[1];
     vel_msg.twist.linear.z  = vel[2];
     vel_msg.twist.angular.x = vel[3];
     vel_msg.twist.angular.y = vel[4];
     vel_msg.twist.angular.z = vel[5];
-    vel_pub.publish( vel_msg );
+    m_vel_pub->publish( vel_msg );
   }
-  else if ( getStateSpace == "reference_frame" )
+  else if ( m_state_mode == "reference_frame" )
   {
-    wMc                   = robot->get_fMc( q );
-    position.pose         = visp_bridge::toGeometryMsgsPose( wMc );
-    position.header.stamp = ros::Time( timestamp ); // to improve: should be the timestamp returned by getPosition()
-
-    //  ROS_INFO( "Viper850 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
-    //            position.header.stamp.toSec(),
-    //            position.pose.position.x, position.pose.position.y, position.pose.position.z,
-    //            position.pose.orientation.w, position.pose.orientation.x, position.pose.orientation.y,
-    //            position.pose.orientation.z);
-    pose_pub.publish( position );
+    m_wMc                   = m_robot->get_fMc( m_q );
+    m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
+    m_position.header.stamp = rclcpp::Time( timestamp_second, timestamp_nanosecond );
+    // RCLCPP_INFO( this->get_logger(), "Viper850 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f
+    // %0.2f]",
+    //              timestamp, m_position.pose.position.x, m_position.pose.position.y, m_position.pose.position.z,
+    //              m_position.pose.orientation.w, m_position.pose.orientation.x, m_position.pose.orientation.y,
+    //              m_position.pose.orientation.z );
+    m_pose_pub->publish( m_position );
 
     vpColVector vel( 6 );
-    robot->getVelocity( vpRobot::REFERENCE_FRAME, vel, timestamp );
-    geometry_msgs::TwistStamped vel_msg;
-    vel_msg.header.stamp    = ros::Time( timestamp );
+    m_robot->getVelocity( vpRobot::REFERENCE_FRAME, vel, timestamp );
+    geometry_msgs::msg::TwistStamped vel_msg;
+    vel_msg.header.stamp    = rclcpp::Time( timestamp );
     vel_msg.twist.linear.x  = vel[0];
     vel_msg.twist.linear.y  = vel[1];
     vel_msg.twist.linear.z  = vel[2];
     vel_msg.twist.angular.x = vel[3];
     vel_msg.twist.angular.y = vel[4];
     vel_msg.twist.angular.z = vel[5];
-    vel_pub.publish( vel_msg );
+    m_vel_pub->publish( vel_msg );
   }
 }
 
 void
-RosViper850Node::setCameraVel( const geometry_msgs::TwistStampedConstPtr &msg )
+RosViper850Node::setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg )
 {
-  veltime = ros::Time::now();
+  m_vel_time = rclcpp::Node::now();
 
   vpColVector vc( 6 ); // Vel in m/s and rad/s
 
@@ -308,19 +302,19 @@ RosViper850Node::setCameraVel( const geometry_msgs::TwistStampedConstPtr &msg )
   vc[4] = msg->twist.angular.y;
   vc[5] = msg->twist.angular.z;
 
-  ROS_INFO( "Viper850 new camera vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s", veltime.toSec(),
-            vc[0], vc[1], vc[2], vc[3], vc[4], vc[5] );
-  robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
+  // RCLCPP_INFO( this->get_logger(), "Viper850 new camera vel: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s",
+  // vc[0], vc[1], vc[2], vc[3], vc[4], vc[5] );
+  m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
 }
 
 void
-RosViper850Node::setJointVel( const sensor_msgs::JointStateConstPtr &msg )
+RosViper850Node::setJointVel( const sensor_msgs::msg::JointState::ConstSharedPtr &msg )
 {
-  veltime = ros::Time::now();
+  m_vel_time = rclcpp::Node::now();
 
   if ( msg->velocity.size() != 6 )
   {
-    ROS_ERROR( "Viper850: Cannot apply a joint velocity vector that is not 6 dimensional" );
+    RCLCPP_ERROR( this->get_logger(), "Viper850: Cannot apply a joint velocity vector that is not 6 dimensional" );
     return;
   }
   vpColVector qdot( 6 ); // Vel in rad/s for each joint
@@ -328,16 +322,15 @@ RosViper850Node::setJointVel( const sensor_msgs::JointStateConstPtr &msg )
   for ( unsigned int i = 0; i < msg->velocity.size(); i++ )
     qdot[i] = msg->velocity[i];
 
-  ROS_INFO( "Viper850 new joint vel at %f s: [%0.2f %0.2f %0.2f %0.2f %0.2f %0.2f] rad/s", veltime.toSec(), qdot[0],
-            qdot[1], qdot[2], qdot[3], qdot[4], qdot[5] );
-
-  robot->setVelocity( vpRobot::ARTICULAR_FRAME, qdot );
+  // RCLCPP_INFO( this->get_logger(), "Viper850 new joint vel: [%0.2f %0.2f %0.2f %0.2f %0.2f %0.2f] rad/s", qdot[0],
+  //              qdot[1], qdot[2], qdot[3], qdot[4], qdot[5] );
+  m_robot->setVelocity( vpRobot::ARTICULAR_FRAME, qdot );
 }
 
 void
-RosViper850Node::setRefVel( const geometry_msgs::TwistStampedConstPtr &msg )
+RosViper850Node::setRefVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg )
 {
-  veltime = ros::Time::now();
+  m_vel_time = rclcpp::Node::now();
 
   vpColVector vref( 6 ); // Vel in m/s and rad/s
 
@@ -349,35 +342,53 @@ RosViper850Node::setRefVel( const geometry_msgs::TwistStampedConstPtr &msg )
   vref[4] = msg->twist.angular.y;
   vref[5] = msg->twist.angular.z;
 
-  ROS_INFO( "Viper850 new reference vel at %f s: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s", veltime.toSec(),
-            vref[0], vref[1], vref[2], vref[3], vref[4], vref[5] );
-  robot->setVelocity( vpRobot::REFERENCE_FRAME, vref );
+  // RCLCPP_INFO( this->get_logger(), "Viper850 new reference vel: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s",
+  //              vref[0], vref[1], vref[2], vref[3], vref[4], vref[5] );
+  m_robot->setVelocity( vpRobot::REFERENCE_FRAME, vref );
 }
 
-#endif // #ifdef VISP_HAVE_Viper850
+#endif // #ifdef VISP_HAVE_VIPER850
 
 int
 main( int argc, char **argv )
 {
 #ifdef VISP_HAVE_VIPER850
-  ros::init( argc, argv, "RosViper850" );
-  ros::NodeHandle n( std::string( "~" ) );
+  rclcpp::init( argc, argv );
+  auto node = std::make_shared< RosViper850Node >();
 
-  RosViper850Node *node = new RosViper850Node( n );
-
-  if ( node->setup() != 0 )
+  try
   {
-    printf( "Viper850 setup failed... \n" );
-    return -1;
+    if ( node->setup() != 0 )
+    {
+      RCLCPP_ERROR( node->get_logger(), "Viper850 setup failed... \n" );
+      return EXIT_FAILURE;
+    }
+
+    rclcpp::WallRate loop_rate( 100ms );
+
+    while ( rclcpp::ok() )
+    {
+      node->publish();
+
+      rclcpp::spin_some( node );
+      loop_rate.sleep();
+    }
+  }
+  catch ( const vpException &e )
+  {
+    RCLCPP_ERROR( node->get_logger(), "Catch ViSP exception: %s", e.getMessage() );
+  }
+  catch ( const rclcpp::exceptions::RCLError &e )
+  {
+    RCLCPP_ERROR( node->get_logger(), "Unexpectedly failed with %s", e.what() );
   }
 
-  node->spin();
-
-  delete node;
-
-  printf( "\nQuitting... \n" );
+  RCLCPP_INFO( node->get_logger(), "Quitting... \n" );
+  rclcpp::shutdown();
 #else
-  printf( "The Viper850 robot is not supported by ViSP...\n" );
+  std::cout << "This node is not available since ViSP was" << std::endl
+            << "not build with Viper850 robot support...\n"
+            << std::endl;
 #endif
-  return 0;
+  return EXIT_SUCCESS;
 }

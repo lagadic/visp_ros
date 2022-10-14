@@ -53,7 +53,7 @@ public:
 
 public:
   int setup();
-  void setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr & );
+  void setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr &msg );
   void spin();
   void publish();
 
@@ -114,7 +114,7 @@ RosAfma6Node::setup()
                  vpCameraParameters::perspectiveProjWithDistortion );
   vpCameraParameters cam;
   m_robot->getCameraParameters( cam, 640, 480 );
-  RCLCPP_INFO_STREAM(this->get_logger(), "Camera parameters (640 x 480):\n" << cam);
+  RCLCPP_INFO_STREAM( this->get_logger(), "Camera parameters (640 x 480):\n" << cam );
 
   m_robot->setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
 
@@ -126,11 +126,12 @@ RosAfma6Node::publish()
 {
   double timestamp = 0;
   m_robot->getPosition( vpRobot::ARTICULAR_FRAME, m_q, timestamp );
-  int32_t timestamp_second = (int32_t)(std::floor(timestamp));
-  uint32_t timestamp_nanosecond = (uint32_t)((timestamp - std::floor(timestamp))*1e9);
-  m_wMc = m_robot->get_fMc( m_q );
-  m_position.pose         = visp_bridge::toGeometryMsgsPose( m_wMc );
-  m_position.header.stamp = rclcpp::Time( timestamp_second, timestamp_nanosecond ); // to improve: should be the timestamp returned by getPosition()
+  int32_t timestamp_second      = (int32_t)( std::floor( timestamp ) );
+  uint32_t timestamp_nanosecond = (uint32_t)( ( timestamp - std::floor( timestamp ) ) * 1e9 );
+  m_wMc                         = m_robot->get_fMc( m_q );
+  m_position.pose               = visp_bridge::toGeometryMsgsPose( m_wMc );
+  m_position.header.stamp       = rclcpp::Time(
+            timestamp_second, timestamp_nanosecond ); // to improve: should be the timestamp returned by getPosition()
 
   //  RCLCPP_INFO( this->get_logger(), "Afma6 publish pose at %f s: [%0.2f %0.2f %0.2f] - [%0.2f %0.2f %0.2f %0.2f]",
   //            timestamp,
@@ -211,7 +212,9 @@ main( int argc, char **argv )
   RCLCPP_INFO( node->get_logger(), "Quitting... \n" );
   rclcpp::shutdown();
 #else
-  std::cout << "This node is not available since ViSP was \nnot build with Afma6 robot support...\n" << std::endl;
+  std::cout << "This node is not available since ViSP was" << std::endl
+            << "not build with Afma6 robot support...\n"
+            << std::endl;
 #endif
   return EXIT_SUCCESS;
 }
