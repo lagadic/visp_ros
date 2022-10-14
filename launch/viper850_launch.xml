@@ -3,24 +3,24 @@
   <!-- To test sending joint velocities: -->
   <!-- $ ros2 topic pub -r 10 /cmd_vel sensor_msgs/msg/JointState '{velocity: [0, 0, 0, 0, 0, 0]}' -->
 
-  <!-- Viper 650 robot node -->
-  <node pkg="visp_ros" exec="visp_ros_viper650_node" name="viper650" output="screen">
+  <!-- Viper 850 robot node -->
+  <node pkg="visp_ros" exec="visp_ros_viper850_node" name="viper850" output="screen">
     <!-- Tool type parameter. Values must conform vpToolType:  -->
     <!--   0 (TOOL_MARLIN_F033C_CAMERA)                        -->
     <!--   1 (TOOL_PTGREY_FLEA2_CAMERA = default)              -->
     <!--   2 (TOOL_SCHUNK_GRIPPER_CAMERA)                      -->
     <!--   3 (TOOL_GENERIC_CAMERA)                             -->
     <!--   4 (TOOL_CUSTOM).                                    -->
-    <!-- See https://visp-doc.inria.fr/doxygen/visp-daily/classvpViper650.html structure vpToolType -->
-	  <!-- If TOOL_CUSTOM use tool_custom_transformation_file parameter to set the location of eMt transformation. -->
-	  <param name="tool_type" value="1"/>
-	  <!-- In which frame or space shall we consider subscribed velocities:               -->
-	  <!-- ["joint_space", "camera_frame" (default), or "reference_frame"] -->
-	  <param name="control_mode" value="joint_space" />
+    <!-- See https://visp-doc.inria.fr/doxygen/visp-daily/classvpViper850.html structure vpToolType -->
+	<!-- If TOOL_CUSTOM use tool_custom_transformation_file parameter to set the location of eMt transformation. -->
+	<param name="tool_type" value="1"/>
+	<!-- In which frame or space shall we consider subscribed velocities:               -->
+	<!-- ["joint_space", "camera_frame" (default), or "reference_frame"] -->
+	<param name="control_mode" value="joint_space" />
     <!-- Which topic name contains cmd_vel velocities to apply.          -->
     <param name="cmd_vel_topic_name" value="/cmd_vel" />
-	  <!-- In which frame or space shall we publish the robot state:       -->
-	  <!-- ["joint_space", "camera_frame (default)", "reference_frame"]    -->
+	<!-- In which frame or space shall we publish the robot state:       -->
+	<!-- ["joint_space", "camera_frame (default)", "reference_frame"]    -->
 	<param name="state_mode" value="joint_space" />
   </node>
 </launch>
