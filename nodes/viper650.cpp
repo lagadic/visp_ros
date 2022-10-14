@@ -103,7 +103,7 @@ RosViper650Node::RosViper650Node()
   m_control_mode                    = this->declare_parameter< std::string >( "control_mode", "tool_frame" );
   m_state_mode                      = this->declare_parameter< std::string >( "state_mode", "tool_frame" );
   m_cmd_vel_topic_name              = this->declare_parameter< std::string >( "cmd_vel_topic_name", "cmd_vel" );
-  m_tool_type                       = this->declare_parameter< int >( "tool_type", 2 );
+  m_tool_type                       = this->declare_parameter< int >( "tool_type", 1 );
   m_tool_custom_transformation_file = this->declare_parameter< std::string >( "tool_custom_transformation_file", "" );
 
   // subscribe to services
