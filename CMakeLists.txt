@@ -103,7 +103,6 @@ target_link_libraries(${PROJECT_NAME}_afma6_node
 )
 ament_target_dependencies(${PROJECT_NAME}_afma6_node
   geometry_msgs
-  nav_msgs
   rclcpp
   visp_bridge
   VISP
@@ -126,10 +125,39 @@ ament_target_dependencies(${PROJECT_NAME}_blob_tracker_node
   VISP
 )
 
+# Node to control Viper650 robot
+add_executable(${PROJECT_NAME}_viper650_node nodes/viper650.cpp)
+target_link_libraries(${PROJECT_NAME}_viper650_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_viper650_node
+  geometry_msgs
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
+
+# Node to control Viper850 robot
+add_executable(${PROJECT_NAME}_viper850_node nodes/viper850.cpp)
+target_link_libraries(${PROJECT_NAME}_viper850_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_viper850_node
+  geometry_msgs
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
+
+# Installation
 install(
   TARGETS
   ${PROJECT_NAME}_afma6_node
   ${PROJECT_NAME}_blob_tracker_node
+  ${PROJECT_NAME}_viper650_node
+  ${PROJECT_NAME}_viper850_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
