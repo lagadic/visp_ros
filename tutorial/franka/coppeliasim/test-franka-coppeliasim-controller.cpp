@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2022 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,26 +30,30 @@
  *
  *****************************************************************************/
 
-//! \example test-vel.cpp
+//! \example test-franka-coppeliasim-controller.cpp
 
 #include <iostream>
 #include <mutex>
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
+
+using namespace std::chrono_literals;
 
 static bool s_simStepDone = true;
 static std::mutex s_mutex_ros;
 static float s_simTime = 0;
 
 void
-simStepDone_callback( const std_msgs::Bool &msg )
+simStepDone_callback( const std_msgs::msg::Bool &msg )
 {
   std::lock_guard< std::mutex > lock( s_mutex_ros );
   s_simStepDone = msg.data;
 }
 
 void
-simTime_callback( const std_msgs::Float32 &msg )
+simTime_callback( const std_msgs::msg::Float32 &msg )
 {
   std::lock_guard< std::mutex > lock( s_mutex_ros );
   s_simTime = msg.data;
@@ -58,45 +62,50 @@ simTime_callback( const std_msgs::Float32 &msg )
 int
 main( int argc, char **argv )
 {
-
   try
   {
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    // ROS node
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
+    rclcpp::init( argc, argv );
+    auto node = std::make_shared< rclcpp::Node >( "visp_ros" );
+    rclcpp::WallRate loop_rate( 100ms );
+    rclcpp::spin_some( node );
 
     vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose( true );
-    robot.setTopicJointState( "/vrep/franka/joint_state" );
-    robot.setTopic_eMc( "/vrep/franka/eMc" );
+    robot.setTopicJointState( "/coppeliasim/franka/joint_state" );
+    robot.setTopic_eMc( "/coppeliasim/franka/eMc" );
     robot.connect();
 
-    ros::Publisher enableSyncMode_pub  = n->advertise< std_msgs::Bool >( "/enableSyncMode", 1 );
-    ros::Publisher startSimTrigger_pub = n->advertise< std_msgs::Bool >( "/startSimulation", 1 );
-    ros::Publisher stopSimTrigger_pub  = n->advertise< std_msgs::Bool >( "/stopSimulation", 1 );
-    std_msgs::Bool trigger;
-    std_msgs::Bool syncMode;
-    std_msgs::Bool startStopSim;
+    const auto enableSyncMode_pub  = node->create_publisher< std_msgs::msg::Bool >( "/enableSyncMode", 1 );
+    const auto startSimTrigger_pub = node->create_publisher< std_msgs::msg::Bool >( "/startSimulation", 1 );
+    const auto stopSimTrigger_pub  = node->create_publisher< std_msgs::msg::Bool >( "/stopSimulation", 1 );
+
+    std_msgs::msg::Bool trigger;
+    std_msgs::msg::Bool syncMode;
+    std_msgs::msg::Bool startStopSim;
 
     std::string simulationStepDone_topic_name = "/simulationStepDone";
     std::cout << "Subscribe to " << simulationStepDone_topic_name << std::endl;
-    ros::Subscriber sub_simStepDone       = n->subscribe( simulationStepDone_topic_name, 1, simStepDone_callback );
+
+    // auto sub_simStepDone = node->create_subscription< std_msgs::msg::Bool >(
+    //     simulationStepDone_topic_name, 1, std::bind( &simStepDone_callback, node, std::placeholders::_1 ) );
+    auto sub_simStepDone =
+        node->create_subscription< std_msgs::msg::Bool >( simulationStepDone_topic_name, 1, simStepDone_callback );
+
     std::string simulationTime_topic_name = "/simulationTime";
     std::cout << "Subscribe to " << simulationTime_topic_name << std::endl;
-    ros::Subscriber sub_simulationTime = n->subscribe( simulationTime_topic_name, 1, simTime_callback );
+    // auto sub_simulationTime = node->create_subscription< std_msgs::msg::Float32 >(
+    //     simulationTime_topic_name, 1, std::bind( &simTime_callback, node, std::placeholders::_1 ) );
+    auto sub_simulationTime =
+        node->create_subscription< std_msgs::msg::Float32 >( simulationTime_topic_name, 1, simTime_callback );
 
     startStopSim.data = true;
-    startSimTrigger_pub.publish( startStopSim );
+    startSimTrigger_pub->publish( startStopSim );
     vpTime::wait( 1000 );
-    stopSimTrigger_pub.publish( startStopSim );
+    stopSimTrigger_pub->publish( startStopSim );
     vpTime::wait( 1000 );
     syncMode.data = true;
-    enableSyncMode_pub.publish( trigger );
-    startSimTrigger_pub.publish( startStopSim );
+    enableSyncMode_pub->publish( trigger );
+    startSimTrigger_pub->publish( startStopSim );
     vpTime::wait( 1000 );
 
     robot.setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
@@ -106,27 +115,33 @@ main( int argc, char **argv )
     double t_init_prev = t_init;
 
     float t_simTime_start = 0, t_simTime = 0, t_simTime_prev = 0;
-    ;
+
     s_mutex_ros.lock();
     t_simTime_start = t_simTime_prev = s_simTime;
     s_mutex_ros.unlock();
     t_init_prev = vpTime::measureTimeMs();
 
     vpColVector q_init, q_final;
+
     robot.getPosition( vpRobot::JOINT_STATE, q_init );
     std::cout << "q initial: " << 180. / M_PI * q_init.t() << " deg" << std::endl;
 
+    vpColVector qdot( 7, 0 );
+    qdot[0] = vpMath::rad( 10 );
+
+    std::cout << "Apply joint velocity to FrankaSim (deg/s): " << ( qdot * 180. / M_PI ).t() << std::endl;
+
     while ( vpTime::measureTimeSecond() - t_start < 10 )
     {
-      ros::spinOnce();
+      rclcpp::spin_some( node );
       t_init = vpTime::measureTimeMs();
       s_mutex_ros.lock();
       t_simTime = s_simTime;
       s_mutex_ros.unlock();
 
-      vpColVector qdot( 7, 0 );
-      qdot[0] = vpMath::rad( 10 );
+      // Apply 10 deg/s vel on joint 1
       robot.setVelocity( vpRobot::JOINT_STATE, qdot );
+
       vpTime::sleepMs( 50 );
 
       std::stringstream ss;
@@ -142,7 +157,7 @@ main( int argc, char **argv )
     std::cout << "q final: " << 180 / M_PI * q_final.t() << " deg" << std::endl;
     std::cout << "Joint displacement: " << 180. / M_PI * ( q_final - q_init ).t() << " deg" << std::endl;
 
-    stopSimTrigger_pub.publish( startStopSim );
+    stopSimTrigger_pub->publish( startStopSim );
   }
   catch ( const vpException &e )
   {

@@ -65,13 +65,14 @@ if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSI
 
     # src/device/framegrabber/vpROSGrabber.cpp
     # src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
-    # src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
-    # src/robot/sim-robot/franka/vpROSRobotFrankaCoppeliasim.cpp
-    # src/robot/sim-robot/franka/model/CoriolisMatrix.cpp
-    # src/robot/sim-robot/franka/model/franka_model.h
-    # src/robot/sim-robot/franka/model/FrictionTorque.cpp
-    # src/robot/sim-robot/franka/model/GravityVector.cpp
-    # src/robot/sim-robot/franka/model/MassMatrix.cpp
+    src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
+
+    src/robot/sim-robot/franka/vpROSRobotFrankaCoppeliasim.cpp
+    src/robot/sim-robot/franka/model/CoriolisMatrix.cpp
+    src/robot/sim-robot/franka/model/franka_model.h
+    src/robot/sim-robot/franka/model/FrictionTorque.cpp
+    src/robot/sim-robot/franka/model/GravityVector.cpp
+    src/robot/sim-robot/franka/model/MassMatrix.cpp
   )
 endif()
 
@@ -86,6 +87,8 @@ ament_target_dependencies(${PROJECT_NAME}_common
   rclcpp
   std_srvs
   visp_bridge
+  VISP
+  orocos_kdl
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
@@ -151,6 +154,35 @@ ament_target_dependencies(${PROJECT_NAME}_viper850_node
   VISP
 )
 
+# ###########################################################
+# Build tutorial to simulate franka robot with coppeliasim
+# ###########################################################
+if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
+  add_executable(test-franka-coppeliasim-controller tutorial/franka/coppeliasim/test-franka-coppeliasim-controller.cpp)
+  target_link_libraries(test-franka-coppeliasim-controller
+    ${PROJECT_NAME}_common
+    "${cpp_typesupport_target}"
+  )
+  ament_target_dependencies(test-franka-coppeliasim-controller
+    geometry_msgs
+    rclcpp
+    sensor_msgs
+    visp_bridge
+    VISP
+  )
+
+  # Installation
+  install(
+    TARGETS
+    test-franka-coppeliasim-controller
+    DESTINATION lib/${PROJECT_NAME}
+
+    # ARCHIVE DESTINATION lib
+    # LIBRARY DESTINATION lib
+    # RUNTIME DESTINATION bin
+  )
+endif()
+
 # Installation
 install(
   TARGETS
@@ -158,7 +190,12 @@ install(
   ${PROJECT_NAME}_blob_tracker_node
   ${PROJECT_NAME}_viper650_node
   ${PROJECT_NAME}_viper850_node
+
   DESTINATION lib/${PROJECT_NAME}
+
+  # ARCHIVE DESTINATION lib
+  # LIBRARY DESTINATION lib
+  # RUNTIME DESTINATION bin
 )
 
 install(DIRECTORY
