@@ -35,8 +35,6 @@
 #include <iostream>
 #include <mutex>
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
 using namespace std::chrono_literals;

@@ -49,7 +49,7 @@
  * Default constructor.
  */
 vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
-  : Node( "visp_ros_franka" )
+  : Node( "visp_ros_frankasim" )
   , m_controlThread()
   , m_acquisitionThread()
   , m_topic_jointState( "/coppeliasim/franka/joint_state" )
@@ -210,7 +210,7 @@ vpROSRobotFrankaCoppeliasim::connect( const std::string &robot_ID )
  * \param[in] sleep_ms : Sleeping time in [ms] added after publishing the message to ensure
  * that it will be taken into account by Coppeliasim.
  *
- * \sa coppeliasimTriggerNextStep(), getCoppeliasimSybcMode()
+ * \sa coppeliasimTriggerNextStep(), getCoppeliasimSyncMode()
  */
 void
 vpROSRobotFrankaCoppeliasim::setCoppeliasimSyncMode( bool enable, double sleep_ms )
@@ -303,10 +303,10 @@ vpROSRobotFrankaCoppeliasim::coppeliasimTriggerNextStep()
  * \param[in] msg : Simulation step done message send by Coppeliasim
  */
 void
-vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone( const std_msgs::msg::Bool &msg )
+vpROSRobotFrankaCoppeliasim::callbackSimulationStepDone( const std_msgs::msg::Bool::ConstSharedPtr &msg )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  m_simulationStepDone = msg.data;
+  m_simulationStepDone = msg->data;
 }
 
 /*!
@@ -336,10 +336,10 @@ vpROSRobotFrankaCoppeliasim::setCoppeliasimSimulationStepDone( bool simulationSt
  * \param[in] msg : Simulation time message.
  */
 void
-vpROSRobotFrankaCoppeliasim::callbackSimulationTime( const std_msgs::msg::Float32 &msg )
+vpROSRobotFrankaCoppeliasim::callbackSimulationTime( const std_msgs::msg::Float32::ConstSharedPtr &msg )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  m_simulationTime = msg.data;
+  m_simulationTime = msg->data;
 }
 
 /*!
@@ -357,10 +357,10 @@ vpROSRobotFrankaCoppeliasim::getCoppeliasimSimulationTime()
  * \param[in] msg : Simulation state message.
  */
 void
-vpROSRobotFrankaCoppeliasim::callbackSimulationState( const std_msgs::msg::Int32 &msg )
+vpROSRobotFrankaCoppeliasim::callbackSimulationState( const std_msgs::msg::Int32::ConstSharedPtr &msg )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
-  m_simulationState = msg.data;
+  m_simulationState = msg->data;
 }
 
 /*!
@@ -404,22 +404,22 @@ vpROSRobotFrankaCoppeliasim::readingLoop()
  * \param[in] joint_state : Joint state message associated to the topic set by setTopicJointState().
  */
 void
-vpROSRobotFrankaCoppeliasim::callbackJointState( const sensor_msgs::msg::JointState &joint_state )
+vpROSRobotFrankaCoppeliasim::callbackJointState( const sensor_msgs::msg::JointState::ConstSharedPtr &joint_state )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
   // It can occur that position and velocity are read properly from the topic, but not effort which vector size remains
   // equal to 0 while position and velocity vectors size are 7.
-  if ( joint_state.position.size() != m_q.size() || joint_state.velocity.size() != m_dq.size() ||
-       joint_state.effort.size() != m_tau_J.size() )
+  if ( joint_state->position.size() != m_q.size() || joint_state->velocity.size() != m_dq.size() ||
+       joint_state->effort.size() != m_tau_J.size() )
   {
     return;
   }
 
   for ( unsigned int i = 0; i < 7; i++ )
   {
-    m_q_kdl( i ) = m_q[i] = joint_state.position[i];
-    m_dq[i]               = joint_state.velocity[i];
-    m_tau_J[i]            = -joint_state.effort[i]; // Using CoppeliaSim we need to inverse the sign
+    m_q_kdl( i ) = m_q[i] = joint_state->position[i];
+    m_dq[i]               = joint_state->velocity[i];
+    m_tau_J[i]            = -joint_state->effort[i]; // Using CoppeliaSim we need to inverse the sign
   }
 }
 
@@ -430,23 +430,23 @@ vpROSRobotFrankaCoppeliasim::callbackJointState( const sensor_msgs::msg::JointSt
  * absolute acceleration vector in base frame.
  */
 void
-vpROSRobotFrankaCoppeliasim::callback_g0( const geometry_msgs::msg::Vector3 &g0_msg )
+vpROSRobotFrankaCoppeliasim::callback_g0( const geometry_msgs::msg::Vector3::ConstSharedPtr &g0_msg )
 {
   vpColVector g0( 3, 0 );
-  g0[0] = g0_msg.x;
-  g0[1] = g0_msg.y;
-  g0[2] = g0_msg.z;
+  g0[0] = g0_msg->x;
+  g0[1] = g0_msg->y;
+  g0[2] = g0_msg->z;
   this->set_g0( g0 );
 }
 
 /*!
- * Callback that updates camera extrinsics
+ * Callback that updates camera extrinsics.
  * with the transformation considered on Coppeliasim side.
  * \param[in] pose_msg : Message associated to the topic set by setTopic_eMc() that contains
  * the homogeneous transformation between end-effector and camera frame.
  */
 void
-vpROSRobotFrankaCoppeliasim::callback_eMc( const geometry_msgs::msg::Pose &pose_msg )
+vpROSRobotFrankaCoppeliasim::callback_eMc( const geometry_msgs::msg::Pose::ConstSharedPtr &pose_msg )
 {
   if ( !m_camMounted )
   {
@@ -463,7 +463,7 @@ vpROSRobotFrankaCoppeliasim::callback_eMc( const geometry_msgs::msg::Pose &pose_
  * retrieve the kinematic and dynamic parameters of the tool.
  */
 void
-vpROSRobotFrankaCoppeliasim::callback_flMe( const geometry_msgs::msg::Pose &pose_msg )
+vpROSRobotFrankaCoppeliasim::callback_flMe( const geometry_msgs::msg::Pose::ConstSharedPtr &pose_msg )
 {
   if ( !m_toolMounted && m_overwrite_flMe )
   {
@@ -495,18 +495,18 @@ vpROSRobotFrankaCoppeliasim::callback_flMe( const geometry_msgs::msg::Pose &pose
  * retrieve the kinematic and dynamic parameters of the tool.
  */
 void
-vpROSRobotFrankaCoppeliasim::callback_toolInertia( const geometry_msgs::msg::Inertia &inertia_msg )
+vpROSRobotFrankaCoppeliasim::callback_toolInertia( const geometry_msgs::msg::Inertia::ConstSharedPtr &inertia_msg )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
   if ( !m_toolMounted && m_overwrite_toolInertia )
   {
-    m_mL       = inertia_msg.m;
-    m_Il[0][0] = inertia_msg.ixx;
-    m_Il[0][1] = m_Il[1][0] = inertia_msg.ixy;
-    m_Il[0][2] = m_Il[2][0] = inertia_msg.ixz;
-    m_Il[1][1]              = inertia_msg.iyy;
-    m_Il[1][2] = m_Il[2][1] = inertia_msg.iyz;
-    m_Il[2][2]              = inertia_msg.izz;
+    m_mL       = inertia_msg->m;
+    m_Il[0][0] = inertia_msg->ixx;
+    m_Il[0][1] = m_Il[1][0] = inertia_msg->ixy;
+    m_Il[0][2] = m_Il[2][0] = inertia_msg->ixz;
+    m_Il[1][1]              = inertia_msg->iyy;
+    m_Il[1][2] = m_Il[2][1] = inertia_msg->iyz;
+    m_Il[2][2]              = inertia_msg->izz;
 
     vpMatrix R( 3, 3 );
 
@@ -515,7 +515,7 @@ vpROSRobotFrankaCoppeliasim::callback_toolInertia( const geometry_msgs::msg::Ine
 
     m_Il = R.t() * m_Il * R;
 
-    m_flMcom = vpHomogeneousMatrix( vpTranslationVector( inertia_msg.com.x, inertia_msg.com.y, inertia_msg.com.z ),
+    m_flMcom = vpHomogeneousMatrix( vpTranslationVector( inertia_msg->com.x, inertia_msg->com.y, inertia_msg->com.z ),
                                     (vpRotationMatrix)R.t() );
 
     m_overwrite_toolInertia = false;

@@ -47,6 +47,8 @@
 #include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
+using namespace std::chrono_literals;
+
 void
 display_point_trajectory( const vpImage< unsigned char > &I, const std::vector< vpImagePoint > &vip,
                           std::vector< vpImagePoint > *traj_vip )
@@ -139,13 +141,10 @@ main( int argc, char **argv )
 
   try
   {
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    // ROS node
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
+    rclcpp::init( argc, argv );
+    auto node = std::make_shared< rclcpp::Node >( "visp_ros" );
+    rclcpp::WallRate loop_rate( 100ms );
+    rclcpp::spin_some( node );
 
     vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose( opt_verbose );
@@ -170,8 +169,8 @@ main( int argc, char **argv )
 
     vpImage< unsigned char > I;
     vpROSGrabber g;
-    g.setImageTopic( "/coppeliasim/franka/camera/image" );
-    g.setCameraInfoTopic( "/coppeliasim/franka/camera/camera_info" );
+    g.subscribeImageTopic( "/coppeliasim/franka/camera/image" );
+    g.subscribeCameraInfoTopic( true );
     g.open( argc, argv );
 
     g.acquire( I );
