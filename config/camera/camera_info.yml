@@ -1,6 +1,6 @@
 image_width: 640
 image_height: 480
-#camera_name: 00b09d01009b329c
+camera_name: my_camera
 camera_matrix:
   rows: 3
   cols: 3

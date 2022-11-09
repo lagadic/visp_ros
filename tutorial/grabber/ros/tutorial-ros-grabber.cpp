@@ -1,53 +1,123 @@
 //! \example tutorial-ros-grabber.cpp
-#include <visp/vpDisplayX.h>
-#include <visp/vpImage.h>
+#include <visp3/core/vpIoTools.h>
+#include <visp3/gui/vpDisplayGDI.h>
+#include <visp3/gui/vpDisplayOpenCV.h>
+#include <visp3/gui/vpDisplayX.h>
+
 #include <visp_ros/vpROSGrabber.h>
 
 int
-main( int argc, const char **argv )
+main( int argc, char **argv )
 {
   try
   {
-    bool opt_use_camera_info = false;
+    std::string opt_image_raw_topic      = "/image_raw";
+    bool opt_subscribe_camera_info_topic = false;
+    bool opt_rectify                     = false;
+    bool opt_flip                        = false;
     for ( int i = 0; i < argc; i++ )
     {
-      if ( std::string( argv[i] ) == "--use-camera-info" )
-        opt_use_camera_info = true;
-      else if ( std::string( argv[i] ) == "--help" )
+      if ( std::string( argv[i] ) == "--rectify" )
       {
-        std::cout << "Usage: " << argv[0] << " [--use-camera-info] [--help]" << std::endl;
-        return 0;
+        opt_rectify = true;
+      }
+      else if ( std::string( argv[i] ) == "--flip" )
+      {
+        opt_flip = true;
+      }
+      else if ( std::string( argv[i] ) == "--subscribe-camera-info" )
+      {
+        opt_subscribe_camera_info_topic = true;
+      }
+      else if ( std::string( argv[i] ) == "--camera-topic" )
+      {
+        opt_image_raw_topic = std::string( argv[i + 1] );
+        i++;
+      }
+      else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
+      {
+        std::cout << "SYNOPSIS " << std::endl
+                  << "  " << argv[0]
+                  << " [--camera-topic <topic>] [--subscribe-camera-info] [--rectify] [--flip] [--help] [-h]"
+                  << std::endl
+                  << std::endl;
+        std::cout << "DESCRIPTION" << std::endl
+                  << "  Subscribe to a ROS image topic and display the image." << std::endl
+                  << std::endl;
+        std::cout << "  --camera-topic <topic>" << std::endl
+                  << "\tROS image raw topic name to subscribe." << std::endl
+                  << "\tDefault: " << opt_image_raw_topic << std::endl
+                  << std::endl;
+        std::cout << "  --subscribe-camera-info" << std::endl
+                  << "\tSubscribe to camera_info topic." << std::endl
+                  << std::endl;
+        std::cout << "  --rectify" << std::endl
+                  << "\tSubscribe to camera_info topic and rectify the image." << std::endl
+                  << std::endl;
+        std::cout << "  --flip" << std::endl << "\tFlip image." << std::endl << std::endl;
+        std::cout << "  --help, -h" << std::endl << "\tDisplay this helper message" << std::endl;
+        return EXIT_SUCCESS;
       }
     }
-    std::cout << "Use camera info: " << ( ( opt_use_camera_info == true ) ? "yes" : "no" ) << std::endl;
+    std::cout << "Use cam info : " << ( ( opt_subscribe_camera_info_topic == true ) ? "yes" : "no" ) << std::endl;
+    std::cout << "Rectify image: " << ( ( opt_rectify == true ) ? "yes (using camera_info topic)" : "no" ) << std::endl;
+    std::cout << "Flip image   : " << ( ( opt_flip == true ) ? "yes" : "no" ) << std::endl;
 
-    // vpImage<unsigned char> I; // Create a gray level image container
+    // vpImage< unsigned char > I; // Create a gray level image container
     vpImage< vpRGBa > I; // Create a color image container
-    //! [Construction]
-    vpROSGrabber g; // Create a grabber based on ROS
-    //! [Construction]
 
+    //! [Construction]
+    vpROSGrabber g;
+    //! [Construction]
     //! [Setting camera topic]
-    g.setImageTopic( "/camera/image_raw" );
+    g.subscribeImageTopic( opt_image_raw_topic );
+    g.subscribeCameraInfoTopic( opt_subscribe_camera_info_topic );
     //! [Setting camera topic]
-    //! [Setting camera info]
-    if ( opt_use_camera_info )
+    if ( opt_rectify )
     {
-      g.setCameraInfoTopic( "/camera/camera_info" );
-      g.setRectify( true );
+      if ( opt_subscribe_camera_info_topic )
+      {
+        g.setRectify( true );
+      }
+      else
+      {
+        std::cout << "Cannot rectify images without enabling camera info topic subscription" << std::endl;
+        std::cout << "Use --subscribe-camera-info command line option to overcome this error!" << std::endl;
+        return EXIT_FAILURE;
+      }
     }
-    //! [Setting camera info]
+    if ( opt_flip )
+    {
+      g.setFlip( true );
+    }
+    //! [Opening]
+    g.open( argc, argv );
+    //! [Opening]
 
-    //! [Opening]
-    g.open( I );
-    //! [Opening]
+    g.acquire( I );
     std::cout << "Image size: " << I.getWidth() << " " << I.getHeight() << std::endl;
 
-#ifdef VISP_HAVE_X11
+    vpCameraParameters cam;
+    if ( g.getCameraInfo( cam ) )
+    {
+      std::cout << "Camera parameters: \n" << cam << std::endl;
+    }
+    else
+    {
+      std::cout << "Camera parameters are not available. Are you publishing them on cam_info topic?" << std::endl;
+    }
+
+#if defined( VISP_HAVE_X11 )
     vpDisplayX d( I );
+#elif defined( VISP_HAVE_GDI )
+    vpDisplayGDI d( I );
+#elif defined( VISP_HAVE_OPENCV )
+    vpDisplayOpenCV d( I );
 #else
     std::cout << "No image viewer is available..." << std::endl;
 #endif
+
+    vpDisplay::setTitle( I, opt_image_raw_topic );
 
     while ( 1 )
     {
@@ -61,8 +131,20 @@ main( int argc, const char **argv )
         break;
     }
   }
-  catch ( vpException e )
+  catch ( const vpException &e )
   {
-    std::cout << "Catch an exception: " << e << std::endl;
+    std::cout << "Catch an exception: " << e.what() << std::endl;
+  }
+  catch ( const rclcpp::exceptions::RCLError &e )
+  {
+    std::cout << "Catch an rclcpp exception: " << e.what() << std::endl;
+  }
+  catch ( const rclcpp::exceptions::RCLInvalidArgument &e )
+  {
+    std::cout << "Catch an rclcpp exception: " << e.what() << std::endl;
+  }
+  catch ( std::runtime_error &e )
+  {
+    std::cout << "Catch runtime error: " << e.what() << std::endl;
   }
 }

@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- * $Id: vpROSGrabber.h 3803 2012-06-22 10:22:59Z fpasteau $
- *
  * This file is part of the ViSP software.
- * Copyright (C) 2005 - 2012 by INRIA. All rights reserved.
+ * Copyright (C) 2005 - 2022 by INRIA. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,13 +28,8 @@
  * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- *
  * Description:
- * Camera video capture for ROS image_transort_compressed.
- *
- * Authors:
- * Francois Pasteau
- * Fabien Spindler
+ * Camera video capture for ROS image.
  *
  *****************************************************************************/
 
@@ -57,9 +50,10 @@
 #include <visp3/core/vpRGBa.h>
 
 #include <image_geometry/pinhole_camera_model.h>
-#include <ros/ros.h>
-#include <sensor_msgs/CompressedImage.h>
-#include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <visp_bridge/camera.h>
 
 #if VISP_HAVE_OPENCV_VERSION >= 0x020101
@@ -72,11 +66,7 @@
   \class vpROSGrabber
 
   \ingroup Framegrabber CameraDriver
-
   \brief Class for cameras video capture for ROS cameras.
-
-  Needs OpenCV available on http://opencv.willowgarage.com/wiki/.
-  Needs pthread
 
   The code below shows how to use this class.
   \code
@@ -101,40 +91,37 @@ int main()
   \endcode
 
  */
-class VISP_EXPORT vpROSGrabber : public vpFrameGrabber
+class VISP_EXPORT vpROSGrabber : public vpFrameGrabber //, rclcpp::Node
 {
 protected:
-  ros::NodeHandle *m_n;
-  ros::Subscriber m_img_sub;
-  ros::Subscriber m_cam_info_sub;
-  ros::AsyncSpinner *m_spinner;
-  volatile bool m_isInitialized;
-  volatile unsigned int m_width;
-  volatile unsigned int m_height;
+  image_transport::Subscriber m_img_sub;
+  image_transport::CameraSubscriber m_img_cam_sub;
+
+  bool m_isInitialized;
+  unsigned int m_width;
+  unsigned int m_height;
   image_geometry::PinholeCameraModel m_p;
   cv::Mat m_img;
   bool m_flip;
-  volatile bool m_rectify;
-  volatile bool m_mutex_image, m_mutex_param;
-  void imageCallbackRaw( const sensor_msgs::Image::ConstPtr &msg );
-  void imageCallback( const sensor_msgs::CompressedImage::ConstPtr &msg );
-  void paramCallback( const sensor_msgs::CameraInfo::ConstPtr &msg );
-  volatile bool m_first_img_received;
-  volatile bool m_first_param_received;
-  volatile uint32_t m_sec, m_nsec;
-  std::string m_master_uri;
+  bool m_rectify;
+  bool m_mutex_img;
+  void imageCb( const sensor_msgs::msg::Image::ConstSharedPtr &msg );
+  void imageAndCamInfoCb( const sensor_msgs::msg::Image::ConstSharedPtr image_msg,
+                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg );
+  bool m_first_img_received;
+  bool m_first_cam_info_received;
+  bool m_subscribe_camera_info;
+  uint32_t m_sec, m_nanosec;
   std::string m_topic_image;
-  std::string m_topic_cam_info;
-  std::string m_nodespace;
-  std::string m_image_transport;
   vpCameraParameters m_cam;
+  std::shared_ptr< rclcpp::Node > m_nh;
 
 public:
   vpROSGrabber();
   virtual ~vpROSGrabber();
 
-  void open( int argc, char **argv );
   void open();
+  void open( int argc, char **argv );
   void open( vpImage< unsigned char > &I );
   void open( vpImage< vpRGBa > &I );
 
@@ -154,17 +141,14 @@ public:
 
   void close();
 
-  void setCameraInfoTopic( const std::string &topic_name );
-  void setImageTopic( const std::string &topic_name );
-  void setMasterURI( const std::string &master_uri );
-  void setNodespace( const std::string &nodespace );
-  void setImageTransport( const std::string &image_transport );
-  void setFlip( bool flipType );
+  void subscribeImageTopic( const std::string &topic_name );
+  void subscribeCameraInfoTopic( bool enable );
+  void setFlip( bool flip );
   void setRectify( bool rectify );
 
   bool getCameraInfo( vpCameraParameters &cam );
-  void getWidth( unsigned int width ) const;
-  void getHeight( unsigned int height ) const;
+  void getWidth( unsigned int &width ) const;
+  void getHeight( unsigned int &height ) const;
   unsigned int getWidth() const;
   unsigned int getHeight() const;
 };

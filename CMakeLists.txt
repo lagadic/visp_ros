@@ -63,7 +63,8 @@ if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSI
   # Add Franka simulator
   list(APPEND srcs
 
-    # src/device/framegrabber/vpROSGrabber.cpp
+    src/device/framegrabber/vpROSGrabber.cpp
+
     # src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
     src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
 
@@ -76,13 +77,15 @@ if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSI
   )
 endif()
 
-# # Declare library
+# Declare library
 add_library(${PROJECT_NAME}_common ${srcs})
 
 ament_export_dependencies(VISP)
 ament_target_dependencies(${PROJECT_NAME}_common
   cv_bridge
   geometry_msgs
+  image_geometry
+  image_transport
   nav_msgs
   rclcpp
   std_srvs
@@ -154,6 +157,19 @@ ament_target_dependencies(${PROJECT_NAME}_viper850_node
   VISP
 )
 
+# Tutorial for ROS Grabber
+add_executable(tutorial-ros-grabber tutorial/grabber/ros/tutorial-ros-grabber.cpp)
+target_link_libraries(tutorial-ros-grabber
+  ${PROJECT_NAME}_common
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(tutorial-ros-grabber
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
+
 # ###########################################################
 # Build tutorial to simulate franka robot with coppeliasim
 # ###########################################################
@@ -171,10 +187,24 @@ if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSI
     VISP
   )
 
+  add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
+  target_link_libraries(tutorial-franka-coppeliasim-ibvs-apriltag
+    ${PROJECT_NAME}_common
+    "${cpp_typesupport_target}"
+  )
+  ament_target_dependencies(tutorial-franka-coppeliasim-ibvs-apriltag
+    geometry_msgs
+    rclcpp
+    sensor_msgs
+    visp_bridge
+    VISP
+  )
+
   # Installation
   install(
     TARGETS
     test-franka-coppeliasim-controller
+    tutorial-franka-coppeliasim-ibvs-apriltag
     DESTINATION lib/${PROJECT_NAME}
 
     # ARCHIVE DESTINATION lib
@@ -191,6 +221,8 @@ install(
   ${PROJECT_NAME}_viper650_node
   ${PROJECT_NAME}_viper850_node
 
+  tutorial-ros-grabber
+
   DESTINATION lib/${PROJECT_NAME}
 
   # ARCHIVE DESTINATION lib
@@ -200,6 +232,7 @@ install(
 
 install(DIRECTORY
   launch
+  config
   DESTINATION share/${PROJECT_NAME}
 )
 ament_export_dependencies(rosidl_default_runtime)

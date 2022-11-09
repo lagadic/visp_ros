@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * This file is part of the ViSP software.
- * Copyright (C) 2005 - 2021 by INRIA. All rights reserved.
+ * Copyright (C) 2005 - 2022 by INRIA. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,11 +29,7 @@
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
  * Description:
- * Camera video capture for ROS image_transort_compressed.
- *
- * Authors:
- * Francois Pasteau
- * Fabien Spindler
+ * Camera video capture for ROS image.
  *
  *****************************************************************************/
 
@@ -50,29 +46,30 @@
 #include <visp3/core/vpImageConvert.h>
 
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/CompressedImage.h>
+#include <image_transport/image_transport.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 
 #include <iostream>
 #include <math.h>
+
+using namespace std::chrono_literals;
 
 /*!
   Basic Constructor that subscribes to the "image" and "camera_info" ROS topics.
 */
 vpROSGrabber::vpROSGrabber()
-  : m_isInitialized( false )
+  : /*Node( "visp_ros_grabber" )
+  ,*/
+  m_isInitialized( false )
   , m_flip( false )
-  , m_rectify( true )
-  , m_mutex_image( true )
-  , m_mutex_param( true )
+  , m_rectify( false )
+  , m_mutex_img( true )
   , m_first_img_received( false )
-  , m_first_param_received( false )
+  , m_first_cam_info_received( false )
+  , m_subscribe_camera_info( false )
   , m_sec( 0 )
-  , m_nsec( 0 )
-  , m_master_uri( "http://localhost:11311" )
+  , m_nanosec( 0 )
   , m_topic_image( "image" )
-  , m_topic_cam_info( "camera_info" )
-  , m_nodespace( "" )
-  , m_image_transport( "raw" )
 {
 }
 
@@ -85,59 +82,43 @@ vpROSGrabber::~vpROSGrabber() { close(); }
 
 /*!
   Initialization of the grabber.
-    Generic initialization of the grabber using parameter from the main function
-    To be used to create ros node that can be started with rosrun
+  Generic initialization of the grabber using parameter from the main function.
+  To be used to create ros node that can be started with `ros2 run`.
 
   \param argc : number of arguments from the main function
 
   \param argv : arguments from the main function
 
 */
-
 void
 vpROSGrabber::open( int argc, char **argv )
 {
-
   if ( !m_isInitialized )
   {
     std::string str;
-    if ( !ros::isInitialized() )
-      ros::init( argc, argv, "visp_node", ros::init_options::AnonymousName );
-    m_n = new ros::NodeHandle;
-    if ( m_image_transport == "raw" )
+    if ( !rclcpp::ok() )
     {
-      if ( ros::param::get( "~image_transport", str ) )
-      {
-        m_image_transport = str;
-      }
-      else
-      {
-        m_image_transport = "raw";
-        ros::param::set( "~image_transport", "raw" );
-      }
+      rclcpp::init( argc, argv );
     }
-    if ( m_image_transport == "raw" )
+    m_nh = rclcpp::Node::make_shared( "ros_grabber" );
+    RCLCPP_INFO_STREAM( m_nh->get_logger(), "Subscribe to raw image on " << m_topic_image << " topic" );
+    if ( m_subscribe_camera_info )
     {
-      std::cout << "Subscribe to raw image on " << m_nodespace + m_topic_image << " topic" << std::endl;
-      m_img_sub = m_n->subscribe( m_nodespace + m_topic_image, 1, &vpROSGrabber::imageCallbackRaw, this,
-                                  ros::TransportHints().tcpNoDelay() );
+      RCLCPP_INFO( m_nh->get_logger(), "Subscribe also to camera_info topic" );
+      m_img_cam_sub = image_transport::create_camera_subscription(
+          m_nh.get(), m_topic_image,
+          std::bind( &vpROSGrabber::imageAndCamInfoCb, this, std::placeholders::_1, std::placeholders::_2 ), "raw" );
     }
     else
     {
-      std::cout << "Subscribe to image on " << m_nodespace + m_topic_image << " topic" << std::endl;
-      m_img_sub = m_n->subscribe( m_nodespace + m_topic_image, 1, &vpROSGrabber::imageCallback, this,
-                                  ros::TransportHints().tcpNoDelay() );
+      m_img_sub = image_transport::create_subscription(
+          m_nh.get(), m_topic_image, std::bind( &vpROSGrabber::imageCb, this, std::placeholders::_1 ), "raw" );
     }
-
-    std::cout << "Subscribe to camera_info on " << m_nodespace + m_topic_cam_info << " topic" << std::endl;
-    m_cam_info_sub = m_n->subscribe( m_nodespace + m_topic_cam_info, 1, &vpROSGrabber::paramCallback, this,
-                                     ros::TransportHints().tcpNoDelay() );
-
-    m_spinner = new ros::AsyncSpinner( 1 );
-    m_spinner->start();
     m_width         = 0;
     m_height        = 0;
     m_isInitialized = true;
+
+    rclcpp::spin_some( m_nh );
   }
 }
 
@@ -150,36 +131,27 @@ vpROSGrabber::open( int argc, char **argv )
   master_URI.
 
 */
-
 void
 vpROSGrabber::open()
 {
-  if ( ros::isInitialized() && ros::master::getURI() != m_master_uri )
-  {
-    close();
-    throw( vpFrameGrabberException( vpFrameGrabberException::initializationError,
-                                    "ROS grabber already initialised with a different master_URI (" +
-                                        ros::master::getURI() + " != " + m_master_uri + ")" ) );
-  }
   if ( !m_isInitialized )
   {
-    int argc = 2;
-    char *argv[2];
+    int argc = 1;
+    char *argv[1];
     argv[0] = new char[255];
-    argv[1] = new char[255];
 
-    std::string exe = "ros.exe", arg1 = "__master:=";
+    std::string exe = "ros_grabber_exe";
     strcpy( argv[0], exe.c_str() );
-    arg1.append( m_master_uri );
-    strcpy( argv[1], arg1.c_str() );
     open( argc, argv );
 
     // Wait for a first image
+    rclcpp::WallRate loop_rate( 40ms );
     while ( !m_first_img_received )
-      vpTime::wait( 40 );
-
+    {
+      rclcpp::spin_some( m_nh );
+      loop_rate.sleep();
+    }
     delete[] argv[0];
-    delete[] argv[1];
   }
 }
 
@@ -229,19 +201,25 @@ vpROSGrabber::open( vpImage< vpRGBa > &I )
 void
 vpROSGrabber::acquire( vpImage< unsigned char > &I, struct timespec &timestamp )
 {
+  rclcpp::spin_some( m_nh );
+
   if ( m_isInitialized == false )
   {
     close();
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
-  while ( !m_mutex_image || !m_first_img_received )
-    ;
-  m_mutex_image     = false;
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_mutex_img || !m_first_img_received )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+  m_mutex_img       = false;
   timestamp.tv_sec  = m_sec;
-  timestamp.tv_nsec = m_nsec;
+  timestamp.tv_nsec = m_nanosec;
   vpImageConvert::convert( m_img, I, m_flip );
   m_first_img_received = false;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
 }
 
 /*!
@@ -277,21 +255,28 @@ vpROSGrabber::acquire( vpImage< unsigned char > &I, double &timestamp_second )
 bool
 vpROSGrabber::acquireNoWait( vpImage< unsigned char > &I, struct timespec &timestamp )
 {
+  rclcpp::spin_some( m_nh );
+
   bool new_image = false;
   if ( m_isInitialized == false )
   {
     close();
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
-  while ( !m_mutex_image )
-    ;
-  m_mutex_image     = false;
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_mutex_img )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+  m_mutex_img       = false;
   timestamp.tv_sec  = m_sec;
-  timestamp.tv_nsec = m_nsec;
+  timestamp.tv_nsec = m_nanosec;
   vpImageConvert::convert( m_img, I, m_flip );
   new_image            = m_first_img_received;
   m_first_img_received = false;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
+
   return new_image;
 }
 
@@ -307,19 +292,25 @@ vpROSGrabber::acquireNoWait( vpImage< unsigned char > &I, struct timespec &times
 void
 vpROSGrabber::acquire( vpImage< vpRGBa > &I, struct timespec &timestamp )
 {
+  rclcpp::spin_some( m_nh );
+
   if ( m_isInitialized == false )
   {
     close();
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
-  while ( !m_mutex_image || !m_first_img_received )
-    ;
-  m_mutex_image     = false;
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_mutex_img || !m_first_img_received )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+  m_mutex_img       = false;
   timestamp.tv_sec  = m_sec;
-  timestamp.tv_nsec = m_nsec;
+  timestamp.tv_nsec = m_nanosec;
   vpImageConvert::convert( m_img, I, m_flip );
   m_first_img_received = false;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
 }
 
 /*!
@@ -353,26 +344,32 @@ vpROSGrabber::acquire( vpImage< vpRGBa > &I, double &timestamp_second )
 bool
 vpROSGrabber::acquireNoWait( vpImage< vpRGBa > &I, struct timespec &timestamp )
 {
+  rclcpp::spin_some( m_nh );
+
   bool new_image = false;
   if ( m_isInitialized == false )
   {
     close();
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
-  while ( !m_mutex_image )
-    ;
-  m_mutex_image     = false;
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_mutex_img )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+  m_mutex_img       = false;
   timestamp.tv_sec  = m_sec;
-  timestamp.tv_nsec = m_nsec;
+  timestamp.tv_nsec = m_nanosec;
   vpImageConvert::convert( m_img, I, m_flip );
   new_image            = m_first_img_received;
   m_first_img_received = false;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
   return new_image;
 }
 
 /*!
-  Grab an image direclty in the OpenCV format.
+  Grab an image directly in the OpenCV format.
 
   \param timestamp : timestamp of the acquired image.
 
@@ -384,20 +381,27 @@ vpROSGrabber::acquireNoWait( vpImage< vpRGBa > &I, struct timespec &timestamp )
 cv::Mat
 vpROSGrabber::acquire( struct timespec &timestamp )
 {
+  rclcpp::spin_some( m_nh );
+
   cv::Mat img;
   if ( m_isInitialized == false )
   {
     close();
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
-  while ( !m_mutex_image || !m_first_img_received )
-    ;
-  m_mutex_image        = false;
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_mutex_img || !m_first_img_received )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+
+  m_mutex_img          = false;
   timestamp.tv_sec     = m_sec;
-  timestamp.tv_nsec    = m_nsec;
+  timestamp.tv_nsec    = m_nanosec;
   img                  = m_img.clone();
   m_first_img_received = false;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
   return img;
 }
 
@@ -406,7 +410,8 @@ vpROSGrabber::acquire( struct timespec &timestamp )
 
   \param I : Acquired gray level image.
 
-  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done previously.
+  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done
+  previously.
 */
 void
 vpROSGrabber::acquire( vpImage< unsigned char > &I )
@@ -422,7 +427,8 @@ vpROSGrabber::acquire( vpImage< unsigned char > &I )
 
   \return true if a new image was acquired or false if the image is the same than the previous one.
 
-  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done previously.
+  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done
+  previously.
 */
 bool
 vpROSGrabber::acquireNoWait( vpImage< unsigned char > &I )
@@ -436,7 +442,8 @@ vpROSGrabber::acquireNoWait( vpImage< unsigned char > &I )
 
   \param I : Acquired color image.
 
-  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done previously.
+  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done
+  previously.
 */
 void
 vpROSGrabber::acquire( vpImage< vpRGBa > &I )
@@ -452,7 +459,8 @@ vpROSGrabber::acquire( vpImage< vpRGBa > &I )
 
   \return true if a new image was acquired or false if the image is the same than the previous one.
 
-  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done previously.
+  \exception vpFrameGrabberException::initializationError If the initialization of the grabber was not done
+  previously.
 */
 bool
 vpROSGrabber::acquireNoWait( vpImage< vpRGBa > &I )
@@ -462,7 +470,7 @@ vpROSGrabber::acquireNoWait( vpImage< vpRGBa > &I )
 }
 
 /*!
-  Grab an image direclty in the OpenCV format.
+  Grab an image directly in the OpenCV format.
 
   \return Acquired image.
 
@@ -482,36 +490,29 @@ vpROSGrabber::close()
   if ( m_isInitialized )
   {
     m_isInitialized = false;
-    m_spinner->stop();
-    delete m_spinner;
-    delete m_n;
   }
 }
 
 /*!
   Set the boolean variable flip to the expected value.
 
-  \param flipType : Expected value of the variable flip. True means that the
-  image is flipped during each image acquisition.
+  \param flip : When true the image is flipped during each image acquisition.
 
-  \warning This function is only useful under Windows.
-
-  \note The aim of this function is to fix a problem which appears under Windows.
-  Indeed with several cameras the aquired images are flipped.
 */
 void
-vpROSGrabber::setFlip( bool flipType )
+vpROSGrabber::setFlip( bool flip )
 {
-  m_flip = flipType;
+  m_flip = flip;
 }
 
 /*!
   Set the boolean variable rectify to the expected value.
 
-  \param rectify : Expected value of the variable rectify. True means
-  that the image is rectified during each image acquisition.
+  \param rectify : When true the image is rectified during each image
+  acquisition by using camera parameters.
 
-  \warning Rectification will happen only if the CameraInfo are correctly received.
+  \warning Rectification will happen only if the `cam_info` topic is published
+  besides the image topic.
 */
 void
 vpROSGrabber::setRectify( bool rectify )
@@ -526,7 +527,7 @@ vpROSGrabber::setRectify( bool rectify )
 
 */
 void
-vpROSGrabber::getWidth( unsigned int width ) const
+vpROSGrabber::getWidth( unsigned int &width ) const
 {
   width = getWidth();
 }
@@ -539,7 +540,7 @@ vpROSGrabber::getWidth( unsigned int width ) const
 */
 
 void
-vpROSGrabber::getHeight( unsigned int height ) const
+vpROSGrabber::getHeight( unsigned int &height ) const
 {
   height = getHeight();
 }
@@ -570,72 +571,31 @@ vpROSGrabber::getHeight() const
 
 /*!
 
-  Set the ROS topic name for CameraInfo
+  Set the ROS image topic name. Default is `image_raw`.
 
-  \param topic_name : Name of the topic.
+  \param topic_name : Name of the image topic.
 
+  \sa subscribeCameraInfoTopic()
 */
 void
-vpROSGrabber::setCameraInfoTopic( const std::string &topic_name )
-{
-  m_topic_cam_info = topic_name;
-}
-
-/*!
-
-  Set the ROS topic name for Images
-
-  \param topic_name : Name of the topic.
-
-*/
-void
-vpROSGrabber::setImageTopic( const std::string &topic_name )
+vpROSGrabber::subscribeImageTopic( const std::string &topic_name )
 {
   m_topic_image = topic_name;
 }
 
 /*!
 
-  Set the URI for ROS Master
+  Enable/disable camera info subscription. By default, camera info subscription is disabled.
 
-  \param master_uri : URI of the master ("http://127.0.0.1:11311")
+  \param enable : When true, subscribe also to `camera_info` topic.
+  When false, this feature is disabled.
 
+  \sa subscribeImageTopic()
 */
 void
-vpROSGrabber::setMasterURI( const std::string &master_uri )
+vpROSGrabber::subscribeCameraInfoTopic( bool enable )
 {
-  m_master_uri = master_uri;
-}
-
-/*!
-
-  Set the nodespace
-
-  \param nodespace Namespace of the connected camera (nodespace is appended to the all topic names)
-
-*/
-void
-vpROSGrabber::setNodespace( const std::string &nodespace )
-{
-  m_nodespace = nodespace;
-}
-
-void
-setImageTransport( const std::string image_transport );
-
-/*!
-
-  Set the image_transport type of the image topic. Values should be :
-  - "raw" if images are not compressed
-  - any other value if the images are compressed (ie "jpeg",...).
-
-  \param image_transport type of transport of the image topic
-
-*/
-void
-vpROSGrabber::setImageTransport( const std::string &image_transport )
-{
-  m_image_transport = image_transport;
+  m_subscribe_camera_info = enable;
 }
 
 /*!
@@ -654,50 +614,28 @@ vpROSGrabber::getCameraInfo( vpCameraParameters &cam )
     throw( vpFrameGrabberException( vpFrameGrabberException::initializationError, "Grabber not initialized." ) );
   }
 
-  // Test: if we get an image (m_first_img_received=true) we should have the camera parameters
-  // (m_first_param_received=true) if they are available
-  if ( m_first_img_received && !m_first_param_received )
+  // Wait for an image
+  rclcpp::WallRate loop_rate( 100us );
+  while ( !m_first_img_received )
+  {
+    rclcpp::spin_some( m_nh );
+    loop_rate.sleep();
+  }
+
+  // If we get an image (m_first_img_received=true) we should have the camera parameters
+  if ( !m_first_cam_info_received )
+  {
     return false;
-  while ( !m_mutex_param || !m_first_img_received )
-    ;
-  m_mutex_param = false;
-  cam           = m_cam;
-  m_mutex_param = true;
+  }
+
+  cam = m_cam;
 
   return true;
 }
 
 void
-vpROSGrabber::imageCallback( const sensor_msgs::CompressedImage::ConstPtr &msg )
+vpROSGrabber::imageCb( const sensor_msgs::msg::Image::ConstSharedPtr &msg )
 {
-  cv::Mat img        = cv::imdecode( msg->data, 1 );
-  cv::Size data_size = img.size();
-
-  while ( !m_mutex_image )
-    ;
-  m_mutex_image = false;
-  if ( m_rectify && m_p.initialized() )
-  {
-    m_p.rectifyImage( img, m_img );
-  }
-  else
-  {
-    img.copyTo( m_img );
-  }
-  m_width              = static_cast< unsigned int >( data_size.width );
-  m_height             = static_cast< unsigned int >( data_size.height );
-  m_sec                = msg->header.stamp.sec;
-  m_nsec               = msg->header.stamp.nsec;
-  m_first_img_received = true;
-  m_mutex_image        = true;
-}
-
-void
-vpROSGrabber::imageCallbackRaw( const sensor_msgs::Image::ConstPtr &msg )
-{
-  while ( !m_mutex_image )
-    ;
-  m_mutex_image = false;
   cv_bridge::CvImageConstPtr cv_ptr;
   try
   {
@@ -705,7 +643,7 @@ vpROSGrabber::imageCallbackRaw( const sensor_msgs::Image::ConstPtr &msg )
   }
   catch ( cv_bridge::Exception &e )
   {
-    ROS_ERROR( "cv_bridge exception: %s", e.what() );
+    RCLCPP_ERROR( m_nh->get_logger(), "cv_bridge exception: %s", e.what() );
     return;
   }
   if ( m_rectify && m_p.initialized() )
@@ -720,24 +658,44 @@ vpROSGrabber::imageCallbackRaw( const sensor_msgs::Image::ConstPtr &msg )
   m_width              = static_cast< unsigned int >( data_size.width );
   m_height             = static_cast< unsigned int >( data_size.height );
   m_sec                = msg->header.stamp.sec;
-  m_nsec               = msg->header.stamp.nsec;
+  m_nanosec            = msg->header.stamp.nanosec;
   m_first_img_received = true;
-  m_mutex_image        = true;
+  m_mutex_img          = true;
 }
 
 void
-vpROSGrabber::paramCallback( const sensor_msgs::CameraInfo::ConstPtr &msg )
+vpROSGrabber::imageAndCamInfoCb( const sensor_msgs::msg::Image::ConstSharedPtr image_msg,
+                                 const sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg )
 {
-  if ( m_rectify )
+  cv_bridge::CvImageConstPtr cv_ptr;
+  try
   {
-    while ( !m_mutex_image )
-      ;
-    m_mutex_image = false;
-    m_cam         = visp_bridge::toVispCameraParameters( *msg );
-    m_p.fromCameraInfo( msg );
-    m_first_param_received = true;
-    m_mutex_image          = true;
+    cv_ptr = cv_bridge::toCvShare( image_msg, "bgr8" );
   }
+  catch ( cv_bridge::Exception &e )
+  {
+    RCLCPP_ERROR( m_nh->get_logger(), "cv_bridge exception: %s", e.what() );
+    return;
+  }
+
+  m_cam = visp_bridge::toVispCameraParameters( info_msg );
+  m_p.fromCameraInfo( info_msg );
+  if ( m_rectify && m_p.initialized() )
+  {
+    m_p.rectifyImage( cv_ptr->image, m_img );
+  }
+  else
+  {
+    cv_ptr->image.copyTo( m_img );
+  }
+  cv::Size data_size        = m_img.size();
+  m_width                   = static_cast< unsigned int >( data_size.width );
+  m_height                  = static_cast< unsigned int >( data_size.height );
+  m_sec                     = image_msg->header.stamp.sec;
+  m_nanosec                 = image_msg->header.stamp.nanosec;
+  m_first_img_received      = true;
+  m_first_cam_info_received = true;
+  m_mutex_img               = true;
 }
 
 #endif
