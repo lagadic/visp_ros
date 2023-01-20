@@ -1,7 +1,7 @@
 //! \example tutorial-visp-grabber-v4l2.cpp
-#include <visp/vpDisplayX.h>
-#include <visp/vpImage.h>
-#include <visp/vpV4l2Grabber.h>
+#include <visp3/core/vpImage.h>
+#include <visp3/gui/vpDisplayX.h>
+#include <visp3/sensor/vpV4l2Grabber.h>
 
 int
 main()
