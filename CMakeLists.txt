@@ -53,8 +53,7 @@ else()
 endif()
 
 set(srcs
-
-  # src/device/framegrabber/vpROSGrabber.cpp
+  src/device/framegrabber/vpROSGrabber.cpp
   # src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
   src/robot/vpROSRobot.cpp
 )
@@ -62,12 +61,7 @@ set(srcs
 if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
   # Add Franka simulator
   list(APPEND srcs
-
-    src/device/framegrabber/vpROSGrabber.cpp
-
-    # src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
     src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
-
     src/robot/sim-robot/franka/vpROSRobotFrankaCoppeliasim.cpp
     src/robot/sim-robot/franka/model/CoriolisMatrix.cpp
     src/robot/sim-robot/franka/model/franka_model.h
@@ -174,43 +168,34 @@ ament_target_dependencies(tutorial-ros-grabber
 # Build tutorial to simulate franka robot with coppeliasim
 # ###########################################################
 if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
-  add_executable(test-franka-coppeliasim-controller tutorial/franka/coppeliasim/test-franka-coppeliasim-controller.cpp)
-  target_link_libraries(test-franka-coppeliasim-controller
-    ${PROJECT_NAME}_common
-    "${cpp_typesupport_target}"
+  set(tutorial_franka
+    tutorial/franka/coppeliasim/test-franka-coppeliasim-controller.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-cartesian-impedance-control.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-dual-arm.cpp
   )
-  ament_target_dependencies(test-franka-coppeliasim-controller
-    geometry_msgs
-    rclcpp
-    sensor_msgs
-    visp_bridge
-    VISP
-  )
-
-  add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
-  target_link_libraries(tutorial-franka-coppeliasim-ibvs-apriltag
-    ${PROJECT_NAME}_common
-    "${cpp_typesupport_target}"
-  )
-  ament_target_dependencies(tutorial-franka-coppeliasim-ibvs-apriltag
-    geometry_msgs
-    rclcpp
-    sensor_msgs
-    visp_bridge
-    VISP
-  )
-
-  # Installation
-  install(
-    TARGETS
-    test-franka-coppeliasim-controller
-    tutorial-franka-coppeliasim-ibvs-apriltag
-    DESTINATION lib/${PROJECT_NAME}
-
-    # ARCHIVE DESTINATION lib
-    # LIBRARY DESTINATION lib
-    # RUNTIME DESTINATION bin
-  )
+  foreach(cpp ${tutorial_franka})
+    get_filename_component(bin_name ${cpp} NAME_WE)
+    add_executable(${bin_name} ${cpp})
+    target_link_libraries(${bin_name}
+      ${PROJECT_NAME}_common
+      "${cpp_typesupport_target}"
+    )
+    ament_target_dependencies(${bin_name}
+      geometry_msgs
+      rclcpp
+      sensor_msgs
+      visp_bridge
+      VISP
+    )
+    # Installation
+    install(
+      TARGETS ${bin_name}
+      DESTINATION lib/${PROJECT_NAME}
+    )
+  endforeach()
 endif()
 
 # Installation
