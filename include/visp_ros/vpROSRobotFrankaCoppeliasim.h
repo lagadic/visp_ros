@@ -87,7 +87,7 @@
 class VISP_EXPORT vpROSRobotFrankaCoppeliasim : public vpRobotFrankaSim, rclcpp::Node
 {
 public:
-  vpROSRobotFrankaCoppeliasim();
+  vpROSRobotFrankaCoppeliasim(const std::string &node_name = "frankasim");
   virtual ~vpROSRobotFrankaCoppeliasim();
 
   void connect( const std::string &robot_ID = "" );

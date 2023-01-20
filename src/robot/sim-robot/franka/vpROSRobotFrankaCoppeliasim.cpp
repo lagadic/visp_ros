@@ -48,8 +48,8 @@
 /*!
  * Default constructor.
  */
-vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim()
-  : Node( "visp_ros_frankasim" )
+vpROSRobotFrankaCoppeliasim::vpROSRobotFrankaCoppeliasim(const std::string &node_name)
+  : Node( node_name )
   , m_controlThread()
   , m_acquisitionThread()
   , m_topic_jointState( "/coppeliasim/franka/joint_state" )
@@ -568,8 +568,12 @@ vpROSRobotFrankaCoppeliasim::positionControlLoop()
   // Publish robot state to the corresponding ROS topic
   std_msgs::msg::Int32 robot_ctrl_type_msg;
   robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
-  m_pub_robotStateCmd->publish(
-      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
+  for (auto i = 0; i < 100; i++) {
+    // Should be published more than one time to be received by CoppeliaSim !
+    // TODO: Create a service instead of publishing multiple times
+    m_pub_robotStateCmd->publish( robot_ctrl_type_msg );
+    loop_rate.sleep();
+  }
 
   m_posControlThreadIsRunning = true;
 
@@ -579,16 +583,13 @@ vpROSRobotFrankaCoppeliasim::positionControlLoop()
   {
     setCoppeliasimSyncMode( false );
   }
-
   while ( rclcpp::ok() && !m_posControlThreadStopAsked && m_posControlNewCmd )
   {
     loop_rate.sleep();
-    m_pub_robotStateCmd->publish(
-        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
-
     m_mutex.lock();
-    m_dq_des = Kp * 10. * ( m_q_des - m_q ) - Kd * m_dq;
+    m_dq_des = Kp * 2.5 * ( m_q_des - m_q ) - Kd * m_dq;
     dq_sat   = vpRobot::saturateVelocities( m_dq_des, vel_max, false );
+
     if ( std::sqrt( ( ( 180. / M_PI ) * ( m_q_des - m_q ) ).sumSquare() ) > 0.1 )
     {
       for ( unsigned int i = 0; i < 7; i++ )
@@ -604,7 +605,6 @@ vpROSRobotFrankaCoppeliasim::positionControlLoop()
       }
       m_posControlNewCmd = false;
     }
-
     m_mutex.unlock();
     m_pub_jointStateCmd->publish( joint_state_cmd_msg );
   }
@@ -651,9 +651,12 @@ vpROSRobotFrankaCoppeliasim::velocityControlLoop()
   // Publish robot state to the corresponding ROS topic
   std_msgs::msg::Int32 robot_ctrl_type_msg;
   robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
-  m_pub_robotStateCmd->publish(
-      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
-
+  for (auto i = 0; i < 100; i++) {
+    // Should be published more than one time to be received by CoppeliaSim !
+    // TODO: Create a service instead of publishing multiple times
+    m_pub_robotStateCmd->publish( robot_ctrl_type_msg );
+    loop_rate.sleep();
+  }
   vpColVector vel_max( 7, 0 ), dq_sat( 7, 0 );
   vel_max = { 2.1750, 2.1750, 2.1750, 2.1750, 2.6100, 2.6100, 2.6100 };
 
@@ -662,8 +665,6 @@ vpROSRobotFrankaCoppeliasim::velocityControlLoop()
   while ( rclcpp::ok() && !m_velControlThreadStopAsked )
   {
     loop_rate.sleep();
-    m_pub_robotStateCmd->publish(
-        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
     m_mutex.lock();
     dq_sat = vpRobot::saturateVelocities( m_dq_des, vel_max, true );
     for ( unsigned int i = 0; i < 7; i++ )
@@ -711,8 +712,12 @@ vpROSRobotFrankaCoppeliasim::torqueControlLoop()
   // Publish robot state to the corresponding ROS topic
   std_msgs::msg::Int32 robot_ctrl_type_msg;
   robot_ctrl_type_msg.data = static_cast< int >( m_stateRobot );
-  m_pub_robotStateCmd->publish(
-      robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
+  for (auto i = 0; i < 100; i++) {
+    // Should be published more than one time to be received by CoppeliaSim !
+    // TODO: Create a service instead of publishing multiple times
+    m_pub_robotStateCmd->publish( robot_ctrl_type_msg );
+    loop_rate.sleep();
+  }
 
   vpColVector g( 7, 0 ), tau_max( 7, 0 ), tau_sat( 7, 0 ), f( 7, 0 );
   tau_max = { 87, 87, 87, 87, 12, 12, 12 };
@@ -732,8 +737,6 @@ vpROSRobotFrankaCoppeliasim::torqueControlLoop()
   while ( rclcpp::ok() && !m_ftControlThreadStopAsked )
   {
     loop_rate.sleep();
-    m_pub_robotStateCmd->publish(
-        robot_ctrl_type_msg ); // Should be published more than one time to be received by CoppeliaSim !
     this->getGravity( g );     // as for the real robot, we compensate for the gravity
     this->getFriction( f );    // this is to simulate the dynamic friction
 
@@ -903,7 +906,9 @@ vpROSRobotFrankaCoppeliasim::setRobotState( vpRobot::vpRobotStateType newState )
     else if ( vpRobot::STATE_POSITION_CONTROL == getRobotState() )
     {
       std::cout << "Change the control mode from position to force/torque control.\n";
+      m_mutex.lock();
       m_posControlThreadStopAsked = true;
+      m_mutex.unlock();
     }
     else if ( vpRobot::STATE_VELOCITY_CONTROL == getRobotState() )
     {
