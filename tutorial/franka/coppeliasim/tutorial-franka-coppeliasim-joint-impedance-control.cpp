@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,8 @@
 #include <visp3/gui/vpPlot.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
+using namespace std::chrono_literals;
+
 int
 main( int argc, char **argv )
 {
@@ -68,15 +70,15 @@ main( int argc, char **argv )
     }
   }
 
+  rclcpp::init( argc, argv );
+  auto node = std::make_shared< rclcpp::Node >( "frankasim_joint_impedance_ctrl" );
+  rclcpp::WallRate loop_rate( 100ms );
+  rclcpp::spin_some( node );
+
   vpROSRobotFrankaCoppeliasim robot;
+
   try
   {
-    //    ROS node    //
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
-
     robot.setVerbose( opt_verbose );
     if ( 0 )
     {
@@ -173,7 +175,9 @@ main( int argc, char **argv )
     double mu = 4;
     double dt = 0;
 
-    double time_start_trajectory, time_prev, time_cur;
+    double time_cur;
+    double time_prev = robot.getCoppeliasimSimulationTime();
+    double time_start_trajectory = time_prev;
     double delay_before_trajectory = 0.5; // Start sinusoidal joint trajectory after this delay in [s]
 
     // Control loop

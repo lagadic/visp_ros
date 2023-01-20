@@ -63,7 +63,7 @@ main( int argc, char **argv )
   try
   {
     rclcpp::init( argc, argv );
-    auto node = std::make_shared< rclcpp::Node >( "visp_ros" );
+    auto node = std::make_shared< rclcpp::Node >( "frankasim_test" );
     rclcpp::WallRate loop_rate( 100ms );
     rclcpp::spin_some( node );
 

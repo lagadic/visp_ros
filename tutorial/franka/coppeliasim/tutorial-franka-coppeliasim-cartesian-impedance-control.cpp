@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@
 
 #include <visp3/gui/vpPlot.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
+
+using namespace std::chrono_literals;
 
 vpMatrix
 Ta( const vpHomogeneousMatrix &edMe )
@@ -93,18 +95,15 @@ main( int argc, char **argv )
     }
   }
 
+  rclcpp::init( argc, argv );
+  auto node = std::make_shared< rclcpp::Node >( "frankasim_cart_impedance_ctrl" );
+  rclcpp::WallRate loop_rate( 100ms );
+  rclcpp::spin_some( node );
+
   vpROSRobotFrankaCoppeliasim robot;
 
   try
   {
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    // ROS node
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
-
     robot.setVerbose( opt_verbose );
     robot.connect();
 
@@ -168,6 +167,7 @@ main( int argc, char **argv )
 
     robot.setRobotState( vpRobot::STATE_FORCE_TORQUE_CONTROL );
     robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
+    vpTime::wait( 500 );
 
     vpHomogeneousMatrix fMed, fMed0;
     fMed0 = robot.get_fMe();
@@ -188,7 +188,9 @@ main( int argc, char **argv )
     double mu = 4;
     double dt = 0;
 
-    double time_start_trajectory, time_prev, time_cur;
+    double time_cur;
+    double time_prev = robot.getCoppeliasimSimulationTime();
+    double time_start_trajectory = time_prev;
     double delay_before_trajectory = 0.5; // Start sinusoidal joint trajectory after this delay in [s]
 
     // Control loop
