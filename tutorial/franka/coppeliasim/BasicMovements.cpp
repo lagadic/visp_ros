@@ -68,30 +68,30 @@ main( int argc, char **argv )
     bool opt_coppeliasim_sync_mode = false;
     bool opt_verbose               = false;
     bool opt_save_data             = false;
-//
-//    for ( int i = 1; i < argc; i++ )
-//    {
-//        if ( std::string( argv[i] ) == "--enable-coppeliasim-sync-mode" )
-//        {
-//            opt_coppeliasim_sync_mode = true;
-//        }
-//        else if ( std::string( argv[i] ) == "--verbose" || std::string( argv[i] ) == "-v" )
-//        {
-//            opt_verbose = true;
-//        }
-//        else if ( std::string( argv[i] ) == "--save" )
-//        {
-//            opt_save_data = true;
-//        }
-//        else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
-//        {
-//            std::cout << argv[0] << "[--enable-coppeliasim-sync-mode]"
-//                      << " [--save]"
-//                      << " [--verbose] [-v] "
-//                      << " [--help] [-h]" << std::endl;
-//            return EXIT_SUCCESS;
-//        }
-//    }
+
+    for ( int i = 1; i < argc; i++ )
+    {
+        if ( std::string( argv[i] ) == "--enable-coppeliasim-sync-mode" )
+        {
+            opt_coppeliasim_sync_mode = true;
+        }
+        else if ( std::string( argv[i] ) == "--verbose" || std::string( argv[i] ) == "-v" )
+        {
+            opt_verbose = true;
+        }
+        else if ( std::string( argv[i] ) == "--save" )
+        {
+            opt_save_data = true;
+        }
+        else if ( std::string( argv[i] ) == "--help" || std::string( argv[i] ) == "-h" )
+        {
+            std::cout << argv[0] << "[--enable-coppeliasim-sync-mode]"
+                      << " [--save]"
+                      << " [--verbose] [-v] "
+                      << " [--help] [-h]" << std::endl;
+            return EXIT_SUCCESS;
+        }
+    }
 
     vpROSRobotFrankaCoppeliasim robot;
 
@@ -263,45 +263,45 @@ main( int argc, char **argv )
 //            plotter->plot( 0, time_cur, q );
 //            plotter->plot( 1, time_cur, tau );
 //            plotter->plot( 2, time_cur, x_e );
-            pose_err_norm[0] = sqrt(x_e.extract(0, 3).sumSquare());
-            pose_err_norm[1] = sqrt(x_e.extract(3, 3).sumSquare());
+//            pose_err_norm[0] = sqrt(x_e.extract(0, 3).sumSquare());
+//            pose_err_norm[1] = sqrt(x_e.extract(3, 3).sumSquare());
 //            plotter->plot( 3, time_cur, pose_err_norm );
 
-//            vpMouseButton::vpMouseButtonType button;
+            vpMouseButton::vpMouseButtonType button;
 //            if ( vpDisplay::getClick( plotter->I, button, false ) )
 //            {
-//                if ( button == vpMouseButton::button3 )
-//                {
-//                    final_quit = true;
-//                    tau_cmd    = 0;
-//                    std::cout << "Stop the robot " << std::endl;
-//                    robot.setRobotState( vpRobot::STATE_STOP );
-//                }
+                if ( button == vpMouseButton::button3 )
+                {
+                    final_quit = true;
+                    tau_cmd    = 0;
+                    std::cout << "Stop the robot " << std::endl;
+                    robot.setRobotState( vpRobot::STATE_STOP );
+                }
 //            }
 //
-//            if ( opt_verbose )
-//            {
-//                std::cout << "dt: " << dt << std::endl;
-//            }
-//
-//            time_prev = time_cur;
-//            robot.wait( time_cur, 0.001 ); // Sync loop at 1000 Hz (1 ms)
-//        }                                // end while
-//
-//        if ( opt_save_data )
-//        {
+            if ( opt_verbose )
+            {
+                std::cout << "dt: " << dt << std::endl;
+            }
+
+            time_prev = time_cur;
+            robot.wait( time_cur, 0.001 ); // Sync loop at 1000 Hz (1 ms)
+        }                                // end while
+
+        if ( opt_save_data )
+        {
 //            plotter->saveData( 0, "sim-cart-joint-position.txt", "# " );
 //            plotter->saveData( 1, "sim-cart-joint-torques.txt", "# " );
 //            plotter->saveData( 2, "sim-cart-pose-error.txt", "# " );
 //            plotter->saveData( 3, "sim-cart-pose-error-norm.txt", "# " );
-//        }
+        }
 //
 //        if ( plotter != nullptr )
 //        {
 //            delete plotter;
 //            plotter = nullptr;
 //        }
-//        robot.coppeliasimStopSimulation();
+        robot.coppeliasimStopSimulation();
         }
     }
     catch ( const vpException &e )
