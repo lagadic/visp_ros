@@ -196,6 +196,7 @@ if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERS
   add_executable(tutorial-franka-coppeliasim-joint-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp)
   add_executable(tutorial-franka-coppeliasim-cartesian-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-cartesian-impedance-control.cpp)
   add_executable(test-vel tutorial/franka/coppeliasim/test-vel.cpp)
+  add_executable(BasicMovements tutorial/franka/coppeliasim/BasicMovements.cpp)
   set(franka_sim_LIBRARIES ${catkin_LIBRARIES} ${PROJECT_NAME} ${orocos_kdl_LIBRARIES})
   if(iir_FOUND)
     list(APPEND franka_sim_LIBRARIES iir::iir)
@@ -206,6 +207,7 @@ if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERS
   target_link_libraries(tutorial-franka-coppeliasim-joint-impedance-control ${franka_sim_LIBRARIES})
   target_link_libraries(tutorial-franka-coppeliasim-cartesian-impedance-control ${franka_sim_LIBRARIES})
   target_link_libraries(test-vel ${franka_sim_LIBRARIES})
+  target_link_libraries(BasicMovements ${franka_sim_LIBRARIES})
 
   install(
     TARGETS
