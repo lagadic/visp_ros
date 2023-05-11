@@ -84,9 +84,9 @@ main( int argc, char **argv )
   bool opt_verbose               = false;
   bool opt_plot                  = false;
   bool opt_adaptive_gain         = false;
-  bool opt_task_sequencing       = false;
+  bool opt_task_sequencing       = true;
   double convergence_threshold_t = 0.0005, convergence_threshold_tu = vpMath::rad( 0.5 );
-  bool opt_coppeliasim_sync_mode = false;
+  bool opt_coppeliasim_sync_mode = true;
 
   for ( int i = 1; i < argc; i++ )
   {
@@ -148,6 +148,10 @@ main( int argc, char **argv )
     ros::Rate loop_rate( 1000 );
     ros::spinOnce();
 
+    ros::Publisher pub_suctionpad = n->advertise<std_msgs::Int32>("/suctionpad_activate", 1);
+    std_msgs::Int32 activate;
+    activate.data = 0;
+
     vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose( opt_verbose );
     robot.connect();
@@ -192,18 +196,47 @@ main( int argc, char **argv )
     detector.setAprilTagQuadDecimate( opt_quad_decimate );
 
     // Servo
-    vpHomogeneousMatrix cdMc, cMo, oMo;
+    vpHomogeneousMatrix cMo, oMo, active_cdMc;
 
     // Desired pose used to compute the desired features
     vpHomogeneousMatrix cdMo( vpTranslationVector( 0, 0.0, opt_tagSize * 3 ),
                               vpRotationMatrix( { 1, 0, 0, 0, -1, 0, 0, 0, -1 } ) );
-    cdMc = cdMo * cMo.inverse();
+    vpHomogeneousMatrix eedMo( vpTranslationVector( 0.1, 0.0, 0.01 ),
+                                  vpRotationMatrix( { 1, 0, 0, 0, -1, 0, 0, 0, -1 } ) );
+    // pick the bin
+    vpHomogeneousMatrix edMo(vpTranslationVector(0.0, 0.0, 0.002),
+                               vpRotationMatrix( {0, 1, 0, 1, 0, 0, 0, 0, -1} ) );
 
+    // pick the bin on conveyor
+    vpHomogeneousMatrix fM_eed_up_conveyor(vpTranslationVector(-0.43, 0.32, 0.15),
+                                   vpRotationMatrix( {0, 1, 0, 1, 0, 0, 0, 0, -1} ) );
+    // home picking position
+    vpHomogeneousMatrix fM_eed_home(vpTranslationVector(0.2, 0.0, 0.2), // vpTranslationVector(0.0, 0.3, 0.2),
+                                    vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) ); //vpRotationMatrix( {0, 1, 0, 1, 0, 0, 0, 0, -1} ) );
+    // top of right tote
+    vpHomogeneousMatrix fM_eed_r_tote(vpTranslationVector(0.45, -0.4, 0.15),//from the view of the convey side
+                                    vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) );
+    // top of left tote
+    vpHomogeneousMatrix fM_eed_l_tote(vpTranslationVector(0.45, 0.4, 0.15),
+    		vpRotationMatrix( {1, 0, 0, 0, -1, 0, 0, 0, -1} ) );
+
+    // origin of left tote in robot base frame
+    vpHomogeneousMatrix fM_r_tote(vpTranslationVector(0.2922, -0.0044, -0.4225),
+    		vpRotationMatrix( {1, 0, 0, 0, 1, 0, 0, 0, 1} ) );
+
+    // Box placement in tote origin coordinates (remember that the box's frame is on its top at the center)
+    vpHomogeneousMatrix r_toteM_tag(vpTranslationVector(0.07, 0.27, 0.11),
+        		vpRotationMatrix( {0, 1, 0, -1, 0, 0, 0, 0, 1} ) );
+
+
+    cdMo = robot.get_eMc().inverse()*eedMo;
+    active_cdMc = cdMo * cMo.inverse();
+    
     // Create visual features
     vpFeatureTranslation t( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tu( vpFeatureThetaU::cdRc );
-    t.buildFrom( cdMc );
-    tu.buildFrom( cdMc );
+    t.buildFrom( active_cdMc );
+    tu.buildFrom( active_cdMc );
 
     vpFeatureTranslation td( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tud( vpFeatureThetaU::cdRc );
@@ -269,10 +302,25 @@ main( int argc, char **argv )
       eMc.buildFrom( 0.05, -0.05, 0, 0, 0, M_PI_4 );
       robot.set_eMc( eMc );
     }
-    std::cout << "eMc:\n" << robot.get_eMc() << std::endl;
+    vpHomogeneousMatrix eMc;
+    eMc = robot.get_eMc() ;
+    std::cout << "eMc:\n" << eMc << std::endl;
 
     robot.setRobotState( vpRobot::STATE_VELOCITY_CONTROL );
     robot.setCoppeliasimSyncMode( opt_coppeliasim_sync_mode );
+
+    int TagID = 1;
+    int State = 0;
+    int c_idx = 0;
+    typedef struct{
+    	int ID;
+    	vpHomogeneousMatrix wMo;
+    	vpHomogeneousMatrix oMo;
+    } scene_obj;
+
+    std::vector<scene_obj> obj_vec;  // vector of all objects in the scene w.r.t. the world frame
+
+    vpColVector  v_0( 6 ), v_c( 6 );
 
     while ( !final_quit )
     {
@@ -282,7 +330,9 @@ main( int argc, char **argv )
       vpDisplay::display( I );
 
       std::vector< vpHomogeneousMatrix > cMo_vec;
+      std::vector<int> TagsID;
       detector.detect( I, opt_tagSize, cam, cMo_vec );
+	  TagsID = detector.getTagsId();
 
       {
         std::stringstream ss;
@@ -291,128 +341,277 @@ main( int argc, char **argv )
         vpDisplay::displayText( I, 20, 20, ss.str(), vpColor::red );
       }
 
-      vpColVector v_c( 6 );
 
-      // Only one tag is detected
-      if ( cMo_vec.size() == 1 )
+      // One or more targets are detected
+      if ( cMo_vec.size() >= 1 )
       {
-        cMo = cMo_vec[0];
-
         static bool first_time = true;
-        if ( first_time )
+        if ( first_time ) // the first time
         {
-          // Introduce security wrt tag positionning in order to avoid PI rotation
-          std::vector< vpHomogeneousMatrix > v_oMo( 2 ), v_cdMc( 2 );
-          v_oMo[1].buildFrom( 0, 0, 0, 0, 0, M_PI );
-          for ( size_t i = 0; i < 2; i++ )
-          {
-            v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
-          }
-          if ( std::fabs( v_cdMc[0].getThetaUVector().getTheta() ) <
-               std::fabs( v_cdMc[1].getThetaUVector().getTheta() ) )
-          {
-            oMo = v_oMo[0];
-          }
-          else
-          {
-            std::cout << "Desired frame modified to avoid PI rotation of the camera" << std::endl;
-            oMo = v_oMo[1]; // Introduce PI rotation
-          }
-        } // end first_time
+      	  for(int idx=0;idx<cMo_vec.size();idx++)
+      	  { // scan all the objects in the FoV and add them to the object vector
+      		  scene_obj ob;
+      		  // Introduce security wrt tag positionning in order to avoid PI rotation
+      		  std::vector<vpHomogeneousMatrix> v_oMo(2), v_ccMc(2);
+      		  v_oMo[1].buildFrom(0, 0, 0, 0, 0, M_PI);
+      		  for (size_t i = 0; i < 2; i++) {
+      			  v_ccMc[i] = active_cdMc * v_oMo[i] * cMo.inverse();
+      		  }
+      		  if (std::fabs(v_ccMc[0].getThetaUVector().getTheta()) < std::fabs(v_ccMc[1].getThetaUVector().getTheta())) {
+      			  ob.oMo = v_oMo[0];
+      		  }
+      		  else {
+      			  std::cout << "Desired frame modified to avoid PI rotation of the camera" << std::endl;
+      			  ob.oMo = v_oMo[1];   // Introduce PI rotation
+      		  }
 
-        // Update visual features
-        cdMc = cdMo * oMo * cMo.inverse();
-        t.buildFrom( cdMc );
-        tu.buildFrom( cdMc );
+      		  ob.ID = TagsID[idx];
+      		  ob.wMo = robot.get_fMe()*eMc*cMo_vec[idx];
+      		  obj_vec.push_back(ob);
 
-        if ( opt_task_sequencing )
-        {
-          if ( !servo_started )
-          {
-            if ( send_velocities )
-            {
-              servo_started = true;
+           }
+  		  // Initialize first pose to go to (the home position)
+  		  std::cout << "Initializing the pose to track to home \n";
+  		  State = 0;
+		  active_cdMc = (fM_eed_home*eMc).inverse()*robot.get_fMe()*eMc ;
+		  t.buildFrom(active_cdMc);
+		  tu.buildFrom(active_cdMc);
+		  v_0 = task.computeControlLaw();
+
+        }else{ // scan all the visible objects in the FoV and update those already in the vector and add the new objects
+      	  for(int idx=0;idx<cMo_vec.size();idx++){ // scan all the objects in the FoV and ...
+      		  bool found = false;
+      		  for(int j=0;j<obj_vec.size();j++){             //if one of them is already in the object vector, update it, or
+      			  if(obj_vec[j].ID == TagsID[idx]){
+//      				  obj_vec[j].wMo = robot.get_fMe()*eMc*cMo_vec[idx]; // if you assume the objects are static, you can comment this line
+      				  found = true;
+      				  break;
+      			  }
+      		  }
+      		  if(!found){ // if is a new element in the scene... add it in the vector
+          		  scene_obj ob;
+          		  ob.ID = TagsID[idx];
+          		  ob.wMo = robot.get_fMe()*eMc*cMo_vec[idx];
+          		  obj_vec.push_back(ob);
+      		  }
             }
-            sim_time_init_servo = robot.getCoppeliasimSimulationTime();
-          }
-          v_c = task.computeControlLaw( robot.getCoppeliasimSimulationTime() - sim_time_init_servo );
-        }
-        else
-        {
-          v_c = task.computeControlLaw();
         }
 
-        // Display the current and desired feature points in the image display
-        // Display desired and current pose features
-        vpDisplay::displayFrame( I, cdMo * oMo, cam, opt_tagSize / 1.5, vpColor::yellow, 2 );
-        vpDisplay::displayFrame( I, cMo, cam, opt_tagSize / 2, vpColor::none, 3 );
-
-        // Get tag corners
-        std::vector< vpImagePoint > corners = detector.getPolygon( 0 );
-
-        // Get the tag cog corresponding to the projection of the tag frame in the image
-        corners.push_back( detector.getCog( 0 ) );
-        // Display the trajectory of the points
-        if ( first_time )
-        {
-          traj_corners = new std::vector< vpImagePoint >[corners.size()];
-        }
-
-        // Display the trajectory of the points used as features
-        display_point_trajectory( I, corners, traj_corners );
-
-        if ( opt_plot )
-        {
-          plotter->plot( 0, static_cast< double >( sim_time ), task.getError() );
-          plotter->plot( 1, static_cast< double >( sim_time ), v_c );
-        }
-
-        if ( opt_verbose )
-        {
-          std::cout << "v_c: " << v_c.t() << std::endl;
-        }
-
-        vpTranslationVector cd_t_c = cdMc.getTranslationVector();
-        vpThetaUVector cd_tu_c     = cdMc.getThetaUVector();
-        double error_tr            = sqrt( cd_t_c.sumSquare() );
-        double error_tu            = vpMath::deg( sqrt( cd_tu_c.sumSquare() ) );
-
-        std::stringstream ss;
-        ss << "error_t: " << error_tr;
-        vpDisplay::displayText( I, 20, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
-        ss.str( "" );
-        ss << "error_tu: " << error_tu;
-        vpDisplay::displayText( I, 40, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
-
-        if ( opt_verbose )
-          std::cout << "error translation: " << error_tr << " ; error rotation: " << error_tu << std::endl;
-
-        if ( !has_converged && error_tr < convergence_threshold_t && error_tu < convergence_threshold_tu )
-        {
-          has_converged = true;
-          std::cout << "Servo task has converged"
-                    << "\n";
-          vpDisplay::displayText( I, 100, 20, "Servo task has converged", vpColor::red );
-        }
 
         if ( first_time )
         {
           first_time = false;
         }
-      } // end if (cMo_vec.size() == 1)
+      } // end if (cMo_vec.size() >= 1)
       else
       {
-        v_c = 0; // Stop the robot
+    	  // if no object is detected, do something.
+
       }
+      // -------------------------------------------------------------------------------------------------------------
+      // -------------------------------------------------------------------------------------------------------------
+      // Update active pose to track <- this must be done by the FSM
+
+      // FSM States
+      if( State == 0){
+    	  active_cdMc = (fM_eed_up_conveyor*eMc).inverse()*robot.get_fMe()*eMc ;
+    	  t.buildFrom( active_cdMc );
+    	  tu.buildFrom( active_cdMc );
+
+    	  if ( !servo_started )
+    	  {
+    		  if ( send_velocities )
+    		  {
+    			  servo_started = true;
+    		  }
+    		  v_0 = task.computeControlLaw();
+    		  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+    	  }
+
+      }else if( State == 1 ){
+		  cdMo = eMc.inverse()*edMo;
+		  cMo = (robot.get_fMe()*eMc).inverse() * obj_vec[c_idx].wMo;
+		  active_cdMc = cdMo * obj_vec[c_idx].oMo * cMo.inverse();
+		  t.buildFrom(active_cdMc);
+		  tu.buildFrom(active_cdMc);
+		  if ( !servo_started )
+		  {
+			  if ( send_velocities )
+			  {
+				  servo_started = true;
+			  }
+			  v_0 = task.computeControlLaw();
+			  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+		  }
+      }else if( State == 2 ){
+		  active_cdMc = (fM_eed_up_conveyor*eMc).inverse()*robot.get_fMe()*eMc ;
+		  t.buildFrom(active_cdMc);
+		  tu.buildFrom(active_cdMc);
+		  if ( !servo_started )
+		  {
+			  if ( send_velocities )
+			  {
+				  servo_started = true;
+			  }
+			  v_0 = task.computeControlLaw();
+			  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+		  }
+      }else if( State == 3 ){
+    	  active_cdMc = (fM_eed_l_tote*eMc).inverse()*robot.get_fMe()*eMc ;
+    	  t.buildFrom(active_cdMc);
+    	  tu.buildFrom(active_cdMc);
+    	  if ( !servo_started )
+    	  {
+    		  if ( send_velocities )
+    		  {
+    			  servo_started = true;
+    		  }
+    		  v_0 = task.computeControlLaw();
+    		  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+    	  }
+      }else if( State == 4 ){
+    	  active_cdMc = (fM_r_tote* r_toteM_tag*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //Place it
+    	  t.buildFrom(active_cdMc);
+    	  tu.buildFrom(active_cdMc);
+    	  if ( !servo_started )
+    	  {
+    		  if ( send_velocities )
+    		  {
+    			  servo_started = true;
+    		  }
+    		  v_0 = task.computeControlLaw();
+    		  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+    	  }
+      }else if( State == 5 ){
+    	  active_cdMc = (fM_eed_home*eMc).inverse()*robot.get_fMe()*eMc ;
+    	  t.buildFrom(active_cdMc);
+    	  tu.buildFrom(active_cdMc);
+    	  if ( !servo_started )
+    	  {
+    		  if ( send_velocities )
+    		  {
+    			  servo_started = true;
+    		  }
+    		  v_0 = task.computeControlLaw();
+    		  sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+    	  }
+      }else if( State == 100 ){ // idle state
+    	  if( !has_converged ){
+    		  std::cout << "State: Idle \n";
+    		  has_converged = true;
+    	  }
+    	  active_cdMc.eye();
+    	  t.buildFrom(active_cdMc);
+    	  tu.buildFrom(active_cdMc);
+    	  v_c = 0;
+      }
+      double error_tr  = sqrt( active_cdMc.getTranslationVector().sumSquare() );           // translation error
+      double error_tu  = vpMath::deg( sqrt( active_cdMc.getThetaUVector().sumSquare() ) ); // orientation error
+
+      // FSM transition conditions
+      if(error_tr <= 0.01 && error_tu <= 5 && State == 0)// once reached the top of the right tote, go to pick the parcel on the conveyor
+      {
+    	  std::cout << "Left tote reached... moving to the next state \n";
+
+    	  bool found = false;
+    	  for(int idx=0;idx<obj_vec.size();idx++){  // search in the object vector if the next object already exist
+    		  if(obj_vec[idx].ID == TagID){
+    			  std::cout << "The parcel is visible and I know where to go to pick it! \n";
+    			  State = 1; // New state
+				  TagID = 1; // box with tag ID = 1 that have to be picked
+				  c_idx = idx;
+				  found = true;
+				  servo_started = false;
+    			  break;
+    		  }
+    	  }
+    	  if ( !found ){
+    		  std::cout << "No box was found to pick, look somewhere else... \n";
+    		  // here you can implement an alternative motion to look for the packages around.
+    		  // for the moment, we suppose the box is always there
+    		  State = 100;
+    		  v_c = 0;
+    	  }
+
+
+      }else if(error_tr <= 0.002 && error_tu <= 1 && State == 1){ // once you reach the box to pick, activate vacuum and move up
+
+    	  std::cout << "On top of the parcel to pick \n";
+    	  std::cout << "Activating suction pad \n";
+    	  std::cout << "Parcel was picked, going to lift it \n";
+    	  activate.data = 1;
+    	  pub_suctionpad.publish(activate);
+    	  State = 2;
+    	  servo_started = false;
+
+      }else if(error_tr <= 0.01 && error_tu <= 5 && State == 2){ // once reached the position above the right tote, move to the left tote
+
+    	  std::cout << "Moving the parcel to the left tote \n";
+    	  State = 3;
+    	  servo_started = false;
+
+      }else if(error_tr <= 0.01 && error_tu <= 5 && State == 3){ // once reached the position above the left tote, palce the box
+
+    	  std::cout << "Left tote reached, going to place the parcel \n";
+    	  State = 4;
+    	  servo_started = false;
+
+      }else if(error_tr <= 0.001 && error_tu <= 1 && State == 4){ // once you have placed the box, got o home position
+
+    	  std::cout << "Parcel placed... Deactivating vacuum\n";
+    	  activate.data = 0;
+    	  pub_suctionpad.publish(activate);
+    	  State = 5;
+    	  servo_started = false;
+
+      }else if(error_tr <= 0.01 && error_tu <= 5 && State == 5){ // once you have placed the box, got o home position
+
+    	  std::cout << "Home position reached, going Idle \n";
+    	  State = 100; //
+
+      }
+
+
+        v_c = task.computeControlLaw() - v_0*exp(-10.0*(robot.getCoppeliasimSimulationTime() - sim_time_init_servo));
+//      }
+
+      // Display the current and desired feature points in the image display
+      // Display desired and current pose features
+      vpDisplay::displayFrame( I, cdMo * oMo, cam, opt_tagSize / 1.5, vpColor::yellow, 2 );
+      vpDisplay::displayFrame( I, cMo, cam, opt_tagSize / 2, vpColor::none, 3 );
+
+      if ( opt_plot )
+      {
+        plotter->plot( 0, static_cast< double >( sim_time ), task.getError() );
+        plotter->plot( 1, static_cast< double >( sim_time ), v_c );
+      }
+
+
+
+
+      std::stringstream ss;
+      ss << "error_t: " << error_tr;
+      vpDisplay::displayText( I, 20, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+      ss.str( "" );
+      ss << "error_tu: " << error_tu;
+      vpDisplay::displayText( I, 40, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+      ss.str( "" );
+      ss << "current state: " << State;
+      vpDisplay::displayText( I, 60, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+
+
+      // -------------------------------------------------------------------------------------------------------------
+      // -------------------------------------------------------------------------------------------------------------
 
       if ( !send_velocities )
       {
         v_c = 0; // Stop the robot
+        servo_started = false;
       }
 
       robot.setVelocity( vpRobot::CAMERA_FRAME, v_c );
 
-      std::stringstream ss;
+//      std::stringstream ss;
       ss << "Loop time [s]: " << std::round( ( sim_time - sim_time_prev ) * 1000. ) / 1000.;
       ss << " Simulation time [s]: " << sim_time;
       sim_time_prev = sim_time;
