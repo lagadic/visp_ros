@@ -74,21 +74,23 @@ void display_point_trajectory( const vpImage< unsigned char > &I, const std::vec
         }
     }
 }
+
 vpHomogeneousMatrix getMatrixY0(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {
 //prepare for rotating
 	std::cout << "Im in getMatrixY0" << std::endl;
 	
-    double factor1 = 0.32;
-    double delta = 0.01;
-    double len = y - 0.5*Box1[1] - delta;
-    std::cout << len << ", " << 0.5*Box1[1] << std::endl;
-    double theta = acos(len / Box2[1]);
-    std::cout << theta << ", " << len / Box2[1] << std::endl;
+    double factor1 = 0.25;
+    double delta = 0.015;
+    double len = x - 0.5*Box1[0] - delta;
+    double theta = std::acos(len / Box2[0]);
+    std::cout << theta << ", " << len / Box2[0] << std::endl;
     double c = cos(theta);
     double s = sin(theta);
-    double X = 0.5*Box2[0];
-    double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
-    double Z = Box2[2]*c + 0.5*Box2[1]*s + Box1[2];
+    //double X = 0.5*Box2[0];
+    //double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
+    double X = Box2[2]*s + len - 0.5*Box2[0]*c;
+    double Y = y;
+    double Z = Box2[2]*c + 0.5*Box2[1]*s + Box1[2]+0.2;
     
     // rotating motion Y0, step 0
     vpHomogeneousMatrix fM_Y0_rotate(vpTranslationVector(X, Y, Z+factor1),
@@ -102,20 +104,23 @@ vpHomogeneousMatrix getMatrixY0(const std::vector<double>& Box1, const std::vect
 vpHomogeneousMatrix getMatrixY1(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {
 //rotating and go down
 	std::cout << "Im in getMatrixY1" << std::endl;
+    double factor1 = 1.25;
     double delta = 0.015;
-    double len = y - 0.5*Box1[1] - delta;
-    double theta = std::acos(len / Box2[1]);
+    double len = x - 0.5*Box1[0] - delta;
+    double theta = std::acos(len / Box2[0]);
     double c = cos(theta);
     double s = sin(theta);
     double tan_theta = std::tan(theta);
     double dz = (Box2[1]*(1-c))/tan_theta;
-    double X = 0.5*Box1[0];//*1.06
-    double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
-    double Z = Box2[2]*c + 0.5*Box2[1]*s + Box1[2] - dz*1.32;
+    //double X = 0.5*Box1[0];//*1.06
+    //double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
+    double X = Box2[2]*s + len - 0.5*Box2[0]*c;
+    double Y = y;
+    double Z = Box2[2]*c + 0.5*Box2[1]*s + Box1[2] - factor1*dz;
     
     // rotating motion Y1, step 1
     vpHomogeneousMatrix fM_Y1_rotate(vpTranslationVector(X, Y, Z),//0.1,0.2,0.1
-                                     vpRotationMatrix( {1,0,0,0,c,s,0,-s,c} ) );
+                                     vpRotationMatrix( {c,0,s,0,1,0,-s,0,c} ) );//vpRotationMatrix( {1,0,0,0,c,s,0,-s,c} ) )
     std::cout << X << ", " << Y << ", " << Z << ", " << theta << std::endl;
     //std::cout << "fM_Y1_rotate:\n" << fM_Y1_rotate << std::endl;
     return fM_Y1_rotate;
@@ -125,19 +130,21 @@ vpHomogeneousMatrix getMatrixY2(const std::vector<double>& Box1, const std::vect
 ////go up without rotating
 	std::cout << "Im in getMatrixY2" << std::endl;
     double delta = 0.015;
-    double len = y - 0.5*Box1[1] - delta;
-    double theta = std::acos(len / Box2[1]);
+    double len = x - 0.5*Box1[0] - delta;
+    double theta = std::acos(len / Box2[0]);
     double c = cos(theta);
     double s = sin(theta);
     double tan_theta = std::tan(theta);
     double dz = (Box2[1]*(1-c))/tan_theta;
-    double X = 0.5*Box2[0]*1.04;
-    double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
-    double Z = Box2[2] + Box2[1] + 2*dz;
+    //double X = 0.5*Box2[0]*1.04;
+    //double Y = Box2[2]*s + len - 0.5*Box2[1]*c;
+    double X = Box2[2]*s + len - 0.5*Box2[0]*c;
+    double Y = y;
+    double Z = Box2[2] + Box2[1] + 10*delta;
     
     // rotating motion Y2, step 2
     vpHomogeneousMatrix fM_Y1_rotate(vpTranslationVector(X, Y, Z),//0.1,0.2,0.1
-                                     vpRotationMatrix( {1,0,0,0,c,s,0,-s,c} ) );
+                                     vpRotationMatrix( {c,0,s,0,1,0,-s,0,c} ) );
     std::cout << X << ", " << Y << ", " << Z << ", " << theta << std::endl;
     //std::cout << "fM_Y2_rotate:\n" << fM_Y2_rotate << std::endl;
     return fM_Y1_rotate;
@@ -148,13 +155,13 @@ vpHomogeneousMatrix getMatrixY3(const std::vector<double>& Box1, const std::vect
 std::cout << "Im in getMatrixY3" << std::endl;
     double factor3 = 1.1;
     double delta = 0.015;
-    double len = y - 0.5*Box1[1] - delta;
-    double theta = std::acos(len / Box2[1]);
+    double len = x - 0.5*Box1[0] - delta;
+    double theta = std::acos(len / Box2[0]);
     double c = cos(theta);
     double s = sin(theta);
-    double X = 0.5*Box2[0]*1.06;
-    double Y = 0.5*Box2[1]*1.04;
-    double Z = Box2[2]+Box1[2]+12*delta;
+    double X = 0.5*Box2[0]*1.02;
+    double Y = 0.5*Box2[1]*1.15;
+    double Z = Box2[2]+Box1[2]+10*delta;
     
     // rotating motion Y3, step 3
     vpHomogeneousMatrix fM_Y3_rotate(vpTranslationVector(X, Y, factor3*Z),//0.1,0.2,0.1
@@ -169,12 +176,14 @@ vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vect
 std::cout << "Im in getMatrixY4" << std::endl;
     double factor4 = 1;
     double delta = 0.015;
-    double len = y - 0.5*Box1[1] - delta;
-    double theta = std::acos(len / Box2[1]);
+    double len = x - 0.5*Box1[0] - delta;
+    double theta = std::acos(len / Box2[0]);
     double c = cos(theta);
     double s = sin(theta);
-    double X = 0.5*Box2[0]*1.06;
-    double Y = 0.5*Box2[1]*1.04;
+    //double X = 0.5*Box2[0]*1.06;
+    //double Y = 0.5*Box2[1]*1.04;
+    double X = 0.5*Box2[0]*1.02;
+    double Y = 0.5*Box2[1]*1.15;
     double Z = Box2[2]+2*delta;
     
     // rotating motion Y4, step 4
@@ -183,6 +192,75 @@ std::cout << "Im in getMatrixY4" << std::endl;
     std::cout << X << ", " << Y << ", " << Z << ", " << theta << std::endl;
     std::cout << "fM_Y4_rotate:\n" << fM_Y4_rotate << std::endl;
     return fM_Y4_rotate;
+}
+
+
+vpHomogeneousMatrix getMatrixPush0(const std::vector<double>& Box1, const std::vector<double>& Box2, const std::vector<double>& Box3, double x, double y, double z) {
+//prepare for translation push 1
+	std::cout << "Im in getMatrixPush0" << std::endl;
+	
+    //double factor0 = 0.1;
+    double delta = 0.02;
+    double X = x-0.5*delta;
+    double Y = y + 0.5*Box1[1] + 0.5*Box3[1] + delta;
+    double Z = Box3[2] + Box1[2] + delta;
+    
+    // translation motion Push, step 0
+    vpHomogeneousMatrix fM_Push0(vpTranslationVector(X, Y, Z),
+                                 vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+    std::cout << X << ", " << Y << ", " << Z << std::endl;
+    std::cout << "fM_Push0:\n" << fM_Push0 << std::endl;
+    return fM_Push0;
+}
+vpHomogeneousMatrix getMatrixPush1(const std::vector<double>& Box1, const std::vector<double>& Box2, const std::vector<double>& Box3, double x, double y, double z) {
+//prepare for translation push 2
+	std::cout << "Im in getMatrixPush1" << std::endl;
+	
+    double delta = 0.02;
+    double X = x-0.5*delta;
+    double Y = y + 0.5*Box1[1] + 0.5*Box3[1] + delta;
+    double Z = Box3[2] + 0.5*delta;
+    
+    // translation motion Push, step 1
+    vpHomogeneousMatrix fM_Push1(vpTranslationVector(X, Y, Z),
+                                 vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+    std::cout << X << ", " << Y << ", " << Z << std::endl;
+    std::cout << "fM_Push1:\n" << fM_Push1 << std::endl;
+    return fM_Push1;
+}
+
+vpHomogeneousMatrix getMatrixPush2(const std::vector<double>& Box1, const std::vector<double>& Box2, const std::vector<double>& Box3, double x, double y, double z) {
+//translating
+
+	std::cout << "Im in getMatrixPush2" << std::endl;
+    double delta = 0.02;
+    double X = x-0.4*delta;
+    double Y = Box1[1] + 0.5*Box3[1] - 0.1*delta;
+    double Z = Box3[2] + delta;
+    
+    // translation motion Push, step 2
+    vpHomogeneousMatrix fM_Push2(vpTranslationVector(X, Y, Z),
+                                 vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+    std::cout << X << ", " << Y << ", " << Z << std::endl;
+    std::cout << "fM_Push2:\n" << fM_Push2 << std::endl;
+    return fM_Push2;
+}
+
+vpHomogeneousMatrix getMatrixPush3(const std::vector<double>& Box1, const std::vector<double>& Box2, const std::vector<double>& Box3, double x, double y, double z) {
+//placing
+
+	std::cout << "Im in getMatrixPush3" << std::endl;
+    double delta = 0.02;
+    double X = 0.37 - 0.5*Box3[0] - 0.1*delta;
+    double Y = Box1[1] + 0.5*Box3[1] - 0.1*delta;
+    double Z = Box3[2] + delta;
+    
+    // translation motion Push, step 3
+    vpHomogeneousMatrix fM_Push3(vpTranslationVector(X, Y, Z),
+                                 vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+    std::cout << X << ", " << Y << ", " << Z << std::endl;
+    std::cout << "fM_Push3:\n" << fM_Push3 << std::endl;
+    return fM_Push3;
 }
 
 double force_x = 0.0;
@@ -298,18 +376,6 @@ int main( int argc, char **argv )
         robot.setCoppeliasimSyncMode( false );
         robot.coppeliasimStartSimulation();
 
-        if ( 0 )
-        {
-            robot.setRobotState( vpRobot::STATE_POSITION_CONTROL );
-            vpColVector q;
-            robot.getPosition( vpRobot::JOINT_STATE, q );
-            std::cout << "Initial joint position: " << q.t() << std::endl;
-
-            q[0] += vpMath::rad( 10 ); // Add 10 deg axis 1
-            std::cout << "Move to joint position: " << q.t() << std::endl;
-            robot.setPosition( vpRobot::JOINT_STATE, q );
-        }
-
         vpImage< unsigned char > I;
         vpROSGrabber g;
         g.setImageTopic( "/coppeliasim/franka/camera/image" );
@@ -360,15 +426,8 @@ int main( int argc, char **argv )
                                           vpRotationMatrix( {0, 1, 0, 1, 0, 0, 0, 0, -1} ) );
 
         // origin of left tote in robot base frame
-        vpHomogeneousMatrix fM_r_tote(vpTranslationVector(-0.046235, -0.23424, -0.42117),//(-0.0044, -0.2922, -0.4225)
+        vpHomogeneousMatrix fM_r_tote(vpTranslationVector(-0.046235, -0.23424, -0.4225),//(-0.0044, -0.2922, -0.4225)
                                       vpRotationMatrix( {0, 1, 0, -1, 0, 0, 0, 0, 1} ) );
-     
-        // could separate the steps of rotation and pushing
-
-        // rotating motion Y2
-        //vpTranslationVector t = fM_Y1_rotate.getTranslationVector(); 
-        //vpHomogeneousMatrix fM_Y2_rotate(t,
-                                      //vpRotationMatrix( {1, 0, 0, 0, 1, 0, 0, 0, 1} ) );
 
         // Box placement in tote origin coordinates (remember that the box's frame is on its top at the center)
         vpHomogeneousMatrix r_toteM_tag(vpTranslationVector(0.27, -0.07, 0.11),
@@ -442,10 +501,6 @@ int main( int argc, char **argv )
 
 	//pre-define variables
         vpHomogeneousMatrix eMc, tem, fM_Y1_rotate, fM_Y0_rotate, fM_Y3_rotate;
-        std::vector<std::vector<double>> BoxPose = {
-        {0, 0, 0},
-        {0, 0, 0}
-    };
     	double x, y, z, x0, y0, z0, x1, y1, z1;
         eMc = robot.get_eMc() ;
         std::cout << "eMc:\n" << eMc << std::endl;
@@ -467,7 +522,8 @@ int main( int argc, char **argv )
         {0.2, 0.2, 0.1},
         {0.15, 0.15, 0.1},
         {0.15, 0.15, 0.1}
-    };
+    	};
+    	std::vector<double> Tote = {0.37, 0.58, 0.249};
 
         vpColVector  v_0( 6 ), v_c( 6 );
 
@@ -565,8 +621,8 @@ int main( int argc, char **argv )
                             ob.ID = TagsID[idx];
                             ob.wMo = robot.get_fMe()*eMc*cMo_vec[idx];
                             obj_vec.push_back(ob);
-                            std::cout << "not first time: x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
-                            std::cout << "not first time: x, y, z:\n" << x << y << z << std::endl;
+                            std::cout << "not first time: x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;////
+                            //std::cout << "not first time: x, y, z:\n" << x << y << z << std::endl;
                         }
                     }
                 }
@@ -606,7 +662,134 @@ int main( int argc, char **argv )
                     sim_time_init_servo = robot.getCoppeliasimSimulationTime();
                 }
 
-            }else if( State == 1 ){
+            }else if( State == 11 ){
+                cdMo = eMc.inverse()*edMo;
+                cMo = (robot.get_fMe()*eMc).inverse() * obj_vec[c_idx].wMo;
+                active_cdMc = cdMo * obj_vec[c_idx].oMo * cMo.inverse();
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 12 ){
+                active_cdMc = (fM_eed_r_tote*eMc).inverse()*robot.get_fMe()*eMc ;
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 13 ){
+            std::cout << "state3, x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
+                active_cdMc = (fM_eed_l_tote*eMc).inverse()*robot.get_fMe()*eMc ;
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 14 ){
+            // translation motion push0
+        	vpHomogeneousMatrix fM_Push0 = getMatrixPush0(Box[0], Box[1], Box[2], x0, y0, z0);
+                active_cdMc = (fM_r_tote* fM_Push0*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //prepare for translation push 1
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 15 ){
+            // translation motion push1
+        	vpHomogeneousMatrix fM_Push1 = getMatrixPush1(Box[0], Box[1], Box[2], x0, y0, z0);
+		active_cdMc = (fM_r_tote* fM_Push1*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //prepare for translation push 2
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 16 ){
+            // translation motion push2
+        	vpHomogeneousMatrix fM_Push1 = getMatrixPush2(Box[0], Box[1], Box[2], x0, y0, z0);
+		active_cdMc = (fM_r_tote* fM_Push1*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; // translating
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }else if( State == 17 ){
+            // translation motion push2
+        	vpHomogeneousMatrix fM_Push1 = getMatrixPush3(Box[0], Box[1], Box[2], x0, y0, z0);
+		active_cdMc = (fM_r_tote* fM_Push1*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; // placing
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }
+            else if( State == 10){
+                active_cdMc = (fM_eed_r_tote*eMc).inverse()*robot.get_fMe()*eMc ;
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+           }
+                else if( State == 1 ){
+                double x = (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3],
+            	y = (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3],
+            	z = (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3];
+            	x1=x;
+            	y1=y;
+            	z1=z;
+            
+            	std::cout << "state1: x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
+            	std::cout << "state1: x1, y1, z1:\n" << x1 << y1 << z1 << std::endl;
+            	std::cout << "state1: x, y, z:\n" << x << y << z << std::endl;
                 cdMo = eMc.inverse()*edMo;
                 cMo = (robot.get_fMe()*eMc).inverse() * obj_vec[c_idx].wMo;
                 //std::cout << "ob2:\n" << obj_vec[c_idx].wMo << std::endl;
@@ -636,7 +819,7 @@ int main( int argc, char **argv )
                     sim_time_init_servo = robot.getCoppeliasimSimulationTime();
                 }
             }else if( State == 3 ){
-            std::cout << "state3, x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
+            std::cout << "state3, x1, y1, z1:\n" << x1 << y1 << z1 << std::endl;
                 active_cdMc = (fM_eed_l_tote*eMc).inverse()*robot.get_fMe()*eMc ;
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -650,9 +833,9 @@ int main( int argc, char **argv )
                     sim_time_init_servo = robot.getCoppeliasimSimulationTime();
                 }
             }else if( State == 4 ){
-            std::cout << "state4, x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
-            	std::cout << "test obj_vec[0].wMo 2nd:\n " << obj_vec[0].wMo << std::endl;
-            	vpHomogeneousMatrix fM_Y0_rotate = getMatrixY0(Box[0], Box[1], x0, y0, z0);
+            std::cout << "state4, x1, y1, z1:\n" << x1 << y1 << z1 << std::endl;
+            	std::cout << "test fM_r_tote.inverse()*obj_vec[0].wMo 2nd:\n " << fM_r_tote.inverse()*obj_vec[0].wMo << std::endl;
+            	vpHomogeneousMatrix fM_Y0_rotate = getMatrixY0(Box[0], Box[1], (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_r_tote* fM_Y0_rotate*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //translation (prepare for rotating)
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -667,9 +850,9 @@ int main( int argc, char **argv )
                 }
             }
             else if( State == 5 ){
-            std::cout << "state5, x0, y0, z0:\n" << x0 << y0 << z0 << std::endl;
-            	std::cout << "test obj_vec[0].wMo 3rd:\n " << obj_vec[0].wMo << std::endl;
-                vpHomogeneousMatrix fM_Y1_rotate = getMatrixY1(Box[0], Box[1], x0, y0, z0);
+            std::cout << "state4, x1, y1, z1:\n" << x1 << y1 << z1 << std::endl;
+            	std::cout << "test fM_r_tote.inverse()*obj_vec[0].wMo 3rd:\n " << fM_r_tote.inverse()*obj_vec[0].wMo << std::endl;
+                vpHomogeneousMatrix fM_Y1_rotate = getMatrixY1(Box[0], Box[1], (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_r_tote*fM_Y1_rotate*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //rotating and go down
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -683,7 +866,7 @@ int main( int argc, char **argv )
                     sim_time_init_servo = robot.getCoppeliasimSimulationTime();
                 }
             }else if( State == 6 ){
-                vpHomogeneousMatrix fM_Y2_rotate = getMatrixY2(Box[0], Box[1], x0, y0, z0);
+                vpHomogeneousMatrix fM_Y2_rotate = getMatrixY2(Box[0], Box[1], (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_r_tote* fM_Y2_rotate*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //go up without rotating
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -698,7 +881,7 @@ int main( int argc, char **argv )
                 }
             }else if( State == 7 ){
             // rotating motion Y3
-        	vpHomogeneousMatrix fM_Y3_rotate = getMatrixY3(Box[0], Box[1], x0, y0, z0);
+        	vpHomogeneousMatrix fM_Y3_rotate = getMatrixY3(Box[0], Box[1], (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_r_tote* fM_Y3_rotate*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //rorate back
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -713,7 +896,7 @@ int main( int argc, char **argv )
                 }
             }else if( State == 8 ){
             // rotating motion Y4
-        	vpHomogeneousMatrix fM_Y4_rotate = getMatrixY4(Box[0], Box[1], x0, y0, z0);
+        	vpHomogeneousMatrix fM_Y4_rotate = getMatrixY4(Box[0], Box[1], (fM_r_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_r_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_r_tote* fM_Y4_rotate*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //go down to place box
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
@@ -761,7 +944,7 @@ int main( int argc, char **argv )
                 for(int idx=0;idx<obj_vec.size();idx++){  // search in the object vector if the next object already exist
                     if(obj_vec[idx].ID == TagID){
                         std::cout << "The parcel is visible and I know where to go to pick it! \n";
-                        State = 1; // New state
+                        State = 11; // New state
                         TagID = 1; // box with tag ID = 1 that have to be picked
                         c_idx = idx;
                         found = true;
@@ -778,7 +961,85 @@ int main( int argc, char **argv )
                 }
 
 
-            }else if(error_tr <= 0.001 && error_tu <= 1 && State == 1){ // once you reach the box to pick, activate vacuum and move up
+            }else if(error_tr <= 0.001 && error_tu <= 1 && State == 11){ // once you reach the box to pick, activate vacuum and move up
+
+                std::cout << "On top of the parcel to pick \n";
+                std::cout << "Activating suction pad \n";
+                std::cout << "Parcel was picked, going to lift it \n";
+                activate.data = 1;
+                pub_suctionpad.publish(activate);
+                State = 12;
+                servo_started = false;
+
+            }else if(error_tr <= 0.1 && error_tu <= 1 && State == 12){ // once reached the position above the right tote, move to the left tote
+
+                std::cout << "Moving the parcel to the left tote \n";
+                State = 13;
+                servo_started = false;
+
+            }else if(error_tr <= 0.1 && error_tu <= 1 && State == 13){ // once reached the position above the left tote, prepare for translation push
+
+                std::cout << "prepare for translation push 1\n";
+                State = 14;
+                servo_started = false;
+
+            }else if(error_tr <= 0.001 && error_tu <= 0.5 && State == 14){ 
+                std::cout << "prepare for translation push 2\n";
+                State = 15;
+                servo_started = false;
+                
+            }
+            else if(error_tr <= 0.001 && error_tu <= 0.1 && State == 15){ 
+
+                std::cout << "translating\n";
+                State = 16;
+                servo_started = false;
+
+            }
+            else if(((error_tr <= 0.001 && error_tu <= 0.1) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 16){ // once you have placed the box, got o home position
+
+                std::cout << "placing\n";
+                State = 17;
+                servo_started = false;
+
+            }else if(((error_tr <= 0.001 && error_tu <= 0.1) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 17){ // once you have placed the box, got o home position
+
+                std::cout << "go home\n";
+                activate.data = 0;
+                pub_suctionpad.publish(activate);
+                State = 10;
+                servo_started = false;
+
+            }else if(error_tr <= 0.01 && error_tu <= 5 && State == 10){ //once home is reached, go to pick next box on the conveyor
+            
+                std::cout << "picking next box \n";
+                TagID =2;
+                bool found = false;
+                for(int idx=0;idx<obj_vec.size();idx++){  // search in the object vector if the next object already exist
+                    if ( obj_vec[idx].ID == TagID )
+                    {
+                        std::cout << "Next Box is visible and I know where to go to pick it! \n";
+                        State         = 1;     // New state
+                        TagID         = 2; // box with tag ID have to be picked in order
+                        c_idx         = idx;
+                        std::cout << "c_idx:\n"<< c_idx << std::endl;
+                        found         = true;
+                        servo_started = false;
+                        break;
+                    }
+
+                }
+                if ( !found ){
+                    std::cout << "No box was found to pick, look somewhere else... \n";
+                    // here you can implement an alternative motion to look for the packages around.
+                    // for the moment, we suppose the box is always there
+                    State = 100;
+                    v_c = 0;
+                }
+            }
+            
+// picking next box and do rotation
+            else if(error_tr <= 0.001 && error_tu <= 1 && State == 1){ // once you reach the box to pick, activate vacuum and move up
 
                 std::cout << "On top of the parcel to pick \n";
                 std::cout << "Activating suction pad \n";
@@ -845,23 +1106,6 @@ int main( int argc, char **argv )
                 State = 100; //
 
             }
-
-
-
-//      if ( opt_task_sequencing )
-//      {
-//        if ( !servo_started )
-//        {
-//          if ( send_velocities )
-//          {
-//            servo_started = true;
-//          }
-//          sim_time_init_servo = robot.getCoppeliasimSimulationTime();
-//        }
-//        v_c = task.computeControlLaw( robot.getCoppeliasimSimulationTime() - sim_time_init_servo );
-//      }
-//      else
-//      {
             v_c = task.computeControlLaw() - v_0*exp(-10.0*(robot.getCoppeliasimSimulationTime() - sim_time_init_servo));
 //      }
 
@@ -885,8 +1129,17 @@ int main( int argc, char **argv )
             ss << "error_tu: " << error_tu;
             vpDisplay::displayText( I, 40, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
             ss.str( "" );
-            ss << "current state: " << State;
+            ss << "force x: " << ft_sensor[0];
             vpDisplay::displayText( I, 60, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+            ss.str( "" );
+            ss << "force y: " << ft_sensor[1];
+            vpDisplay::displayText( I, 80, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+            ss.str( "" );
+            ss << "force z: " << ft_sensor[2];
+            vpDisplay::displayText( I, 100, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
+            ss.str( "" );
+            ss << "current state: " << State;
+            vpDisplay::displayText( I, 120, static_cast< int >( I.getWidth() ) - 150, ss.str(), vpColor::red );
 
 
             // -------------------------------------------------------------------------------------------------------------
