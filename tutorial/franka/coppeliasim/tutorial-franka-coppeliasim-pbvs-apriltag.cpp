@@ -76,7 +76,7 @@ void display_point_trajectory( const vpImage< unsigned char > &I, const std::vec
 }
 
 vpHomogeneousMatrix getMatrixPush0(const std::vector<double>& Box1, const std::vector<double>& Box2, const std::vector<double>& Box3, double x, double y, double z) {//prepare for translation push 1
-    std::cout << "Go to target position above by 0.02 meters" << std::endl;
+    std::cout << "Go to target position above by Box1[2] meters" << std::endl;
     
     //delta_Z
     double delta = 0.02;
@@ -102,7 +102,7 @@ vpHomogeneousMatrix getMatrixPush1(const std::vector<double>& Box1, const std::v
     // target position
     double X = x-0.8*delta;
     double Y = y + 0.5*Box1[1] + 0.5*Box3[1] + delta;
-    double Z = Box3[2] + 0.5*delta;
+    double Z = Box3[2] + delta;
 
     vpHomogeneousMatrix fM_Push1(vpTranslationVector(X, Y, Z),
                                  vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
@@ -120,8 +120,8 @@ vpHomogeneousMatrix getMatrixPush2(const std::vector<double>& Box1, const std::v
     double delta = 0.02;
     
     // target position
-    double X = x-0.8*delta;
-    double Y = Box1[1] + 0.5*Box3[1] - 0.1*delta;
+    double X = x-delta;
+    double Y = Box1[1] + 0.5*Box3[1] - 0.3*delta;
     double Z = Box3[2] + delta;
     
     // translation motion Push, step 2
@@ -157,8 +157,8 @@ vpHomogeneousMatrix getMatrixPush3(const std::vector<double>& Box1, const std::v
 
 
 vpHomogeneousMatrix getMatrixY0(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//prepare for rotating
-    std::cout << "Go to target position above by 0.45 meters without any tilt angle." << std::endl;
-    double factor1 = 0.45;
+    std::cout << "Go to target position above by 0.15 meters with rotated end-effector." << std::endl;
+    double factor1 = 0.15;
     
     // delta_X
     double delta = 0.015;
@@ -175,7 +175,7 @@ vpHomogeneousMatrix getMatrixY0(const std::vector<double>& Box1, const std::vect
     double Z = Box2[2]*c + 0.5*Box2[1]*s + Box1[2];
 
     vpHomogeneousMatrix fM_Y0_rotate(vpTranslationVector(X, Y, Z+factor1),
-                                       vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+                                       vpRotationMatrix( {c,0,s,0,1,0,-s,0,c} ) );//{1,0,0,0,1,0,0,0,1}
                                        
     //print Rotation angle and HomogeneousMatrix
     std::cout << "Rotation angle: " << theta << std::endl;
@@ -188,7 +188,7 @@ vpHomogeneousMatrix getMatrixY1(const std::vector<double>& Box1, const std::vect
     std::cout << "Going down with rotating" << std::endl;
 
     // factor1 is used for deeper push due to the limitation of physical engine and heavy parcel, you may change it according to the parcel you want
-    double factor1 = 1.25;
+    double factor1 = 1.1;
     
     // delta_X
     double delta = 0.015;
@@ -218,8 +218,85 @@ vpHomogeneousMatrix getMatrixY1(const std::vector<double>& Box1, const std::vect
     return fM_Y1_rotate;
 }
 
-vpHomogeneousMatrix getMatrixY2(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//go up without rotating due, if you rotate instead of going up first, it will crash the side of tote
-    std::cout << "go up without rotating" << std::endl;
+vpHomogeneousMatrix getMatrixY2(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//go up with rotating half of theta
+    std::cout << "go up with rotating part of theta" << std::endl;
+    
+    // delta_X
+    double delta = 0.015;
+    double len = x - 0.5*Box1[0] - delta;
+    
+    // Rotation angle
+    double theta = std::acos(len / Box2[0]);
+    double c = cos(theta);
+    double s = sin(theta);
+    double tan_theta = std::tan(theta);
+    
+    // part of Rotation angle
+    double theta_half = theta * 0.3;
+    double c_half = cos(theta_half);
+    double s_half = sin(theta_half);
+    double tan_theta_half = std::tan(theta_half);
+    
+    //dz is how much you push downwards
+    double dz = (Box2[1]*(1-c))/tan_theta;
+    
+    // target position
+    double Y = y;
+    double X = Box2[2]*s_half + 0.5*Box2[0]*c_half;
+    double Z = Box2[2]*c_half + 0.5*Box2[1]*s_half + Box1[2];
+
+    vpHomogeneousMatrix fM_Y2_rotate(vpTranslationVector(X, Y, Z),
+                                     vpRotationMatrix( {c_half,0,s_half,0,1,0,-s_half,0,c_half} ) );//vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );//
+                                     
+    //print Rotation angle and HomogeneousMatrix
+    std::cout << "Rotation angle: " << theta << std::endl;
+    std::cout << "fM_Y2_rotate:\n" << fM_Y2_rotate << std::endl;
+    
+    return fM_Y2_rotate;
+}
+
+vpHomogeneousMatrix getMatrixY3(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//rorate back
+    std::cout << "Rotating back" << std::endl;
+    double factor3 = 1.1;
+    
+    // delta_X
+    double delta = 0.015;
+    double len = x - 0.5*Box1[0] - delta;
+    
+    // Rotation angle
+    double theta = std::acos(len / Box2[0]);
+    double c = cos(theta);
+    double s = sin(theta);
+    double tan_theta = std::tan(theta);
+    
+    // part of Rotation angle
+    double theta_half = theta * 0.3;
+    double c_half = cos(theta_half);
+    double s_half = sin(theta_half);
+    double tan_theta_half = std::tan(theta_half);
+    
+    //dz is how much you push downwards
+    double dz = (Box2[1]*(1-c))/tan_theta;
+    
+    // target position
+    double X = 0.5*Box2[0]*1.04;
+    double Y = 0.5*Box2[1]*1.15; 	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2]*c_half + 0.5*Box2[1]*s_half + Box1[2];
+    
+    // rotating motion Y3, step 3
+    vpHomogeneousMatrix fM_Y3_rotate(vpTranslationVector(X, Y, factor3*Z),//0.1,0.2,0.1
+                                     vpRotationMatrix( {c_half,0,s_half,0,1,0,-s_half,0,c_half} ) );
+    
+    //print Rotation angle and HomogeneousMatrix
+    std::cout << "Rotation angle: " << theta << std::endl;
+    std::cout << "fM_Y3_rotate:\n" << fM_Y3_rotate << std::endl;
+    
+    return fM_Y3_rotate;
+}
+
+vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//after having enough width, go down to place box
+    std::cout << "after having enough width, go down" << std::endl;
+
     
     // delta_X
     double delta = 0.015;
@@ -235,59 +312,9 @@ vpHomogeneousMatrix getMatrixY2(const std::vector<double>& Box1, const std::vect
     double dz = (Box2[1]*(1-c))/tan_theta;
     
     // target position
-    double X = Box2[2]*s + len - 0.5*Box2[0]*c;
-    double Y = y;
-    double Z = Box2[2] + Box2[1] + 10*delta;
-
-    vpHomogeneousMatrix fM_Y2_rotate(vpTranslationVector(X, Y, Z),
-                                     vpRotationMatrix( {c,0,s,0,1,0,-s,0,c} ) );
-                                     
-    //print Rotation angle and HomogeneousMatrix
-    std::cout << "Rotation angle: " << theta << std::endl;
-    std::cout << "fM_Y2_rotate:\n" << fM_Y2_rotate << std::endl;
-    
-    return fM_Y2_rotate;
-}
-
-vpHomogeneousMatrix getMatrixY3(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//rorate back
-    std::cout << "Rorating back" << std::endl;
-    double factor3 = 1.1;
-    
-    // delta_X
-    double delta = 0.015;
-    double len = x - 0.5*Box1[0] - delta;
-    
-    // Rotation angle
-    double theta = std::acos(len / Box2[0]);
-    double c = cos(theta);
-    double s = sin(theta);
-    
-    // target position
-    double X = 0.5*Box2[0]*1.02;
-    double Y = 0.5*Box2[1]*1.15; 	// multiplied by some values otherwise it crash the side of tote
-    double Z = Box2[2] + Box1[2] + 10*delta;
-    
-    // rotating motion Y3, step 3
-    vpHomogeneousMatrix fM_Y3_rotate(vpTranslationVector(X, Y, factor3*Z),//0.1,0.2,0.1
-                                     vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
-    
-    //print Rotation angle and HomogeneousMatrix
-    std::cout << "Rotation angle: " << theta << std::endl;
-    std::cout << "fM_Y3_rotate:\n" << fM_Y3_rotate << std::endl;
-    
-    return fM_Y3_rotate;
-}
-
-vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {//after having enough width, go down to place box
-    std::cout << "after having enough width, go down" << std::endl;
-    
-    // delta_X
-    double delta = 0.015;
-    
-    // target position
-    double X = 0.5*Box2[0]*1.02;
-    double Y = 0.5*Box2[1]*1.15;	// multiplied by some values otherwise it crash the side of tote
-    double Z = Box2[2] + 2*delta;	// added by some values otherwise it crash the bottom of tote
+    double X = 0.5*Box2[0];
+    double Y = 0.5*Box2[1]*1.05;	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2] + 0.9*delta;	// added by some values otherwise it crash the bottom of tote
 
     vpHomogeneousMatrix fM_Y4_rotate(vpTranslationVector(X, Y, Z),
                                      vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
@@ -301,13 +328,26 @@ vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vect
 vpHomogeneousMatrix getMatrixY5(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {// do translation motion again then place the parcel
     std::cout << "after going down, do translation motion and place the parcel" << std::endl;
     
+    double factor1 = 1.25;
+    double factor3 = 1.1;
+    
     // delta_X
     double delta = 0.015;
+    double len = x - 0.5*Box1[0] - delta;
+    
+    // Rotation angle
+    double theta = std::acos(len / Box2[0]);
+    double c = cos(theta);
+    double s = sin(theta);
+    double tan_theta = std::tan(theta);
+    
+    //dz is how much you push downwards
+    double dz = (Box2[1]*(1-c))/tan_theta;
     
     // target position
     double X = 0.37 - (Box1[0] + 0.5*Box2[0]); //0.37 is the width of tote
-    double Y = 0.5*Box2[1]*1.10;	// multiplied by some values otherwise it crash the side of tote
-    double Z = Box2[2] + 2*delta;	// added by some values otherwise it crash the bottom of tote
+    double Y = 0.5*Box2[1];	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2] + 0.9*delta;	// added by some values otherwise it crash the bottom of tote
 
     vpHomogeneousMatrix fM_Y5_push(vpTranslationVector(X, Y, Z),
                                      vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
@@ -1102,7 +1142,7 @@ int main( int argc, char **argv )
                 State = 14;
                 servo_started = false;
 
-            }else if(error_tr <= 0.001 && error_tu <= 0.5 && State == 14){ 
+            }else if(error_tr <= 0.005 && error_tu <= 0.5 && State == 14){ 
                 std::cout << "prepare for translation push 2\n";
                 State = 15;
                 servo_started = false;
@@ -1186,35 +1226,35 @@ int main( int argc, char **argv )
                 State = 4;
                 servo_started = false;
 
-            }else if(error_tr <= 0.001 && error_tu <= 0.1 && State == 4){ // once you finished preparation, rotate and go down
+            }else if(error_tr <= 0.002 && error_tu <= 0.2 && State == 4){ // once you finished preparation, rotate and go down
                 //activate.data = 0;
                 std::cout << "rotating and go down\n";
                 State = 5;
                 servo_started = false;
 
             }
-            else if(error_tr <= 0.001 && error_tu <= 0.1 && State == 5){ //push another box using roration, go up without rotating
+            else if(error_tr <= 0.002 && error_tu <= 0.2 && State == 5){ //push another box using roration, go up without rotating
 
                 std::cout << "go up without rotating\n";
                 State = 6;
                 servo_started = false;
 
             }
-            else if(error_tr <= 0.001 && error_tu <= 1 && State == 6){ // once you have gone up, rotate back
+            else if(error_tr <= 0.05 && error_tu <= 5 && State == 6){ // once you have gone up, rotate back
 
                 std::cout << "rotate back\n";
                 State = 7;
                 servo_started = false;
                 
             }
-            else if(error_tr <= 0.002 && error_tu <= 1 && State == 7){ // once you have rotated back, go down
+            else if(error_tr <= 0.005 && error_tu <= 1 && State == 7){ // once you have rotated back, go down
 
                 std::cout << "go down\n";
                 State = 8;
                 servo_started = false;
                 
             }
-            else if(error_tr <= 0.002 && error_tu <= 1 && State == 8){ // once you have gone down, do translation motion again
+            else if(error_tr <= 0.001 && error_tu <= 1 && State == 8){ // once you have gone down, do translation motion again
 
                 std::cout << "do translation motion again\n";
                 State = 19;
