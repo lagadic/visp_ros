@@ -120,7 +120,7 @@ vpHomogeneousMatrix getMatrixPush2(const std::vector<double>& Box1, const std::v
     double delta = 0.02;
     
     // target position
-    double X = x-delta;
+    double X = x-1.1*delta;
     double Y = Box1[1] + 0.5*Box3[1] - 0.3*delta;
     double Z = Box3[2] + delta;
     
@@ -279,13 +279,13 @@ vpHomogeneousMatrix getMatrixY3(const std::vector<double>& Box1, const std::vect
     double dz = (Box2[1]*(1-c))/tan_theta;
     
     // target position
-    double X = 0.5*Box2[0]*1.04;
-    double Y = 0.5*Box2[1]*1.15; 	// multiplied by some values otherwise it crash the side of tote
+    double X = 0.5*Box2[0]*0.98;
+    double Y = 0.5*Box2[1]*1.1; 	// multiplied by some values otherwise it crash the side of tote
     double Z = Box2[2]*c_half + 0.5*Box2[1]*s_half + Box1[2];
     
     // rotating motion Y3, step 3
     vpHomogeneousMatrix fM_Y3_rotate(vpTranslationVector(X, Y, factor3*Z),//0.1,0.2,0.1
-                                     vpRotationMatrix( {c_half,0,s_half,0,1,0,-s_half,0,c_half} ) );
+                                     vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
     
     //print Rotation angle and HomogeneousMatrix
     std::cout << "Rotation angle: " << theta << std::endl;
@@ -312,9 +312,9 @@ vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vect
     double dz = (Box2[1]*(1-c))/tan_theta;
     
     // target position
-    double X = 0.5*Box2[0];
-    double Y = 0.5*Box2[1]*1.05;	// multiplied by some values otherwise it crash the side of tote
-    double Z = Box2[2] + 0.9*delta;	// added by some values otherwise it crash the bottom of tote
+    double X = 0.5*Box2[0]*0.96;
+    double Y = 0.5*Box2[1]*1.1;	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2] + 0.8*delta;	// added by some values otherwise it crash the bottom of tote
 
     vpHomogeneousMatrix fM_Y4_rotate(vpTranslationVector(X, Y, Z),
                                      vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
@@ -326,7 +326,7 @@ vpHomogeneousMatrix getMatrixY4(const std::vector<double>& Box1, const std::vect
 }
 
 vpHomogeneousMatrix getMatrixY5(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {// do translation motion again then place the parcel
-    std::cout << "after going down, do translation motion and place the parcel" << std::endl;
+    std::cout << "after going down, do translation motion y-direction and place the parcel" << std::endl;
     
     double factor1 = 1.25;
     double factor3 = 1.1;
@@ -346,8 +346,8 @@ vpHomogeneousMatrix getMatrixY5(const std::vector<double>& Box1, const std::vect
     
     // target position
     double X = 0.37 - (Box1[0] + 0.5*Box2[0]); //0.37 is the width of tote
-    double Y = 0.5*Box2[1];	// multiplied by some values otherwise it crash the side of tote
-    double Z = Box2[2] + 0.9*delta;	// added by some values otherwise it crash the bottom of tote
+    double Y = 0.5*Box2[1]*1.1;	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2] + 0.8*delta;	// added by some values otherwise it crash the bottom of tote
 
     vpHomogeneousMatrix fM_Y5_push(vpTranslationVector(X, Y, Z),
                                      vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
@@ -356,6 +356,26 @@ vpHomogeneousMatrix getMatrixY5(const std::vector<double>& Box1, const std::vect
     std::cout << "fM_Y5_push:\n" << fM_Y5_push << std::endl;
     
     return fM_Y5_push;
+}
+
+vpHomogeneousMatrix getMatrixY6(const std::vector<double>& Box1, const std::vector<double>& Box2, double x, double y, double z) {// do translation motion again then place the parcel
+    std::cout << "place the parcel x-direction" << std::endl;
+    
+    // delta_X
+    double delta = 0.015;
+    
+    // target position
+    double X = 0.37 - (Box1[0] + 0.5*Box2[0]); //0.37 is the width of tote
+    double Y = 0.5*Box2[1]*0.8;	// multiplied by some values otherwise it crash the side of tote
+    double Z = Box2[2] + 0.8*delta;	// added by some values otherwise it crash the bottom of tote
+
+    vpHomogeneousMatrix fM_Y6_push(vpTranslationVector(X, Y, Z),
+                                     vpRotationMatrix( {1,0,0,0,1,0,0,0,1} ) );
+                                     
+    //print HomogeneousMatrix
+    std::cout << "fM_Y6_push:\n" << fM_Y6_push << std::endl;
+    
+    return fM_Y6_push;
 }
 
 
@@ -1033,10 +1053,27 @@ int main( int argc, char **argv )
                 }
             }
             
-            // do translation motion again and place the parcel
+            // do translation motion again and place the parcel in y-direction
             else if( State == 19 ){
         	vpHomogeneousMatrix fM_Y5_push = getMatrixY5(Box[0], Box[1], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[2][3]);
                 active_cdMc = (fM_origin_l_tote* fM_Y5_push*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //go down to place box
+                t.buildFrom(active_cdMc);
+                tu.buildFrom(active_cdMc);
+                if ( !servo_started )
+                {
+                    if ( send_velocities )
+                    {
+                        servo_started = true;
+                    }
+                    v_0 = task.computeControlLaw();
+                    sim_time_init_servo = robot.getCoppeliasimSimulationTime();
+                }
+            }
+            
+            // do translation motion again and place the parcel in x-direction
+            else if( State == 21 ){
+        	vpHomogeneousMatrix fM_Y6_push = getMatrixY6(Box[0], Box[1], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[0][3], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[1][3], (fM_origin_l_tote.inverse()*obj_vec[0].wMo)[2][3]);
+                active_cdMc = (fM_origin_l_tote* fM_Y6_push*edMo.inverse()*eMc).inverse()*robot.get_fMe()*eMc ; //go down to place box
                 t.buildFrom(active_cdMc);
                 tu.buildFrom(active_cdMc);
                 if ( !servo_started )
@@ -1136,32 +1173,32 @@ int main( int argc, char **argv )
                 State = 13;
                 servo_started = false;
 
-            }else if(error_tr <= 0.1 && error_tu <= 1 && State == 13){ // once reached the position above the left tote, prepare for translation push
+            }else if(error_tr <= 0.1 && error_tu <= 2 && State == 13){ // once reached the position above the left tote, prepare for translation push
 
                 std::cout << "prepare for translation push 1\n";
                 State = 14;
                 servo_started = false;
 
-            }else if(error_tr <= 0.005 && error_tu <= 0.5 && State == 14){ 
+            }else if(error_tr <= 0.05 && error_tu <= 14 && State == 14){ 
                 std::cout << "prepare for translation push 2\n";
                 State = 15;
                 servo_started = false;
                 
             }
-            else if(error_tr <= 0.001 && error_tu <= 0.1 && State == 15){ 
+            else if(error_tr <= 0.07 && error_tu <= 12 && State == 15){ 
 
                 std::cout << "translating\n";
                 State = 16;
                 servo_started = false;
 
             }
-            else if(((error_tr <= 0.001 && error_tu <= 0.1) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 16){ // stop based on force sensor
+            else if(((error_tr <= 0.01 && error_tu <= 12) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 16){ // stop based on force sensor
 
                 std::cout << "placing\n";
                 State = 17;
                 servo_started = false;
 
-            }else if(((error_tr <= 0.001 && error_tu <= 0.1) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 17){ // once you have placed the box, go to top of left tote
+            }else if(((error_tr <= 0.001 && error_tu <= 12) || abs(ft_sensor[1]) >= 1.5 || abs(ft_sensor[0]) >= 1.5) && State == 17){ // once you have placed the box, go to top of left tote
 
                 std::cout << "go to top of left tote\n";
                 activate.data = 0;
@@ -1240,7 +1277,7 @@ int main( int argc, char **argv )
                 servo_started = false;
 
             }
-            else if(error_tr <= 0.05 && error_tu <= 5 && State == 6){ // once you have gone up, rotate back
+            else if(error_tr <= 0.05 && error_tu <= 0.1 && State == 6){ // once you have gone up, rotate back
 
                 std::cout << "rotate back\n";
                 State = 7;
@@ -1256,12 +1293,19 @@ int main( int argc, char **argv )
             }
             else if(error_tr <= 0.001 && error_tu <= 1 && State == 8){ // once you have gone down, do translation motion again
 
-                std::cout << "do translation motion again\n";
+                std::cout << "do translation motion again in y-direction\n";
                 State = 19;
                 servo_started = false;
                 
             }
-            else if((error_tr <= 0.001 && error_tu <= 0.5|| abs(ft_sensor[1]) >= 2 || abs(ft_sensor[0]) >= 2) && State == 19){ // once you have reached the side, go to top of left tote
+            else if((error_tr <= 0.001 && error_tu <= 0.5|| abs(ft_sensor[1]) >= 3 || abs(ft_sensor[0]) >= 3) && State == 19){ // once you have reached the side, go to top of left tote
+
+                std::cout << "place parcel in x-direciton\n";
+                State = 21;
+                servo_started = false;
+
+            }
+            else if((error_tr <= 0.001 && error_tu <= 0.5|| abs(ft_sensor[1]) >= 3 || abs(ft_sensor[0]) >= 3) && State == 21){ // once you have reached the side, go to top of left tote
 
                 std::cout << "go to top of left tote\n";
                 activate.data = 0;
