@@ -28,23 +28,25 @@ Either you can install dependencies from existing packages, either from source.
 
 **Install dependencies from packages**
 
-Install `ros-<version>-visp` and `ros-<version>-vision_visp` packages that match your ros distribution (kinetic, melodic, noetic), as for example:
+Install `ros-<distro>-visp` and `ros-<distro>-vision_visp` packages that match your ros2 distribution (humble, rolling), as for example:
 
   ```
-  $ sudo apt-get install ros-melodic-visp ros-melodic-vision_visp
+  $ sudo apt-get install ros-humble-visp ros-humble-vision_visp
   ```
 
-Once done, jump to section 1.2. 
+Note: It may occur that `vision_visp` package is not available for your ros2 distro. 
+
+Once done, or if the packages are not existing jump to section 1.2. 
 
 **Install dependencies from source**
 
-If you want to use the nodes that allow to control real robots such as Biclops PT head, Viper 650, Viper 850, Afma4, Afma6 or Franka robots, you need to build ViSP from source and install ViSP in `/opt/ros/<version>` in order to overwrite any version that was already installed from packages. There are a couple of [tutorials](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-install-ubuntu.html) that may help. Below we recall the main instructions
+If you want to use the nodes that allow to control real robots such as Biclops PT head, Viper 650, Viper 850, Afma4, Afma6 or Franka robots, you need to build ViSP from source and install ViSP in `/opt/ros/<distro>` in order to overwrite any version that was already installed from packages. There are a couple of [tutorials](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-install-ubuntu.html) that may help. Below we recall the main instructions
 
 - Install first ViSP required dependencies: OpenCV, X11... 
 
   ```
   $ sudo apt-get install libopencv-dev libx11-dev liblapack-dev libeigen3-dev libv4l-dev \
-         libzbar-dev libpthread-stubs0-dev libjpeg-dev libpng-dev
+                        libzbar-dev libpthread-stubs0-dev libdc1394-dev nlohmann-json3-dev
   ```
 
 - If you want to simulate Panda robot using FrankaSim as explained in this [tutorial](http://docs.ros.org/en/noetic/api/visp_ros/html/tutorial-franka-coppeliasim.html),
@@ -59,22 +61,25 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 
 - If you want to control a Parrot bebop2 drone follow [this tutorial](http://wiki.ros.org/visp_ros/Tutorials/How%20to%20do%20visual%20servoing%20with%20Parrot%20Bebop%202%20drone%20and%20visp_ros) that explain which are the required dependencies
 
-- Then get, build and install ViSP
+- Then clone, build and install ViSP
 
   ```
-  $ cd visp-ws
+  $ echo "export VISP_WS=$HOME/visp-ws" >> ~/.bashrc
+  $ source ~/.bashrc
+  $ mkdir -p $VISP_WS
   $ git clone https://github.com/lagadic/visp.git
-  $ mkdir visp-build-ros; cd visp-build-ros
+  $ mkdir visp-build; cd visp-build
   $ cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/$ROS_DISTRO ../visp
   $ make -j4; sudo make install
   ```
 
-- Then get `vision_visp` meta package that contains `visp-bridge` package that is a `visp_ros` package dependency:
+- Create your ros2 workspace and get `vision_visp` meta package that contains `visp-bridge` package that is a `visp_ros` package dependency:
 
   ```
-  $ cd ~/catkin_ws/src
+  $ mkdir -p $HOME/colcon_ws/src
+  $ cd $HOME/colcon_ws/src
   $ source /opt/ros/<version>/setup.bash
-  $ git clone https://github.com/lagadic/vision_visp.git -b $ROS_DISTRO
+  $ git clone https://github.com/lagadic/vision_visp.git -b rolling
   ```
 
 ## 1.2. Get visp_ros source
@@ -82,6 +87,7 @@ If you want to use the nodes that allow to control real robots such as Biclops P
 Get `visp_ros` package:
 
   ```
+  $ cd $HOME/colcon_ws/src
   $ git clone https://github.com/lagadic/visp_ros.git
   ```
 
@@ -90,23 +96,9 @@ Get `visp_ros` package:
 To build `visp_ros` package run:
 
   ```
-  $ cd ~/catkin_ws
-  $ catkin_make -DCMAKE_BUILD_TYPE=Release --pkg visp_ros
+  $ cd $HOME/colcon_ws
+  $ colcon build --symlink-install --cmake-args -DVISP_DIR=$VISP_WS/visp-build -DCMAKE_BUILD_TYPE=Release
   ```
-
-## 1.4. Build documentation and tutorials
-
-There is the documentation available in ROS wiki page: http://wiki.ros.org/visp_ros
-
-It is also possible to build the package documentation from your own:
-
-  ```
-  $ cd ~/catkin_ws
-  $ rosdoc_lite src/visp_ros
-  ```
-
-Documentation is available in `~/catkin_ws/doc/html/index.html`.
-This documentation is a local version of the documentation available [here](http://docs.ros.org/en/noetic/api/visp_ros/html/index.html).
 
 # 2. Usage
 
