@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include <visp/vpTime.h>
+#include <visp3/core/vpTime.h>
 #include <visp_ros/vpROSRobotPioneer.h>
 
 int

@@ -39,7 +39,7 @@
  *
  *****************************************************************************/
 
-#include <std_srvs/Empty.h>
+#include <std_srvs/srv/empty.hpp>
 #include <visp/vpConfig.h>
 #include <visp/vpMath.h>
 #include <visp/vpRobotException.h>

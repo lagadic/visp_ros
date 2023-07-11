@@ -271,7 +271,7 @@ The general principle remains the same as in the previous section. The differenc
   \endverbatim
   \note At this point, if in terminal 3 you get a segfault like
   \verbatim
-  $ rosrun visp_ros tutorial-franka-coppeliasim-duar-arm --adaptive_gain --enable-coppeliasim-sync-mode
+  $ rosrun visp_ros tutorial-franka-coppeliasim-dual-arm --adaptive_gain --enable-coppeliasim-sync-mode
   ROS is initialized ? yes
   ROS is initialized ? yes
   Coppeliasim sync mode enabled: yes

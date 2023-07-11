@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@
 
 #include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
+
+using namespace std::chrono_literals;
 
 void
 display_point_trajectory( const vpImage< unsigned char > &I, const std::vector< vpImagePoint > &vip,
@@ -138,17 +140,15 @@ main( int argc, char **argv )
     }
   }
 
+  rclcpp::init( argc, argv );
+  auto node = std::make_shared< rclcpp::Node >( "frankasim_pbvs" );
+  rclcpp::WallRate loop_rate( 100ms );
+  rclcpp::spin_some( node );
+
+  vpROSRobotFrankaCoppeliasim robot;
+
   try
   {
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    // ROS node
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
-
-    vpROSRobotFrankaCoppeliasim robot;
     robot.setVerbose( opt_verbose );
     robot.connect();
 
@@ -171,8 +171,8 @@ main( int argc, char **argv )
 
     vpImage< unsigned char > I;
     vpROSGrabber g;
-    g.setImageTopic( "/coppeliasim/franka/camera/image" );
-    g.setCameraInfoTopic( "/coppeliasim/franka/camera/camera_info" );
+    g.subscribeImageTopic( "/coppeliasim/franka/camera/image" );
+    g.subscribeCameraInfoTopic( true );
     g.open( argc, argv );
 
     g.acquire( I );
@@ -475,6 +475,7 @@ main( int argc, char **argv )
   {
     std::cout << "ViSP exception: " << e.what() << std::endl;
     std::cout << "Stop the robot " << std::endl;
+    robot.setRobotState( vpRobot::STATE_STOP );
     return EXIT_FAILURE;
   }
 

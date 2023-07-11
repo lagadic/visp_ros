@@ -50,9 +50,9 @@
 
 #include <visp3/robot/vpRobot.h>
 
-#include <geometry_msgs/Twist.h>
-#include <nav_msgs/Odometry.h>
-#include <ros/ros.h>
+#include <geometry_msgs/msg/twist.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 /*!
   \class vpROSRobot
@@ -62,10 +62,10 @@
 class VISP_EXPORT vpROSRobot : public vpRobot
 {
 protected:
-  ros::NodeHandle *n;
-  ros::Publisher cmdvel;
-  ros::Subscriber odom;
-  ros::AsyncSpinner *spinner;
+  std::shared_ptr< rclcpp::Node > n;
+  rclcpp::Publisher< geometry_msgs::msg::Twist >::SharedPtr cmdvel;
+  rclcpp::Subscription< nav_msgs::msg::Odometry >::SharedPtr odom;
+  // ros::AsyncSpinner *spinner; TODO
 
   bool isInitialized;
 
@@ -73,15 +73,14 @@ protected:
   vpTranslationVector p;
   vpColVector pose_prev;
   vpColVector displacement;
-  uint32_t _sec, _nsec;
-  volatile bool odom_mutex;
-  std::string _master_uri;
+  uint32_t _sec, _nanosec;
+  bool odom_mutex;
   std::string _topic_cmd;
   std::string _topic_odom;
   std::string _nodespace;
 
 private: // Set as private since not implemented
-  void get_eJe( vpMatrix &eJe ) {}
+  void get_eJe( vpMatrix & /*eJe*/ ) {}
 
   vpROSRobot( const vpROSRobot &robot );
   /*!
@@ -104,7 +103,7 @@ private: // Set as private since not implemented
   \warning Not implemented.
 */
   void setPosition( const vpRobot::vpControlFrameType /*frame*/, const vpColVector & /*q*/ ){};
-  void odomCallback( const nav_msgs::Odometry::ConstPtr &msg );
+  void odomCallback( const nav_msgs::msg::Odometry::SharedPtr msg );
   void getCameraDisplacement( vpColVector & /*v*/ );
 
 public:
@@ -125,7 +124,6 @@ public:
   void stopMotion();
   void setCmdVelTopic( std::string topic_name );
   void setOdomTopic( std::string topic_name );
-  void setMasterURI( std::string master_uri );
   void setNodespace( std::string nodespace );
 };
 

@@ -1,0 +1,17 @@
+<!-- -*- xml -*- -->
+<launch>
+  <!-- To test sending velocities in D435 camera frame: -->
+  <!-- ros2 topic pub -r 1 /cmd_camvel geometry_msgs/msg/Twist "{linear: {x: 0.0, y: 0.0, z: 0.05}, angular: {x: 0.0, y: 0.0, z: 0.0}}" -->
+  
+  <!-- Afma6 robot node -->
+  <node pkg="visp_ros" exec="visp_ros_afma6_node" name="afma6" output="screen">
+    <!-- Tool type parameter. Values must conform vpAfma6ToolType:  -->
+    <!--   0 (CCMOP)                                                -->
+    <!--   1 (2 fingers gripper)                                    -->
+    <!--   2 (vaccum gripper)                                       -->
+    <!--   3 (generic camera)                                       -->
+    <!--   4 (Realsense D435).                                      -->
+    <!-- See https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType -->
+    <param name="tool_type" value="4"/>
+  </node>
+</launch>

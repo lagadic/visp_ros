@@ -1,28 +1,28 @@
 /*
- * This file is part of the ViSP software.
- * Copyright (C) 2005 - 2021 by INRIA. All rights reserved.
+ * ViSP, open source Visual Servoing Platform software.
+ * Copyright (C) 2005 - 2022 by Inria. All rights reserved.
  *
- * This software is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * ("GPL") version 2 as published by the Free Software Foundation.
+ * This software is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  * See the file LICENSE.txt at the root directory of this source
  * distribution for additional information about the GNU GPL.
  *
  * For using ViSP with software that can not be combined with the GNU
- * GPL, please contact INRIA about acquiring a ViSP Professional
+ * GPL, please contact Inria about acquiring a ViSP Professional
  * Edition License.
  *
- * See http://www.irisa.fr/lagadic/visp/visp.html for more information.
+ * See https://visp.inria.fr for more information.
  *
  * This software was developed at:
- * INRIA Rennes - Bretagne Atlantique
+ * Inria Rennes - Bretagne Atlantique
  * Campus Universitaire de Beaulieu
  * 35042 Rennes Cedex
  * France
- * http://www.irisa.fr/lagadic
  *
  * If you have questions regarding the use of this file, please contact
- * INRIA at visp@inria.fr
+ * Inria at visp@inria.fr
  *
  * This file is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE
  * WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
@@ -52,6 +52,8 @@ vpRobotFrankaSim::vpRobotFrankaSim()
   , m_flMcom()
   , m_Il( 3, 3 )
   , m_flMe()
+  , m_toolMounted( false )
+  , m_camMounted( false )
   , m_g0( { 0.0, 0.0, -9.80665 } )
   , m_mutex()
   , m_q_kdl( 7 )
@@ -69,8 +71,6 @@ vpRobotFrankaSim::vpRobotFrankaSim()
   , m_eMc()
   , m_eVc()
   , m_verbose( false )
-  , m_toolMounted( false )
-  , m_camMounted( false )
 {
 #ifdef VISP_HAVE_OROCOS_KDL
   m_chain_kdl.addSegment(
@@ -109,8 +109,8 @@ vpRobotFrankaSim::vpRobotFrankaSim()
   m_jacobianSolver_kdl = new KDL::ChainJntToJacSolver( m_chain_kdl );
   m_diffIkSolver_kdl   = new KDL::ChainIkSolverVel_pinv( m_chain_kdl );
   m_iksolver_JL_kdl    = new KDL::ChainIkSolverPos_NR_JL( m_chain_kdl, m_q_min_kdl, m_q_max_kdl, *( m_fksolver_kdl ),
-                                                       *( m_diffIkSolver_kdl ), 100,
-                                                       1e-6 ); // Maximum 100 iterations, stop at accuracy 1e-6
+                                                          *( m_diffIkSolver_kdl ), 100,
+                                                          1e-6 ); // Maximum 100 iterations, stop at accuracy 1e-6
 #endif
 }
 

@@ -1,0 +1,20 @@
+<!-- -*- xml -*- -->
+<launch>
+  <!-- % ros2 run usb_cam usb_cam_node_exe -->
+  <node pkg="usb_cam" exec="usb_cam_node_exe" name="camera" output="screen" >
+    <param name="video_device" value="/dev/video0" />
+    <param name="framerate" value="30.0" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="color_format" value="yuv422p" />
+    <param name="io_method" value="mmap"/>
+    <param name="camera_name" value="my_camera"/>
+    <param name="camera_info_url" value="package://visp_ros/config/camera/camera_info.yml" />
+  </node>
+
+  <!-- % ros2 run image_view image_view image:=/image_raw -->
+  <node pkg="image_view" exec="image_view" name="image_viewer" args="image:=/image_raw">
+    <!-- param name="image_transport" value="compressed" / -->
+  </node>
+</launch>

@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * ViSP, open source Visual Servoing Platform software.
- * Copyright (C) 2005 - 2021 by Inria. All rights reserved.
+ * Copyright (C) 2005 - 2023 by Inria. All rights reserved.
  *
  * This software is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,9 @@
 #include <visp_ros/vpROSGrabber.h>
 #include <visp_ros/vpROSRobotFrankaCoppeliasim.h>
 
-#include <geometry_msgs/WrenchStamped.h>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
+
+using namespace std::chrono_literals;
 
 void
 display_point_trajectory( const vpImage< unsigned char > &I, const std::vector< vpImagePoint > &vip,
@@ -106,16 +108,15 @@ vpColVector We( 6, 0 );
 std::mutex shared_data;
 
 void
-Wrench_callback( const geometry_msgs::WrenchStamped &sensor_wrench )
+Wrench_callback( const geometry_msgs::msg::WrenchStamped::SharedPtr sensor_wrench )
 {
   std::lock_guard< std::mutex > lock( shared_data );
-  We[0] = sensor_wrench.wrench.force.x;
-  We[1] = sensor_wrench.wrench.force.y;
-  We[2] = sensor_wrench.wrench.force.z;
-  We[3] = sensor_wrench.wrench.torque.x;
-  We[4] = sensor_wrench.wrench.torque.y;
-  We[5] = sensor_wrench.wrench.torque.z;
-  return;
+  We[0] = sensor_wrench->wrench.force.x;
+  We[1] = sensor_wrench->wrench.force.y;
+  We[2] = sensor_wrench->wrench.force.z;
+  We[3] = sensor_wrench->wrench.torque.x;
+  We[4] = sensor_wrench->wrench.torque.y;
+  We[5] = sensor_wrench->wrench.torque.z;
 }
 
 vpMatrix
@@ -200,19 +201,20 @@ main( int argc, char **argv )
     }
   }
 
+  rclcpp::init( argc, argv );
+  auto node = std::make_shared< rclcpp::Node >( "frankasim_dual_arm" );
+  rclcpp::WallRate loop_rate( 100ms );
+  rclcpp::spin_some( node );
+
+  vpROSRobotFrankaCoppeliasim right_arm("frankasim_right"), left_arm("frankasim_left");
+
   try
   {
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    // ROS node
-    ros::init( argc, argv, "visp_ros" );
-    ros::NodeHandlePtr n = boost::make_shared< ros::NodeHandle >();
-    ros::Rate loop_rate( 1000 );
-    ros::spinOnce();
+    rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr sub_wrench;
+    sub_wrench = node->create_subscription<geometry_msgs::msg::WrenchStamped>(
+      "/coppeliasim/franka/right_arm/ft_sensor", 1, Wrench_callback);
+ 
 
-    ros::Subscriber sub_wrench = n->subscribe( "/coppeliasim/franka/right_arm/ft_sensor", 1, Wrench_callback );
-
-    vpROSRobotFrankaCoppeliasim right_arm, left_arm;
     right_arm.setVerbose( opt_verbose );
     right_arm.connect( "right_arm" );
     left_arm.setVerbose( opt_verbose );
@@ -231,8 +233,8 @@ main( int argc, char **argv )
 
     vpImage< unsigned char > I;
     vpROSGrabber g;
-    g.setImageTopic( "/coppeliasim/franka/camera/image" );
-    g.setCameraInfoTopic( "/coppeliasim/franka/camera/camera_info" );
+    g.subscribeImageTopic( "/coppeliasim/franka/camera/image" );
+    g.subscribeCameraInfoTopic( true );
     g.open( argc, argv );
 
     g.acquire( I );
@@ -359,10 +361,8 @@ main( int argc, char **argv )
 
     double sim_time             = right_arm.getCoppeliasimSimulationTime();
     double sim_time_prev        = sim_time;
-    double sim_time_init_servo  = sim_time;
     double sim_time_img         = sim_time;
     double sim_time_img_prev    = sim_time;
-    double sim_time_start       = sim_time;
     double sim_time_convergence = sim_time;
     double dt                   = 0.0;
 
@@ -614,7 +614,6 @@ main( int argc, char **argv )
             std::cout << "Desired frame modified to avoid PI rotation of the camera" << std::endl;
             oMo = v_oMo[1]; // Introduce PI rotation
           }
-          sim_time_start = sim_time;
           ccMo           = cdMo;
         } // end first_time
 
@@ -761,6 +760,8 @@ main( int argc, char **argv )
   {
     std::cout << "ViSP exception: " << e.what() << std::endl;
     std::cout << "Stop the robot " << std::endl;
+    right_arm.setRobotState( vpRobot::STATE_STOP );
+    left_arm.setRobotState( vpRobot::STATE_STOP );
     return EXIT_FAILURE;
   }
 

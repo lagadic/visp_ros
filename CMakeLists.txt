@@ -1,122 +1,66 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(visp_ros)
 
-find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
-  geometry_msgs
-  image_geometry
-  image_transport
-  kdl_parser
-  message_generation
-  nodelet
-  roscpp
-  rospy
-  sensor_msgs
-  std_msgs
-  tf
-  visp_bridge
-)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra)
+endif()
 
-## Declare ROS messages and services
-## Generate messages in the 'msg' folder
-add_message_files(
-  DIRECTORY
-    msg
-  FILES
-    BlobTracker.msg
-    ImagePoint.msg
-    PoseStampedStatus.msg
-    ProjectedPoint.msg
-)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
-## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-    geometry_msgs
-    sensor_msgs
-    std_msgs
-)
-
-find_package(VISP REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(image_geometry REQUIRED)
+find_package(image_transport REQUIRED)
+find_package(kdl_parser REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(visp_bridge REQUIRED)
+find_package(VISP REQUIRED COMPONENTS visp_core visp_robot)
 
 # Specific packages for franka simulator
 find_package(orocos_kdl QUIET)
 find_package(iir QUIET)
 
+# messages and services interface generation
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/BlobTracker.msg"
+  "msg/ImagePoint.msg"
+  "msg/PoseStampedStatus.msg"
+  "msg/ProjectedPoint.msg"
+  DEPENDENCIES sensor_msgs geometry_msgs
+)
+
 set(orocos_kdl_VERSION_MINIMUM "1.3.2")
-if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
+
+if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
   add_definitions("-DVISP_HAVE_OROCOS_KDL")
   message("-- orocos kdl ${orocos_kdl_VERSION} found: We can build franka simulator")
+
   if(iir_FOUND)
     message("-- iir found")
     add_definitions("-DVISP_HAVE_IIR")
   endif()
-elseif(orocos_kdl_FOUND AND ((${orocos_kdl_VERSION} VERSION_EQUAL ${orocos_kdl_VERSION_MINIMUM}) OR (${orocos_kdl_VERSION} VERSION_LESS ${orocos_kdl_VERSION_MINIMUM})))
+elseif(orocos_kdl_FOUND AND((${orocos_kdl_VERSION} VERSION_EQUAL ${orocos_kdl_VERSION_MINIMUM})
+  OR(${orocos_kdl_VERSION} VERSION_LESS ${orocos_kdl_VERSION_MINIMUM})))
   message("-- orocos kdl ${orocos_kdl_VERSION} found: but version to old to build franka simulator")
 else()
   message("-- orocos kdl not found: Unable to build franka simulator")
 endif()
 
-
-###################################
-## catkin specific configuration ##
-###################################
-set(PROJECT_LIBRARIES ${PROJECT_NAME})
-if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
-  list(APPEND PROJECT_LIBRARIES "${PROJECT_NAME}_bebop2_visual_servo_nodelet")
-endif()
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-
-  LIBRARIES
-    ${PROJECT_LIBRARIES}
- 
-  CATKIN_DEPENDS
-    cv_bridge
-    geometry_msgs
-    image_geometry
-    message_runtime
-    nodelet
-    roscpp
-    sensor_msgs
-    std_msgs
-    tf
-    visp_bridge
-
-  DEPENDS
-    VISP
-)
-
-###################
-## Build library ##
-###################
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${VISP_INCLUDE_DIRS}
-)
-
 set(srcs
-  include/${PROJECT_NAME}/vpROSGrabber.h
-  include/${PROJECT_NAME}/vpROSRobot.h
-  include/${PROJECT_NAME}/vpROSRobotPioneer.h
   src/device/framegrabber/vpROSGrabber.cpp
-  src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
+  # src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
   src/robot/vpROSRobot.cpp
-  )
+)
 
-if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
-  # With Franka simulator
-  set(srcs
-    include/${PROJECT_NAME}/vpROSGrabber.h
-    include/${PROJECT_NAME}/vpROSRobot.h
-    include/${PROJECT_NAME}/vpRobotFrankaSim.h
-    include/${PROJECT_NAME}/vpROSRobotFrankaCoppeliasim.h
-    include/${PROJECT_NAME}/vpROSRobotPioneer.h
-    src/device/framegrabber/vpROSGrabber.cpp
-    src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
+if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
+  # Add Franka simulator
+  list(APPEND srcs
     src/robot/sim-robot/franka/vpRobotFrankaSim.cpp
     src/robot/sim-robot/franka/vpROSRobotFrankaCoppeliasim.cpp
     src/robot/sim-robot/franka/model/CoriolisMatrix.cpp
@@ -124,141 +68,158 @@ if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERS
     src/robot/sim-robot/franka/model/FrictionTorque.cpp
     src/robot/sim-robot/franka/model/GravityVector.cpp
     src/robot/sim-robot/franka/model/MassMatrix.cpp
-    src/robot/vpROSRobot.cpp
-    )
-else()
-  # Without Franka simulator
-  set(srcs
-    include/${PROJECT_NAME}/vpROSGrabber.h
-    include/${PROJECT_NAME}/vpROSRobot.h
-    include/${PROJECT_NAME}/vpROSRobotPioneer.h
-    src/device/framegrabber/vpROSGrabber.cpp
-    src/robot/real-robot/pioneer/vpROSRobotPioneer.cpp
-    src/robot/vpROSRobot.cpp
-    )
-endif()
-
-## Declare library
-add_library(${PROJECT_NAME} ${srcs})
-
-if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
-  add_library(${PROJECT_NAME}_bebop2_visual_servo_nodelet
-    tutorial/bebop2/visual_servo_nodelet.cpp
   )
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages)
+# Declare library
+add_library(${PROJECT_NAME}_common ${srcs})
 
-#################
-## Build nodes ##
-#################
-## Declare a cpp executable
-add_executable(${PROJECT_NAME}_biclops_node nodes/biclops.cpp)
+ament_export_dependencies(VISP)
+ament_target_dependencies(${PROJECT_NAME}_common
+  cv_bridge
+  geometry_msgs
+  image_geometry
+  image_transport
+  nav_msgs
+  rclcpp
+  std_srvs
+  visp_bridge
+  VISP
+  orocos_kdl
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+
+target_include_directories(${PROJECT_NAME}_common PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
+  ${VISP_INCLUDE_DIRS}
+)
+
+# Node to control Afma6 robot
 add_executable(${PROJECT_NAME}_afma6_node nodes/afma6.cpp)
-add_executable(${PROJECT_NAME}_viper650_node nodes/viper650.cpp)
-add_executable(${PROJECT_NAME}_viper850_node nodes/viper850.cpp)
+target_link_libraries(${PROJECT_NAME}_afma6_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_afma6_node
+  geometry_msgs
+  rclcpp
+  visp_bridge
+  VISP
+)
+
+# Node to track a square made of 4 blobs
 add_executable(${PROJECT_NAME}_blob_tracker_node nodes/blob_tracker.cpp)
-add_executable(${PROJECT_NAME}_pbvs_blob_node nodes/pbvs_blob.cpp)
-if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
-  add_executable(${PROJECT_NAME}_bebop2_visual_servo_node tutorial/bebop2/visual_servo_node.cpp)
-endif()
+target_link_libraries(${PROJECT_NAME}_blob_tracker_node
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_biclops_node ${catkin_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}_afma6_node ${catkin_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}_viper650_node ${catkin_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}_viper850_node ${catkin_LIBRARIES})
-target_link_libraries(${PROJECT_NAME}_blob_tracker_node ${catkin_LIBRARIES} ${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME}_pbvs_blob_node ${catkin_LIBRARIES} ${PROJECT_NAME})
-if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
-  target_link_libraries(${PROJECT_NAME}_bebop2_visual_servo_node ${catkin_LIBRARIES})
-  target_link_libraries(${PROJECT_NAME}_bebop2_visual_servo_nodelet ${catkin_LIBRARIES})
-endif()
+  # ${PROJECT_NAME}_common
+  "${cpp_typesupport_target}"
 
-######################################################################
-## Build tutorial for real franka robot to compare with coppeliasim ##
-######################################################################
-add_executable(tutorial-franka-real-ibvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-ibvs-apriltag.cpp)
-add_executable(tutorial-franka-real-pbvs-apriltag tutorial/franka/real-robot/tutorial-franka-real-pbvs-apriltag.cpp)
-add_executable(tutorial-franka-real-joint-impedance-control tutorial/franka/real-robot/tutorial-franka-real-joint-impedance-control.cpp)
-target_link_libraries(tutorial-franka-real-ibvs-apriltag ${catkin_LIBRARIES})
-target_link_libraries(tutorial-franka-real-pbvs-apriltag ${catkin_LIBRARIES})
-target_link_libraries(tutorial-franka-real-joint-impedance-control ${catkin_LIBRARIES})
+  # ${VISP_LIBRARIES}
+)
+ament_target_dependencies(${PROJECT_NAME}_blob_tracker_node
+  cv_bridge
+  rclcpp
+  std_msgs
+  visp_bridge
+  VISP
+)
 
-##############################################################
-## Build tutorial to simulate franka robot with coppeliasim ##
-##############################################################
-if(orocos_kdl_FOUND AND (${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
-  add_executable(tutorial-franka-coppeliasim-ibvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp)
-  add_executable(tutorial-franka-coppeliasim-pbvs-apriltag tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp)
-  add_executable(tutorial-franka-coppeliasim-dual-arm tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-dual-arm.cpp)
-  add_executable(tutorial-franka-coppeliasim-joint-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp)
-  add_executable(tutorial-franka-coppeliasim-cartesian-impedance-control tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-cartesian-impedance-control.cpp)
-  add_executable(test-vel tutorial/franka/coppeliasim/test-vel.cpp)
-  set(franka_sim_LIBRARIES ${catkin_LIBRARIES} ${PROJECT_NAME} ${orocos_kdl_LIBRARIES})
-  if(iir_FOUND)
-    list(APPEND franka_sim_LIBRARIES iir::iir)
-  endif()
-  target_link_libraries(tutorial-franka-coppeliasim-ibvs-apriltag ${franka_sim_LIBRARIES})
-  target_link_libraries(tutorial-franka-coppeliasim-pbvs-apriltag ${franka_sim_LIBRARIES})
-  target_link_libraries(tutorial-franka-coppeliasim-dual-arm ${franka_sim_LIBRARIES})
-  target_link_libraries(tutorial-franka-coppeliasim-joint-impedance-control ${franka_sim_LIBRARIES})
-  target_link_libraries(tutorial-franka-coppeliasim-cartesian-impedance-control ${franka_sim_LIBRARIES})
-  target_link_libraries(test-vel ${franka_sim_LIBRARIES})
+# Node to control Viper650 robot
+add_executable(${PROJECT_NAME}_viper650_node nodes/viper650.cpp)
+target_link_libraries(${PROJECT_NAME}_viper650_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_viper650_node
+  geometry_msgs
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
 
-  install(
-    TARGETS
-    tutorial-franka-coppeliasim-ibvs-apriltag
-    tutorial-franka-coppeliasim-pbvs-apriltag
-    tutorial-franka-coppeliasim-joint-impedance-control
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# Node to control Viper850 robot
+add_executable(${PROJECT_NAME}_viper850_node nodes/viper850.cpp)
+target_link_libraries(${PROJECT_NAME}_viper850_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_viper850_node
+  geometry_msgs
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
+
+# Tutorial for ROS Grabber
+add_executable(tutorial-ros-grabber tutorial/grabber/ros/tutorial-ros-grabber.cpp)
+target_link_libraries(tutorial-ros-grabber
+  ${PROJECT_NAME}_common
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(tutorial-ros-grabber
+  rclcpp
+  sensor_msgs
+  visp_bridge
+  VISP
+)
+
+# ###########################################################
+# Build tutorial to simulate franka robot with coppeliasim
+# ###########################################################
+if(orocos_kdl_FOUND AND(${orocos_kdl_VERSION} VERSION_GREATER ${orocos_kdl_VERSION_MINIMUM}))
+  set(tutorial_franka
+    tutorial/franka/coppeliasim/test-franka-coppeliasim-controller.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-ibvs-apriltag.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-pbvs-apriltag.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-cartesian-impedance-control.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-joint-impedance-control.cpp
+    tutorial/franka/coppeliasim/tutorial-franka-coppeliasim-dual-arm.cpp
   )
+  foreach(cpp ${tutorial_franka})
+    get_filename_component(bin_name ${cpp} NAME_WE)
+    add_executable(${bin_name} ${cpp})
+    target_link_libraries(${bin_name}
+      ${PROJECT_NAME}_common
+      "${cpp_typesupport_target}"
+    )
+    ament_target_dependencies(${bin_name}
+      geometry_msgs
+      rclcpp
+      sensor_msgs
+      visp_bridge
+      VISP
+    )
+    # Installation
+    install(
+      TARGETS ${bin_name}
+      DESTINATION lib/${PROJECT_NAME}
+    )
+  endforeach()
 endif()
 
-#############
-## Install ##
-#############
-
-## Mark executables and/or libraries for installation
+# Installation
 install(
   TARGETS
-    ${PROJECT_NAME}
-    ${PROJECT_NAME}_afma6_node
-    ${PROJECT_NAME}_biclops_node
-    ${PROJECT_NAME}_blob_tracker_node
-    ${PROJECT_NAME}_pbvs_blob_node
-    ${PROJECT_NAME}_viper650_node
-    ${PROJECT_NAME}_viper850_node
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  ${PROJECT_NAME}_afma6_node
+  ${PROJECT_NAME}_blob_tracker_node
+  ${PROJECT_NAME}_viper650_node
+  ${PROJECT_NAME}_viper850_node
+
+  tutorial-ros-grabber
+
+  DESTINATION lib/${PROJECT_NAME}
+
+  # ARCHIVE DESTINATION lib
+  # LIBRARY DESTINATION lib
+  # RUNTIME DESTINATION bin
 )
 
-if("${VISP_VERSION}" VERSION_GREATER "3.2.0")
-  install(
-    TARGETS
-      ${PROJECT_NAME}_bebop2_visual_servo_node
-      ${PROJECT_NAME}_bebop2_visual_servo_nodelet
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
-
-  install(FILES nodelet_plugins.xml
-          DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-endif()
-
-# Mark cpp header files for installation
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-  PATTERN ".svn" EXCLUDE
+install(DIRECTORY
+  launch
+  config
+  DESTINATION share/${PROJECT_NAME}
 )
+ament_export_dependencies(rosidl_default_runtime)
 
-# Mark launch files for installation
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
+ament_package()

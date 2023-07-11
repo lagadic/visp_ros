@@ -37,14 +37,14 @@
  *
  *****************************************************************************/
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 
-#include <geometry_msgs/Pose.h>
-#include <geometry_msgs/PoseArray.h>
-#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>

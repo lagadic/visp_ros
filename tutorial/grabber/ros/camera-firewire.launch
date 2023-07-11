@@ -1,7 +1,0 @@
-<!-- -*- xml -*- -->
-<launch>		
-  <!-- Launch the firewire camera acquisition node -->
-  <node pkg="camera1394" type="camera1394_node" name="my_camera1394_node" args="_video_mode:=640x480_rgb8" >
-    <param name="camera_info_url" value="package://visp_ros/tutorial/grabber/ros/cam_parameters.yml" />
-  </node>
-</launch>
