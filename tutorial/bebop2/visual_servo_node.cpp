@@ -42,7 +42,7 @@
 #include <vector>
 
 #include <nodelet/loader.h>
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <visp3/core/vpConfig.h>
 

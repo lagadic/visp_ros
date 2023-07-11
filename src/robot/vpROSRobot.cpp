@@ -34,9 +34,6 @@
  * Description:
  * vpRobot implementation for ROS middleware
  *
- * Authors:
- * Francois Pasteau
- *
  *****************************************************************************/
 
 /*!
