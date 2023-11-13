@@ -20,7 +20,7 @@ visp_ros
 
 If you are using this simulator we would appreciate that you cite this  [paper](http://rainbow-doc.irisa.fr/publi/publi/Oliva22c-eng.html):
 
-* <em> A. A. Oliva, F. Spindler, P. Robuffo Giordano, F. Chaumette. FrankaSim: A Dynamic Simulator for the Franka Emika Robot with Visual-Servoing Enabled Capabilities. In Int. Conf. on Control, Automation, Robotics and Vision, ICARCV'22, Singapore, December 2022.</em>*
+* <em> A. A. Oliva, F. Spindler, P. Robuffo Giordano, F. Chaumette. FrankaSim: A Dynamic Simulator for the Franka Emika Robot with Visual-Servoing Enabled Capabilities. In Int. Conf. on Control, Automation, Robotics and Vision, ICARCV'22, Singapore, December 2022.</em>
 
 # 1. Installation
 
