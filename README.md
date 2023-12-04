@@ -16,9 +16,11 @@ visp_ros
 - robots that can be controlled only in our lab due to proprietary drivers: Afma6 gantry robot, Biclops PT head, ADEPT Viper 650 and 850 robots described here;
 - other robots that anyone can buy and use with open-source drivers interfaced in ViSP: Pioneer mobile robot, Parrot bebop2 drone.
 
-`visp_ros` contains also FrankaSim a simulator for a Franka Panda robot using [CoppeliaSim](https://www.coppeliarobotics.com/). The simulation is a physical simulation with a model that has been accurately identified from a real Franka robot. If you are using this simulator we would appreciate that you cite this [paper](http://rainbow-doc.irisa.fr/publi/publi/Gaz19a-eng.html):
+`visp_ros` contains also FrankaSim a simulator for a Franka Panda robot using [CoppeliaSim](https://www.coppeliarobotics.com/). The simulation is a physical simulation with a dynamic model that has been accurately identified from a real Franka robot.  [paper](http://rainbow-doc.irisa.fr/publi/publi/Gaz19a-eng.html).
 
-*C. Gaz, M. Cognetti, A. Oliva, P. Robuffo Giordano, A. De Luca, Dynamic Identification of the Franka Emika Panda Robot With Retrieval of Feasible Parameters Using Penalty-Based Optimization. IEEE RA-L, 2019.*
+If you are using this simulator we would appreciate that you cite this  [paper](http://rainbow-doc.irisa.fr/publi/publi/Oliva22c-eng.html):
+
+* <em> A. A. Oliva, F. Spindler, P. Robuffo Giordano, F. Chaumette. FrankaSim: A Dynamic Simulator for the Franka Emika Robot with Visual-Servoing Enabled Capabilities. In Int. Conf. on Control, Automation, Robotics and Vision, ICARCV'22, Singapore, December 2022.</em>
 
 # 1. Installation
 
