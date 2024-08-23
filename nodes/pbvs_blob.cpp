@@ -154,8 +154,11 @@ VS::VS( int argc, char **argv )
     m_cam.initPersProjWithDistortion( m_cam_px, m_cam_py, m_cam_u0, m_cam_v0, m_cam_kud, m_cam_kdu );
   }
 
+#if VISP_VERSION_INT > VP_VERSION_INT(3,6,0)
+#else
   m_cdMo.buildFrom( m_t_x_d, m_t_y_d, m_t_z_d, vpMath::rad( m_tu_x_d ), vpMath::rad( m_tu_y_d ),
                     vpMath::rad( m_tu_z_d ) );
+#endif
   std::cout << "Desired pose: " << m_cdMo << std::endl;
 }
 
@@ -264,8 +267,11 @@ VS::data_callback( const visp_ros::BlobTracker::ConstPtr &msg )
     // Update visual features
     m_cdMc = m_cdMo * m_cMo.inverse();
     std::cout << "m_cdMc:\n" << m_cdMc << std::endl;
+#if VISP_VERSION_INT > VP_VERSION_INT(3,6,0)
+#else
     m_s_t.buildFrom( m_cdMc );
     m_s_tu.buildFrom( m_cdMc );
+#endif
 
     m_v = m_task.computeControlLaw();
     std::cout << "v: " << m_v.t() << std::endl;
