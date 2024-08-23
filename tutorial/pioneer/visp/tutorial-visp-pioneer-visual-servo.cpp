@@ -129,7 +129,11 @@ main( int argc, char **argv )
     vpFeatureBuilder::create( s_x, cam, dot );
 
     // Create the desired x* visual feature
+#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
+    s_xd.build( 0, 0, depth );
+#else
     s_xd.buildFrom( 0, 0, depth );
+#endif
 
     // Add the feature
     task.addFeature( s_x, s_xd );
@@ -145,8 +149,13 @@ main( int argc, char **argv )
     Zd = Z;
 
     std::cout << "Z " << Z << std::endl;
+#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
+    s_Z.build( s_x.get_x(), s_x.get_y(), Z, 0 );   // log(Z/Z*) = 0 that's why the last parameter is 0
+    s_Zd.build( s_x.get_x(), s_x.get_y(), Zd, 0 ); // log(Z/Z*) = 0 that's why the last parameter is 0
+#else
     s_Z.buildFrom( s_x.get_x(), s_x.get_y(), Z, 0 );   // log(Z/Z*) = 0 that's why the last parameter is 0
     s_Zd.buildFrom( s_x.get_x(), s_x.get_y(), Zd, 0 ); // log(Z/Z*) = 0 that's why the last parameter is 0
+#endif
 
     // Add the feature
     task.addFeature( s_Z, s_Zd );
@@ -169,7 +178,11 @@ main( int argc, char **argv )
       // Update log(Z/Z*) feature. Since the depth Z change, we need to update the intection matrix
       surface = 1. / sqrt( dot.m00 / ( cam.get_px() * cam.get_py() ) );
       Z       = coef * surface;
+#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
+      s_Z.build( s_x.get_x(), s_x.get_y(), Z, log( Z / Zd ) );
+#else
       s_Z.buildFrom( s_x.get_x(), s_x.get_y(), Z, log( Z / Zd ) );
+#endif
 
       robot.get_cVe( cVe );
       task.set_cVe( cVe );
