@@ -45,72 +45,72 @@
  * Default constructor.
  */
 vpRobotFrankaSim::vpRobotFrankaSim()
-  : m_q( 7, 0 )
-  , m_dq( 7, 0 )
-  , m_tau_J( 7, 0 )
-  , m_mL( 0.0 )
+  : m_q(7, 0)
+  , m_dq(7, 0)
+  , m_tau_J(7, 0)
+  , m_mL(0.0)
   , m_flMcom()
-  , m_Il( 3, 3 )
+  , m_Il(3, 3)
   , m_flMe()
-  , m_toolMounted( false )
-  , m_camMounted( false )
-  , m_g0( { 0.0, 0.0, -9.80665 } )
+  , m_toolMounted(false)
+  , m_camMounted(false)
+  , m_g0({ 0.0, 0.0, -9.80665 })
   , m_mutex()
-  , m_q_kdl( 7 )
-  , m_dq_des_kdl( 7 )
+  , m_q_kdl(7)
+  , m_dq_des_kdl(7)
   , m_chain_kdl()
-  , m_q_min_kdl( 7 )
-  , m_q_max_kdl( 7 )
-  , m_stateRobot( vpRobot::STATE_STOP )
-  , m_q_des( 7, 0 )
-  , m_dq_des( 7, 0 )
-  , m_dq_des_filt( 7, 0 )
-  , m_v_cart_des( 6, 0 )
-  , m_tau_J_des( 7, 0 )
-  , m_tau_J_des_filt( 7, 0 )
+  , m_q_min_kdl(7)
+  , m_q_max_kdl(7)
+  , m_stateRobot(vpRobot::STATE_STOP)
+  , m_q_des(7, 0)
+  , m_dq_des(7, 0)
+  , m_dq_des_filt(7, 0)
+  , m_v_cart_des(6, 0)
+  , m_tau_J_des(7, 0)
+  , m_tau_J_des_filt(7, 0)
   , m_eMc()
   , m_eVc()
-  , m_verbose( false )
+  , m_verbose(false)
 {
 #ifdef VISP_HAVE_OROCOS_KDL
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::None ), KDL::Frame::DH_Craig1989( 0.0, 0.0, 0.333, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::None), KDL::Frame::DH_Craig1989(0.0, 0.0, 0.333, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.0, -M_PI_2, 0.0, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.0, -M_PI_2, 0.0, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.0, M_PI_2, 0.316, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.0, M_PI_2, 0.316, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.0825, M_PI_2, 0.0, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.0825, M_PI_2, 0.0, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( -0.0825, -M_PI_2, 0.384, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(-0.0825, -M_PI_2, 0.384, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.0, M_PI_2, 0.0, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.0, M_PI_2, 0.0, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.088, M_PI_2, 0.0, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.088, M_PI_2, 0.0, 0.0)));
   m_chain_kdl.addSegment(
-      KDL::Segment( KDL::Joint( KDL::Joint::RotZ ), KDL::Frame::DH_Craig1989( 0.0, 0.0, 0.107, 0.0 ) ) );
+      KDL::Segment(KDL::Joint(KDL::Joint::RotZ), KDL::Frame::DH_Craig1989(0.0, 0.0, 0.107, 0.0)));
 
-  m_q_min_kdl( 0 ) = -2.8973;
-  m_q_min_kdl( 1 ) = -1.7628;
-  m_q_min_kdl( 2 ) = -2.8973;
-  m_q_min_kdl( 3 ) = -3.0718;
-  m_q_min_kdl( 4 ) = -2.8973;
-  m_q_min_kdl( 5 ) = -0.0175;
-  m_q_min_kdl( 6 ) = -2.8973;
-  m_q_max_kdl( 0 ) = 2.8973;
-  m_q_max_kdl( 1 ) = 1.7628;
-  m_q_max_kdl( 2 ) = 2.8973;
-  m_q_max_kdl( 3 ) = -0.0698;
-  m_q_max_kdl( 4 ) = 2.8973;
-  m_q_max_kdl( 5 ) = 3.7525;
-  m_q_max_kdl( 6 ) = 2.8973;
+  m_q_min_kdl(0) = -2.8973;
+  m_q_min_kdl(1) = -1.7628;
+  m_q_min_kdl(2) = -2.8973;
+  m_q_min_kdl(3) = -3.0718;
+  m_q_min_kdl(4) = -2.8973;
+  m_q_min_kdl(5) = -0.0175;
+  m_q_min_kdl(6) = -2.8973;
+  m_q_max_kdl(0) = 2.8973;
+  m_q_max_kdl(1) = 1.7628;
+  m_q_max_kdl(2) = 2.8973;
+  m_q_max_kdl(3) = -0.0698;
+  m_q_max_kdl(4) = 2.8973;
+  m_q_max_kdl(5) = 3.7525;
+  m_q_max_kdl(6) = 2.8973;
 
-  m_fksolver_kdl       = new KDL::ChainFkSolverPos_recursive( m_chain_kdl );
-  m_jacobianSolver_kdl = new KDL::ChainJntToJacSolver( m_chain_kdl );
-  m_diffIkSolver_kdl   = new KDL::ChainIkSolverVel_pinv( m_chain_kdl );
-  m_iksolver_JL_kdl    = new KDL::ChainIkSolverPos_NR_JL( m_chain_kdl, m_q_min_kdl, m_q_max_kdl, *( m_fksolver_kdl ),
-                                                          *( m_diffIkSolver_kdl ), 100,
-                                                          1e-6 ); // Maximum 100 iterations, stop at accuracy 1e-6
+  m_fksolver_kdl = new KDL::ChainFkSolverPos_recursive(m_chain_kdl);
+  m_jacobianSolver_kdl = new KDL::ChainJntToJacSolver(m_chain_kdl);
+  m_diffIkSolver_kdl = new KDL::ChainIkSolverVel_pinv(m_chain_kdl);
+  m_iksolver_JL_kdl = new KDL::ChainIkSolverPos_NR_JL(m_chain_kdl, m_q_min_kdl, m_q_max_kdl, *(m_fksolver_kdl),
+                                                          *(m_diffIkSolver_kdl), 100,
+                                                          1e-6); // Maximum 100 iterations, stop at accuracy 1e-6
 #endif
 }
 
@@ -141,10 +141,10 @@ vpRobotFrankaSim::getVelDes()
  * \param[out] friction : Friction 7-dim vector.
  */
 void
-vpRobotFrankaSim::getFriction( vpColVector &friction )
+vpRobotFrankaSim::getFriction(vpColVector &friction)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
-  friction = franka_model::friction( m_dq );
+  std::lock_guard< std::mutex > lock(m_mutex);
+  friction = franka_model::friction(m_dq);
 }
 
 /*!
@@ -154,15 +154,11 @@ vpRobotFrankaSim::getFriction( vpColVector &friction )
  * and the camera frame.
  */
 void
-vpRobotFrankaSim::set_eMc( const vpHomogeneousMatrix &eMc )
+vpRobotFrankaSim::set_eMc(const vpHomogeneousMatrix &eMc)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
+  std::lock_guard< std::mutex > lock(m_mutex);
   m_eMc = eMc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-  m_eVc.build( m_eMc );
-#else
-  m_eVc.buildFrom( m_eMc );
-#endif
+  m_eVc.buildFrom(m_eMc);
   m_camMounted = true;
 }
 
@@ -173,30 +169,28 @@ vpRobotFrankaSim::set_eMc( const vpHomogeneousMatrix &eMc )
  * and the flange frame.
  */
 void
-vpRobotFrankaSim::set_flMe( const vpHomogeneousMatrix &flMe )
+vpRobotFrankaSim::set_flMe(const vpHomogeneousMatrix &flMe)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
+  std::lock_guard< std::mutex > lock(m_mutex);
 
 #ifdef VISP_HAVE_OROCOS_KDL
   KDL::Frame frame8Mfl_kdl;
   frame8Mfl_kdl = m_chain_kdl.segments[7].getFrameToTip();
   vpHomogeneousMatrix f8Mfl, f8Me;
-  for ( unsigned int i = 0; i < 3; i++ )
-  {
-    for ( unsigned int j = 0; j < 3; j++ )
-    {
+  for (unsigned int i = 0; i < 3; i++) {
+    for (unsigned int j = 0; j < 3; j++) {
       f8Mfl[i][j] = frame8Mfl_kdl.M.data[3 * i + j];
     }
     f8Mfl[i][3] = frame8Mfl_kdl.p.data[i];
   }
   f8Me = f8Mfl * m_flMe.inverse() * flMe;
 
-  KDL::Rotation f8Re( f8Me[0][0], f8Me[0][1], f8Me[0][2], f8Me[1][0], f8Me[1][1], f8Me[0][2], f8Me[2][0], f8Me[2][1],
-                      f8Me[2][2] );
-  KDL::Vector f8te( f8Me[0][3], f8Me[1][3], f8Me[2][3] );
-  KDL::Frame f8Me_kdl( f8Re, f8te );
+  KDL::Rotation f8Re(f8Me[0][0], f8Me[0][1], f8Me[0][2], f8Me[1][0], f8Me[1][1], f8Me[0][2], f8Me[2][0], f8Me[2][1],
+                      f8Me[2][2]);
+  KDL::Vector f8te(f8Me[0][3], f8Me[1][3], f8Me[2][3]);
+  KDL::Frame f8Me_kdl(f8Re, f8te);
 
-  m_chain_kdl.segments[7].setFrameToTip( f8Me_kdl );
+  m_chain_kdl.segments[7].setFrameToTip(f8Me_kdl);
   m_flMe = flMe;
 #endif
 }
@@ -206,9 +200,9 @@ vpRobotFrankaSim::set_flMe( const vpHomogeneousMatrix &flMe )
  * \param[in] g0 : gravitational acceleration vector in base frame.
  */
 void
-vpRobotFrankaSim::set_g0( const vpColVector &g0 )
+vpRobotFrankaSim::set_g0(const vpColVector &g0)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
+  std::lock_guard< std::mutex > lock(m_mutex);
   m_g0 = g0;
 }
 
@@ -223,25 +217,22 @@ vpRobotFrankaSim::set_g0( const vpColVector &g0 )
  * \param[in] I_L : Tool inertia tensor in CoM frame.
  */
 void
-vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &flMcom,
-                            const vpMatrix &I_L )
+vpRobotFrankaSim::add_tool(const vpHomogeneousMatrix &flMe, const double mL, const vpHomogeneousMatrix &flMcom,
+                            const vpMatrix &I_L)
 {
-  this->set_flMe( flMe );
-  std::lock_guard< std::mutex > lock( m_mutex );
-  if ( mL < 0.0 )
-  {
+  this->set_flMe(flMe);
+  std::lock_guard< std::mutex > lock(m_mutex);
+  if (mL < 0.0) {
     std::cout << "Mass cannot be negative! \nmL = " << mL << " not assigned \n";
   }
-  else
-  {
+  else {
     m_mL = mL;
   }
-  m_flMcom      = flMcom;
-  m_Il          = I_L;
+  m_flMcom = flMcom;
+  m_Il = I_L;
   m_toolMounted = true;
 
-  if ( m_verbose )
-  {
+  if (m_verbose) {
     std::cout << "A tool has been mounted on the robot.\n";
     std::cout << "Mass: " << m_mL << " [kg]\n";
     std::cout << "Inertia Tensor in flange frame:\n" << m_Il << " [kg*m^2]\n";
@@ -255,7 +246,7 @@ vpRobotFrankaSim::add_tool( const vpHomogeneousMatrix &flMe, const double mL, co
  * \return Control state.
  */
 vpRobot::vpRobotStateType
-vpRobotFrankaSim::getRobotState( void )
+vpRobotFrankaSim::getRobotState(void)
 {
   return m_stateRobot;
 }
@@ -265,22 +256,20 @@ vpRobotFrankaSim::getRobotState( void )
  * \param[out] fJe : Corresponding 6-by-7 Jacobian matrix expressed in the robot base frame.
  */
 void
-vpRobotFrankaSim::get_fJe( vpMatrix &fJe )
+vpRobotFrankaSim::get_fJe(vpMatrix &fJe)
 {
-  fJe.reshape( 6, 7 );
+  fJe.reshape(6, 7);
 
 #ifdef VISP_HAVE_OROCOS_KDL
-  KDL::Jacobian Jac( 7 );
+  KDL::Jacobian Jac(7);
 
   m_mutex.lock();
-  m_jacobianSolver_kdl->JntToJac( m_q_kdl, Jac );
+  m_jacobianSolver_kdl->JntToJac(m_q_kdl, Jac);
   m_mutex.unlock();
 
-  for ( unsigned int i = 0; i < 6; i++ )
-  {
-    for ( unsigned int j = 0; j < 7; j++ )
-    {
-      fJe[i][j] = Jac.data( i, j );
+  for (unsigned int i = 0; i < 6; i++) {
+    for (unsigned int j = 0; j < 7; j++) {
+      fJe[i][j] = Jac.data(i, j);
     }
   }
 #endif
@@ -292,30 +281,26 @@ vpRobotFrankaSim::get_fJe( vpMatrix &fJe )
  * \param[out] fJe : Corresponding 6-by-7 Jacobian matrix expressed in the robot base frame.
  */
 void
-vpRobotFrankaSim::get_fJe( const vpColVector &q, vpMatrix &fJe )
+vpRobotFrankaSim::get_fJe(const vpColVector &q, vpMatrix &fJe)
 {
-  if ( q.size() != 7 )
-  {
-    throw( vpException( vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size() ) );
+  if (q.size() != 7) {
+    throw(vpException(vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size()));
   }
 
-  fJe.reshape( 6, 7 );
+  fJe.reshape(6, 7);
 
 #ifdef VISP_HAVE_OROCOS_KDL
-  KDL::JntArray jnts = KDL::JntArray( 7 );
-  KDL::Jacobian Jac( 7 );
+  KDL::JntArray jnts = KDL::JntArray(7);
+  KDL::Jacobian Jac(7);
 
-  for ( unsigned int i = 0; i < 7; i++ )
-  {
-    jnts( i ) = q[i];
+  for (unsigned int i = 0; i < 7; i++) {
+    jnts(i) = q[i];
   }
-  m_jacobianSolver_kdl->JntToJac( jnts, Jac );
+  m_jacobianSolver_kdl->JntToJac(jnts, Jac);
 
-  for ( unsigned int i = 0; i < 6; i++ )
-  {
-    for ( unsigned int j = 0; j < 7; j++ )
-    {
-      fJe[i][j] = Jac.data( i, j );
+  for (unsigned int i = 0; i < 6; i++) {
+    for (unsigned int j = 0; j < 7; j++) {
+      fJe[i][j] = Jac.data(i, j);
     }
   }
 #endif
@@ -327,14 +312,14 @@ vpRobotFrankaSim::get_fJe( const vpColVector &q, vpMatrix &fJe )
  * position expressed in the end-effector frame.
  */
 void
-vpRobotFrankaSim::get_eJe( vpMatrix &eJe )
+vpRobotFrankaSim::get_eJe(vpMatrix &eJe)
 {
-  vpMatrix fJe( 6, 7 );
-  get_fJe( fJe );
-  vpHomogeneousMatrix fMe( get_fMe() );
-  vpMatrix eVf( 6, 6 );
-  eVf.insert( fMe.getRotationMatrix().t(), 0, 0 );
-  eVf.insert( fMe.getRotationMatrix().t(), 3, 3 );
+  vpMatrix fJe(6, 7);
+  get_fJe(fJe);
+  vpHomogeneousMatrix fMe(get_fMe());
+  vpMatrix eVf(6, 6);
+  eVf.insert(fMe.getRotationMatrix().t(), 0, 0);
+  eVf.insert(fMe.getRotationMatrix().t(), 3, 3);
 
   eJe = eVf * fJe;
 }
@@ -345,19 +330,18 @@ vpRobotFrankaSim::get_eJe( vpMatrix &eJe )
  * \param[out] eJe : Corresponding 6-by-7 Jacobian matrix expressed in the end-effector frame.
  */
 void
-vpRobotFrankaSim::get_eJe( const vpColVector &q, vpMatrix &eJe )
+vpRobotFrankaSim::get_eJe(const vpColVector &q, vpMatrix &eJe)
 {
-  if ( q.size() != 7 )
-  {
-    throw( vpException( vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size() ) );
+  if (q.size() != 7) {
+    throw(vpException(vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size()));
   }
 
-  vpMatrix fJe( 6, 7 );
-  get_fJe( q, fJe );
-  vpHomogeneousMatrix fMe( get_fMe( q ) );
-  vpMatrix eVf( 6, 6 );
-  eVf.insert( fMe.getRotationMatrix().t(), 0, 0 );
-  eVf.insert( fMe.getRotationMatrix().t(), 3, 3 );
+  vpMatrix fJe(6, 7);
+  get_fJe(q, fJe);
+  vpHomogeneousMatrix fMe(get_fMe(q));
+  vpMatrix eVf(6, 6);
+  eVf.insert(fMe.getRotationMatrix().t(), 0, 0);
+  eVf.insert(fMe.getRotationMatrix().t(), 3, 3);
 
   eJe = eVf * fJe;
 }
@@ -418,24 +402,22 @@ vpRobotFrankaSim::get_tool_mass() const
  * axis-angle representation [tux, tuy, tyz] with values in [rad].
  */
 void
-vpRobotFrankaSim::getPosition( const vpRobot::vpControlFrameType frame, vpColVector &position )
+vpRobotFrankaSim::getPosition(const vpRobot::vpControlFrameType frame, vpColVector &position)
 {
-  switch ( frame )
-  {
+  switch (frame) {
   case vpRobot::JOINT_STATE:
   { // Same as ARTICULAR_FRAME
-    position.resize( 7 );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    position.resize(7);
+    std::lock_guard< std::mutex > lock(m_mutex);
     position = m_q;
     break;
   }
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    position.resize( 6 );
+    position.resize(6);
 
-    vpPoseVector fPe( get_fMe() );
-    for ( unsigned int i = 0; i < 6; i++ )
-    {
+    vpPoseVector fPe(get_fMe());
+    for (unsigned int i = 0; i < 6; i++) {
       position[i] = fPe[i];
     }
 
@@ -443,17 +425,16 @@ vpRobotFrankaSim::getPosition( const vpRobot::vpControlFrameType frame, vpColVec
   }
   case vpRobot::CAMERA_FRAME:
   { // same as TOOL_FRAME
-    position.resize( 6 );
-    vpPoseVector fPc( get_fMe() * m_eMc );
-    for ( unsigned int i = 0; i < 6; i++ )
-    {
+    position.resize(6);
+    vpPoseVector fPc(get_fMe() * m_eMc);
+    for (unsigned int i = 0; i < 6; i++) {
       position[i] = fPc[i];
     }
     break;
   }
   default:
   {
-    throw( vpException( vpException::fatalError, "Cannot get Franka cartesian position: wrong method" ) );
+    throw(vpException(vpException::fatalError, "Cannot get Franka cartesian position: wrong method"));
   }
   }
 }
@@ -473,20 +454,17 @@ vpRobotFrankaSim::getPosition( const vpRobot::vpControlFrameType frame, vpColVec
  * axis-angle representation [tux, tuy, tyz] with values in [rad].
  */
 void
-vpRobotFrankaSim::getPosition( const vpRobot::vpControlFrameType frame, vpPoseVector &position )
+vpRobotFrankaSim::getPosition(const vpRobot::vpControlFrameType frame, vpPoseVector &position)
 {
-  vpColVector pose( 6, 0 );
-  if ( frame == vpRobot::END_EFFECTOR_FRAME || frame == vpRobot::CAMERA_FRAME )
-  {
-    getPosition( frame, pose );
-    for ( unsigned int i = 0; i < 6; i++ )
-    {
+  vpColVector pose(6, 0);
+  if (frame == vpRobot::END_EFFECTOR_FRAME || frame == vpRobot::CAMERA_FRAME) {
+    getPosition(frame, pose);
+    for (unsigned int i = 0; i < 6; i++) {
       position[i] = pose[i];
     }
   }
-  else
-  {
-    throw( vpException( vpException::fatalError, "Cannot get a cartesian position for the specified frame" ) );
+  else {
+    throw(vpException(vpException::fatalError, "Cannot get a cartesian position for the specified frame"));
   }
 }
 
@@ -506,65 +484,53 @@ vpRobotFrankaSim::getPosition( const vpRobot::vpControlFrameType frame, vpPoseVe
  * the axis-angle representation [tux, tuy, tyz] with values in [rad].
  */
 void
-vpRobotFrankaSim::setPosition( const vpRobot::vpControlFrameType frame, const vpColVector &position )
+vpRobotFrankaSim::setPosition(const vpRobot::vpControlFrameType frame, const vpColVector &position)
 {
-  switch ( frame )
-  {
+  switch (frame) {
   case vpRobot::JOINT_STATE:
   {
-    if ( position.size() != 7 )
-    {
-      throw( vpException( vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)",
-                          position.size() ) );
+    if (position.size() != 7) {
+      throw(vpException(vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)",
+                        position.size()));
     }
-    std::lock_guard< std::mutex > lock( m_mutex );
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_q_des = position;
 
     break;
   }
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    if ( position.size() != 6 )
-    {
-      throw( vpException( vpException::dimensionError, "Cartesian position vector is not a 6-dim vector (%d)",
-                          position.size() ) );
+    if (position.size() != 6) {
+      throw(vpException(vpException::dimensionError, "Cartesian position vector is not a 6-dim vector (%d)",
+                        position.size()));
     }
     vpHomogeneousMatrix wMe;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    wMe.build( position[0], position[1], position[2], position[3], position[4], position[5] );
-#else
-    wMe.buildFrom( position[0], position[1], position[2], position[3], position[4], position[5] );
-#endif
-    vpColVector q_des = solveIK( wMe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    wMe.buildFrom(position[0], position[1], position[2], position[3], position[4], position[5]);
+    vpColVector q_des = solveIK(wMe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_q_des = q_des;
 
     break;
   }
   case vpRobot::CAMERA_FRAME:
   {
-    if ( position.size() != 6 )
-    {
-      throw( vpException( vpException::dimensionError, "Cartesian position vector is not a 6-dim vector (%d)",
-                          position.size() ) );
+    if (position.size() != 6) {
+      throw(vpException(vpException::dimensionError, "Cartesian position vector is not a 6-dim vector (%d)",
+                        position.size()));
     }
     vpHomogeneousMatrix wMc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    wMc.build( position[0], position[1], position[2], position[3], position[4], position[5] );
-#else
-    wMc.buildFrom( position[0], position[1], position[2], position[3], position[4], position[5] );
-#endif
+    wMc.buildFrom(position[0], position[1], position[2], position[3], position[4], position[5]);
 
     vpHomogeneousMatrix wMe = wMc * m_eMc.inverse();
-    vpColVector q_des       = solveIK( wMe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    vpColVector q_des = solveIK(wMe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_q_des = q_des;
 
     break;
   }
   default:
   {
-    throw( vpException( vpException::fatalError, "Franka positioning frame is not implemented" ) );
+    throw(vpException(vpException::fatalError, "Franka positioning frame is not implemented"));
   }
   }
 }
@@ -575,21 +541,20 @@ vpRobotFrankaSim::setPosition( const vpRobot::vpControlFrameType frame, const vp
  * \return Corresponding joint position as a 7-dim vector with values in [rad].
  */
 vpColVector
-vpRobotFrankaSim::solveIK( const vpHomogeneousMatrix &wMe )
+vpRobotFrankaSim::solveIK(const vpHomogeneousMatrix &wMe)
 {
-  vpColVector q_solved( 7, 0 );
+  vpColVector q_solved(7, 0);
 #ifdef VISP_HAVE_OROCOS_KDL
-  KDL::JntArray q_out( 7 );
-  KDL::Rotation wRe( wMe[0][0], wMe[0][1], wMe[0][2], wMe[1][0], wMe[1][1], wMe[1][2], wMe[2][0], wMe[2][1],
-                     wMe[2][2] );
+  KDL::JntArray q_out(7);
+  KDL::Rotation wRe(wMe[0][0], wMe[0][1], wMe[0][2], wMe[1][0], wMe[1][1], wMe[1][2], wMe[2][0], wMe[2][1],
+                     wMe[2][2]);
 
-  KDL::Vector wte( wMe[0][3], wMe[1][3], wMe[2][3] );
-  KDL::Frame wMe_kdl( wRe, wte );
+  KDL::Vector wte(wMe[0][3], wMe[1][3], wMe[2][3]);
+  KDL::Frame wMe_kdl(wRe, wte);
   m_mutex.lock();
-  int ret = m_iksolver_JL_kdl->CartToJnt( m_q_kdl, wMe_kdl, q_out );
+  int ret = m_iksolver_JL_kdl->CartToJnt(m_q_kdl, wMe_kdl, q_out);
   m_mutex.unlock();
-  switch ( ret )
-  {
+  switch (ret) {
   case KDL::SolverI::E_NOERROR:
   {
     std::cout << "solveIK: E_NOERROR" << std::endl;
@@ -607,13 +572,12 @@ vpRobotFrankaSim::solveIK( const vpHomogeneousMatrix &wMe )
   }
   default:
   {
-    throw( vpException( vpException::fatalError, "Error: unable to solve ik\n" ) );
+    throw(vpException(vpException::fatalError, "Error: unable to solve ik\n"));
   }
   }
 
-  for ( unsigned int i = 0; i < 7; i++ )
-  {
-    q_solved[i] = q_out( i );
+  for (unsigned int i = 0; i < 7; i++) {
+    q_solved[i] = q_out(i);
   }
 #endif
 
@@ -636,38 +600,37 @@ vpRobotFrankaSim::solveIK( const vpHomogeneousMatrix &wMe )
  * velocities in [rad/s].
  */
 void
-vpRobotFrankaSim::getVelocity( const vpRobot::vpControlFrameType frame, vpColVector &velocity )
+vpRobotFrankaSim::getVelocity(const vpRobot::vpControlFrameType frame, vpColVector &velocity)
 {
-  switch ( frame )
-  {
+  switch (frame) {
   case vpRobot::JOINT_STATE:
   {
-    velocity.resize( 7 );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    velocity.resize(7);
+    std::lock_guard< std::mutex > lock(m_mutex);
     velocity = m_dq;
     break;
   }
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    velocity.resize( 6 );
-    vpMatrix eJe( 6, 7 );
-    this->get_eJe( eJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    velocity.resize(6);
+    vpMatrix eJe(6, 7);
+    this->get_eJe(eJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     velocity = eJe * m_dq;
     break;
   }
   case vpRobot::REFERENCE_FRAME:
   {
-    velocity.resize( 6 );
-    vpMatrix fJe( 6, 7 );
-    this->get_fJe( fJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    velocity.resize(6);
+    vpMatrix fJe(6, 7);
+    this->get_fJe(fJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     velocity = fJe * m_dq;
     break;
   }
   default:
   {
-    throw( vpException( vpException::fatalError, "Cannot get Franka velocity in the specified frame" ) );
+    throw(vpException(vpException::fatalError, "Cannot get Franka velocity in the specified frame"));
   }
   }
 }
@@ -692,55 +655,48 @@ vpRobotFrankaSim::getVelocity( const vpRobot::vpControlFrameType frame, vpColVec
  * velocities in [rad/s].
  */
 void
-vpRobotFrankaSim::setVelocity( const vpRobot::vpControlFrameType frame, const vpColVector &velocity )
+vpRobotFrankaSim::setVelocity(const vpRobot::vpControlFrameType frame, const vpColVector &velocity)
 {
-  if ( vpRobot::STATE_VELOCITY_CONTROL != getRobotState() )
-  {
+  if (vpRobot::STATE_VELOCITY_CONTROL != getRobotState()) {
     std::cout << "Cannot send a velocity to the robot. "
-                 "Use setRobotState(vpRobot::STATE_VELOCITY_CONTROL) first. \n";
+      "Use setRobotState(vpRobot::STATE_VELOCITY_CONTROL) first. \n";
   }
 
-  switch ( frame )
-  {
+  switch (frame) {
   case vpRobot::JOINT_STATE:
   {
-    if ( velocity.size() != 7 )
-    {
+    if (velocity.size() != 7) {
       std::cout << "Joint velocity vector " << velocity.size() << " is not of size 7 \n";
     }
-    std::lock_guard< std::mutex > lock( m_mutex );
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_dq_des = velocity;
     break;
   }
 
   case vpRobot::REFERENCE_FRAME:
   {
-    if ( velocity.size() != 6 )
-    {
+    if (velocity.size() != 6) {
       std::cout << "Cartesian velocity vector " << velocity.size() << " is not of size 6 \n";
     }
-    vpColVector vel_max( 6 );
+    vpColVector vel_max(6);
 
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
-      vel_max[i]     = 1.7;
+    for (unsigned int i = 0; i < 3; i++) {
+      vel_max[i] = 1.7;
       vel_max[3 + i] = 2.5;
     }
     // velocities are expressed in Base frame
-    m_v_cart_des = vpRobot::saturateVelocities( velocity, vel_max, true );
+    m_v_cart_des = vpRobot::saturateVelocities(velocity, vel_max, true);
 
 #ifdef VISP_HAVE_OROCOS_KDL
     KDL::Twist v_cart;
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
+    for (unsigned int i = 0; i < 3; i++) {
       v_cart.vel.data[i] = m_v_cart_des[i];
       v_cart.rot.data[i] = m_v_cart_des[i + 3];
     }
-    std::lock_guard< std::mutex > lock( m_mutex );
-    m_diffIkSolver_kdl->CartToJnt( m_q_kdl, v_cart, m_dq_des_kdl );
-    for ( unsigned int i = 0; i < 7; i++ )
-    {
-      m_dq_des[i] = m_dq_des_kdl.data( i );
+    std::lock_guard< std::mutex > lock(m_mutex);
+    m_diffIkSolver_kdl->CartToJnt(m_q_kdl, v_cart, m_dq_des_kdl);
+    for (unsigned int i = 0; i < 7; i++) {
+      m_dq_des[i] = m_dq_des_kdl.data(i);
     }
 #endif
     break;
@@ -748,76 +704,68 @@ vpRobotFrankaSim::setVelocity( const vpRobot::vpControlFrameType frame, const vp
 
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    if ( velocity.size() != 6 )
-    {
+    if (velocity.size() != 6) {
       std::cout << "Cartesian velocity vector " << velocity.size() << " is not of size 6 \n";
     }
     // Apply Cartesian velocity limits according to the specifications
-    vpColVector vel_max( 6 );
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
-      vel_max[i]     = 1.7;
+    vpColVector vel_max(6);
+    for (unsigned int i = 0; i < 3; i++) {
+      vel_max[i] = 1.7;
       vel_max[3 + i] = 2.5;
     }
     // Refer End-Effector velocities in Base frame
     vpHomogeneousMatrix fMe = this->get_fMe();
-    vpVelocityTwistMatrix fVe( fMe, false );
-    m_v_cart_des = fVe * vpRobot::saturateVelocities( velocity, vel_max, true );
+    vpVelocityTwistMatrix fVe(fMe, false);
+    m_v_cart_des = fVe * vpRobot::saturateVelocities(velocity, vel_max, true);
 
 #ifdef VISP_HAVE_OROCOS_KDL
     KDL::Twist v_cart;
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
+    for (unsigned int i = 0; i < 3; i++) {
       v_cart.vel.data[i] = m_v_cart_des[i];
       v_cart.rot.data[i] = m_v_cart_des[i + 3];
     }
 
-    std::lock_guard< std::mutex > lock( m_mutex );
-    m_diffIkSolver_kdl->CartToJnt( m_q_kdl, v_cart, m_dq_des_kdl );
-    for ( unsigned int i = 0; i < 7; i++ )
-    {
-      m_dq_des[i] = m_dq_des_kdl.data( i );
+    std::lock_guard< std::mutex > lock(m_mutex);
+    m_diffIkSolver_kdl->CartToJnt(m_q_kdl, v_cart, m_dq_des_kdl);
+    for (unsigned int i = 0; i < 7; i++) {
+      m_dq_des[i] = m_dq_des_kdl.data(i);
     }
 #endif
     break;
   }
   case vpRobot::CAMERA_FRAME:
   {
-    if ( velocity.size() != 6 )
-    {
+    if (velocity.size() != 6) {
       std::cout << "Cartesian velocity vector " << velocity.size() << " is not of size 6 \n";
     }
     // Apply Cartesian velocity limits according to the specifications
-    vpColVector vel_max( 6 );
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
-      vel_max[i]     = 1.7;
+    vpColVector vel_max(6);
+    for (unsigned int i = 0; i < 3; i++) {
+      vel_max[i] = 1.7;
       vel_max[3 + i] = 2.5;
     }
     // Refer End-Effector velocities in Base frame
     vpHomogeneousMatrix fMe = this->get_fMe();
-    vpVelocityTwistMatrix fWe( fMe, false );
-    std::lock_guard< std::mutex > lock( m_mutex );
-    m_v_cart_des = vpRobot::saturateVelocities( fWe * m_eVc * velocity, vel_max, true );
+    vpVelocityTwistMatrix fWe(fMe, false);
+    std::lock_guard< std::mutex > lock(m_mutex);
+    m_v_cart_des = vpRobot::saturateVelocities(fWe * m_eVc * velocity, vel_max, true);
 
 #ifdef VISP_HAVE_OROCOS_KDL
     KDL::Twist v_cart;
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
+    for (unsigned int i = 0; i < 3; i++) {
       v_cart.vel.data[i] = m_v_cart_des[i];
       v_cart.rot.data[i] = m_v_cart_des[i + 3];
     }
 
-    m_diffIkSolver_kdl->CartToJnt( m_q_kdl, v_cart, m_dq_des_kdl );
-    for ( unsigned int i = 0; i < 7; i++ )
-    {
-      m_dq_des[i] = m_dq_des_kdl.data( i );
+    m_diffIkSolver_kdl->CartToJnt(m_q_kdl, v_cart, m_dq_des_kdl);
+    for (unsigned int i = 0; i < 7; i++) {
+      m_dq_des[i] = m_dq_des_kdl.data(i);
     }
 #endif
     break;
   }
   case vpRobot::MIXT_FRAME:
-    throw( vpException( vpException::functionNotImplementedError, "MIXT_FRAME is not implemented" ) );
+    throw(vpException(vpException::functionNotImplementedError, "MIXT_FRAME is not implemented"));
   }
 }
 
@@ -834,39 +782,38 @@ vpRobotFrankaSim::setVelocity( const vpRobot::vpControlFrameType frame, const vp
  * in [N] followed by 3 torques [Tx, Ty, Tz] in [Nm].
  */
 void
-vpRobotFrankaSim::getForceTorque( const vpRobot::vpControlFrameType frame, vpColVector &force )
+vpRobotFrankaSim::getForceTorque(const vpRobot::vpControlFrameType frame, vpColVector &force)
 {
-  switch ( frame )
-  {
+  switch (frame) {
   case vpRobot::JOINT_STATE:
   {
-    force.resize( 7 );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    force.resize(7);
+    std::lock_guard< std::mutex > lock(m_mutex);
     force = m_tau_J;
     break;
   }
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    force.resize( 6 );
+    force.resize(6);
     vpMatrix eJe;
-    this->get_eJe( eJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    this->get_eJe(eJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     force = eJe.transpose().pseudoInverse() * m_tau_J;
     break;
   }
   case vpRobot::REFERENCE_FRAME:
   {
-    force.resize( 6 );
+    force.resize(6);
     vpMatrix fJe;
-    this->get_fJe( fJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    this->get_fJe(fJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     force = fJe.transpose().pseudoInverse() * m_tau_J;
     break;
   }
 
   default:
   {
-    throw( vpException( vpException::fatalError, "Cannot get Franka position for the specified frame " ) );
+    throw(vpException(vpException::fatalError, "Cannot get Franka position for the specified frame "));
   }
   }
 }
@@ -884,24 +831,21 @@ vpRobotFrankaSim::getForceTorque( const vpRobot::vpControlFrameType frame, vpCol
  * in [N] followed by 3 torques [Tx, Ty, Tz] in [Nm].
  */
 void
-vpRobotFrankaSim::setForceTorque( const vpRobot::vpControlFrameType frame, const vpColVector &force )
+vpRobotFrankaSim::setForceTorque(const vpRobot::vpControlFrameType frame, const vpColVector &force)
 {
-  if ( vpRobot::STATE_FORCE_TORQUE_CONTROL != getRobotState() )
-  {
+  if (vpRobot::STATE_FORCE_TORQUE_CONTROL != getRobotState()) {
     std::cout << "Cannot send a torque command to the robot. "
-                 "Use setRobotState(vpRobot::STATE_FORCE_TORQUE_CONTROL) first. \n";
+      "Use setRobotState(vpRobot::STATE_FORCE_TORQUE_CONTROL) first. \n";
   }
 
-  switch ( frame )
-  {
+  switch (frame) {
   // Saturation in joint space
   case vpRobot::JOINT_STATE:
   {
-    if ( force.size() != 7 )
-    {
+    if (force.size() != 7) {
       std::cout << "Joint velocity vector " << force.size() << " is not of size 7 \n";
     }
-    std::lock_guard< std::mutex > lock( m_mutex );
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_tau_J_des = force;
 
     break;
@@ -909,38 +853,36 @@ vpRobotFrankaSim::setForceTorque( const vpRobot::vpControlFrameType frame, const
 
   case vpRobot::REFERENCE_FRAME:
   {
-    if ( force.size() != 6 )
-    {
+    if (force.size() != 6) {
       std::cout << "Cartesian velocity vector " << force.size() << " is not of size 6 \n";
     }
-    vpMatrix fJe( 6, 7 );
-    this->get_fJe( fJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    vpMatrix fJe(6, 7);
+    this->get_fJe(fJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_tau_J_des = fJe.t() * force;
     break;
   }
 
   case vpRobot::END_EFFECTOR_FRAME:
   {
-    if ( force.size() != 6 )
-    {
+    if (force.size() != 6) {
       std::cout << "Cartesian velocity vector " << force.size() << " is not of size 6 \n";
     }
-    vpMatrix eJe( 6, 7 );
-    this->get_eJe( eJe );
-    std::lock_guard< std::mutex > lock( m_mutex );
+    vpMatrix eJe(6, 7);
+    this->get_eJe(eJe);
+    std::lock_guard< std::mutex > lock(m_mutex);
     m_tau_J_des = eJe.t() * force;
     break;
   }
   case vpRobot::CAMERA_FRAME:
   {
-    throw( vpException( vpException::functionNotImplementedError,
-                        "force/torque control in camera frame is not implemented" ) );
+    throw(vpException(vpException::functionNotImplementedError,
+                      "force/torque control in camera frame is not implemented"));
   }
   case vpRobot::MIXT_FRAME:
   {
-    throw( vpException( vpException::functionNotImplementedError,
-                        "force/torque control in mixt frame is not implemented" ) );
+    throw(vpException(vpException::functionNotImplementedError,
+                      "force/torque control in mixt frame is not implemented"));
   }
   }
 }
@@ -961,23 +903,17 @@ vpRobotFrankaSim::get_fMe()
   int kinematics_status;
   vpRotationMatrix R;
   vpTranslationVector t;
-  std::lock_guard< std::mutex > lock( m_mutex );
-  kinematics_status = m_fksolver_kdl->JntToCart( m_q_kdl, cartpos );
-  if ( kinematics_status >= 0 )
-  {
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
-      for ( unsigned int j = 0; j < 3; j++ )
-      {
+  std::lock_guard< std::mutex > lock(m_mutex);
+  kinematics_status = m_fksolver_kdl->JntToCart(m_q_kdl, cartpos);
+  if (kinematics_status >= 0) {
+    for (unsigned int i = 0; i < 3; i++) {
+      for (unsigned int j = 0; j < 3; j++) {
         R[i][j] = cartpos.M.data[3 * i + j];
       }
       t[i] = cartpos.p.data[i];
     }
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    fMe.build( t, R );
-#else
-    fMe.buildFrom( t, R );
-#endif
+
+    fMe.buildFrom(t, R);
   }
 #endif
 
@@ -991,31 +927,26 @@ vpRobotFrankaSim::get_fMe()
  * \return Homogeneous transformation between the robot base frame and the end-effector.
  */
 vpHomogeneousMatrix
-vpRobotFrankaSim::get_fMe( const vpColVector &q )
+vpRobotFrankaSim::get_fMe(const vpColVector &q)
 {
-  if ( q.size() != 7 )
-  {
-    throw( vpException( vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size() ) );
+  if (q.size() != 7) {
+    throw(vpException(vpException::dimensionError, "Joint position vector is not a 7-dim vector (%d)", q.size()));
   }
   vpRotationMatrix R;
   vpTranslationVector t;
 
 #ifdef VISP_HAVE_OROCOS_KDL
   KDL::Frame cartpos;
-  KDL::JntArray qq( 7 );
-  for ( unsigned int i = 0; i < 7; i++ )
-  {
-    qq( i ) = q[i];
+  KDL::JntArray qq(7);
+  for (unsigned int i = 0; i < 7; i++) {
+    qq(i) = q[i];
   }
   // Calculate forward kinematics
   int kinematics_status;
-  kinematics_status = m_fksolver_kdl->JntToCart( qq, cartpos );
-  if ( kinematics_status >= 0 )
-  {
-    for ( unsigned int i = 0; i < 3; i++ )
-    {
-      for ( unsigned int j = 0; j < 3; j++ )
-      {
+  kinematics_status = m_fksolver_kdl->JntToCart(qq, cartpos);
+  if (kinematics_status >= 0) {
+    for (unsigned int i = 0; i < 3; i++) {
+      for (unsigned int j = 0; j < 3; j++) {
         R[i][j] = cartpos.M.data[3 * i + j];
       }
       t[i] = cartpos.p.data[i];
@@ -1023,7 +954,7 @@ vpRobotFrankaSim::get_fMe( const vpColVector &q )
   }
 #endif
 
-  vpHomogeneousMatrix fMe( t, R );
+  vpHomogeneousMatrix fMe(t, R);
   return fMe;
 }
 
@@ -1032,10 +963,10 @@ vpRobotFrankaSim::get_fMe( const vpColVector &q )
  * \param[out] mass : 7x7 mass matrix, row-major.
  */
 void
-vpRobotFrankaSim::getMass( vpMatrix &mass )
+vpRobotFrankaSim::getMass(vpMatrix &mass)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
-  mass = franka_model::massMatrix( m_q, m_mL, m_flMcom, m_Il );
+  std::lock_guard< std::mutex > lock(m_mutex);
+  mass = franka_model::massMatrix(m_q, m_mL, m_flMcom, m_Il);
 }
 
 /*!
@@ -1043,10 +974,10 @@ vpRobotFrankaSim::getMass( vpMatrix &mass )
  * \param[out] gravity : Gravity 7-dim vector.
  */
 void
-vpRobotFrankaSim::getGravity( vpColVector &gravity )
+vpRobotFrankaSim::getGravity(vpColVector &gravity)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
-  gravity = franka_model::gravityVector( m_q, m_mL, m_flMcom, m_g0 );
+  std::lock_guard< std::mutex > lock(m_mutex);
+  gravity = franka_model::gravityVector(m_q, m_mL, m_flMcom, m_g0);
 }
 
 /*!
@@ -1055,11 +986,11 @@ vpRobotFrankaSim::getGravity( vpColVector &gravity )
  * \param[out] coriolis : Coriolis 7-dim force vector.
  */
 void
-vpRobotFrankaSim::getCoriolis( vpColVector &coriolis )
+vpRobotFrankaSim::getCoriolis(vpColVector &coriolis)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
-  vpMatrix C( 7, 7 );
-  C        = franka_model::coriolisMatrix( m_q, m_dq, m_mL, m_flMcom, m_Il );
+  std::lock_guard< std::mutex > lock(m_mutex);
+  vpMatrix C(7, 7);
+  C = franka_model::coriolisMatrix(m_q, m_dq, m_mL, m_flMcom, m_Il);
   coriolis = C * m_dq;
 }
 
@@ -1069,15 +1000,15 @@ vpRobotFrankaSim::getCoriolis( vpColVector &coriolis )
  * \param[out] coriolis : 7x7 Coriolis matrix, row-major.
  */
 void
-vpRobotFrankaSim::getCoriolisMatrix( vpMatrix &coriolis )
+vpRobotFrankaSim::getCoriolisMatrix(vpMatrix &coriolis)
 {
-  std::lock_guard< std::mutex > lock( m_mutex );
-  coriolis = franka_model::coriolisMatrix( m_q, m_dq, m_mL, m_flMcom, m_Il );
+  std::lock_guard< std::mutex > lock(m_mutex);
+  coriolis = franka_model::coriolisMatrix(m_q, m_dq, m_mL, m_flMcom, m_Il);
 }
 
 #elif !defined( VISP_BUILD_SHARED_LIBS )
 // Work arround to avoid warning: lib*.a(vpRobotFrankaSim.cpp.o) has
 // no symbols
 void
-dummy_vpRobotFrankaSim(){};
+dummy_vpRobotFrankaSim() { };
 #endif
