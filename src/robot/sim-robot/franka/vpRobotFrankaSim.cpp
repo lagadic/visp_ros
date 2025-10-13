@@ -158,11 +158,7 @@ vpRobotFrankaSim::set_eMc( const vpHomogeneousMatrix &eMc )
 {
   std::lock_guard< std::mutex > lock( m_mutex );
   m_eMc = eMc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-  m_eVc.build( m_eMc );
-#else
   m_eVc.buildFrom( m_eMc );
-#endif
   m_camMounted = true;
 }
 
@@ -530,11 +526,7 @@ vpRobotFrankaSim::setPosition( const vpRobot::vpControlFrameType frame, const vp
                           position.size() ) );
     }
     vpHomogeneousMatrix wMe;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    wMe.build( position[0], position[1], position[2], position[3], position[4], position[5] );
-#else
     wMe.buildFrom( position[0], position[1], position[2], position[3], position[4], position[5] );
-#endif
     vpColVector q_des = solveIK( wMe );
     std::lock_guard< std::mutex > lock( m_mutex );
     m_q_des = q_des;
@@ -549,11 +541,7 @@ vpRobotFrankaSim::setPosition( const vpRobot::vpControlFrameType frame, const vp
                           position.size() ) );
     }
     vpHomogeneousMatrix wMc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    wMc.build( position[0], position[1], position[2], position[3], position[4], position[5] );
-#else
     wMc.buildFrom( position[0], position[1], position[2], position[3], position[4], position[5] );
-#endif
 
     vpHomogeneousMatrix wMe = wMc * m_eMc.inverse();
     vpColVector q_des       = solveIK( wMe );
@@ -973,11 +961,8 @@ vpRobotFrankaSim::get_fMe()
       }
       t[i] = cartpos.p.data[i];
     }
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    fMe.build( t, R );
-#else
+
     fMe.buildFrom( t, R );
-#endif
   }
 #endif
 

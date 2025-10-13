@@ -236,13 +236,8 @@ main( int argc, char **argv )
     cdMc = cdMo * cMo.inverse();
     vpFeatureTranslation t( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tu( vpFeatureThetaU::cdRc );
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    t.build( cdMc );
-    tu.build( cdMc );
-#else
     t.buildFrom( cdMc );
     tu.buildFrom( cdMc );
-#endif
 
     vpFeatureTranslation td( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tud( vpFeatureThetaU::cdRc );
@@ -326,11 +321,7 @@ main( int argc, char **argv )
         {
           // Introduce security wrt tag positionning in order to avoid PI rotation
           std::vector< vpHomogeneousMatrix > v_oMo( 2 ), v_cdMc( 2 );
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-          v_oMo[1].build( 0, 0, 0, 0, 0, M_PI );
-#else
           v_oMo[1].buildFrom( 0, 0, 0, 0, 0, M_PI );
-#endif
           for ( size_t i = 0; i < 2; i++ )
           {
             v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
@@ -349,13 +340,8 @@ main( int argc, char **argv )
 
         // Update visual features
         cdMc = cdMo * oMo * cMo.inverse();
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-        t.build( cdMc );
-        tu.build( cdMc );
-#else
         t.buildFrom( cdMc );
         tu.buildFrom( cdMc );
-#endif
 
         if ( opt_task_sequencing )
         {

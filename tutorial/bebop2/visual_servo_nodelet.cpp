@@ -46,7 +46,7 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 
