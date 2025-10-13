@@ -37,7 +37,7 @@
 #include <std_msgs/msg/int8.hpp>
 #include <std_msgs/msg/string.h>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 #include <visp_bridge/3dpose.h>
 

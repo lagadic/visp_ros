@@ -45,7 +45,7 @@
 #include <visp3/core/vpFrameGrabberException.h>
 #include <visp3/core/vpImageConvert.h>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
 

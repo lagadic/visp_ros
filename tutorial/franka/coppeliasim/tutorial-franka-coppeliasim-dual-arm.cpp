@@ -262,13 +262,8 @@ main( int argc, char **argv )
     // Create visual features
     vpFeatureTranslation t( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tu( vpFeatureThetaU::cdRc );
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    t.build( ccMc );
-    tu.build( ccMc );
-#else
     t.buildFrom( ccMc );
     tu.buildFrom( ccMc );
-#endif
 
     vpFeatureTranslation td( vpFeatureTranslation::cdMc );
     vpFeatureThetaU tud( vpFeatureThetaU::cdRc );
@@ -411,17 +406,10 @@ main( int argc, char **argv )
 
     vpVelocityTwistMatrix cTe;
     vpForceTwistMatrix cFee, eeFft, eeFc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-    cTe.build( right_arm.get_eMc().inverse() );
-    cFee.build( right_arm.get_eMc().inverse() );
-    eeFc.build( right_arm.get_eMc() );
-    eeFft.build( ftTee.inverse() );
-#else
     cTe.buildFrom( right_arm.get_eMc().inverse() );
     cFee.buildFrom( right_arm.get_eMc().inverse() );
     eeFc.buildFrom( right_arm.get_eMc() );
     eeFft.buildFrom( ftTee.inverse() );
-#endif
 
     // Admittance parameters
     vpColVector dde_s( 6, 0 ), de_s( 6, 0 ), e_s( 6, 0 ), d_err( 6, 0 ), err( 6, 0 ), old_err( 6, 0 );
@@ -482,11 +470,7 @@ main( int argc, char **argv )
             if ( sqrt( e_s.extract( 3, 3 ).sumSquare() ) != 0.0 )
             {
               vpRotationMatrix R_aux;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-              R_aux.build( (vpThetaUVector)e_s.extract( 3, 3 ) );
-#else
               R_aux.buildFrom( (vpThetaUVector)e_s.extract( 3, 3 ) );
-#endif
               cdMcc.insert( R_aux );
             }
             else
@@ -495,13 +479,8 @@ main( int argc, char **argv )
             }
             ccMo = cdMcc.inverse() * cdMo;
             ccMc = ccMo * oMo * cMo.inverse();
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-            t.build( ccMc );
-            tu.build( ccMc );
-#else
             t.buildFrom( ccMc );
             tu.buildFrom( ccMc );
-#endif
 
             v_c = task.computeControlLaw();
 
@@ -619,11 +598,7 @@ main( int argc, char **argv )
         {
           // Introduce security wrt tag positionning in order to avoid PI rotation
           std::vector< vpHomogeneousMatrix > v_oMo( 2 ), v_cdMc( 2 );
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-          v_oMo[1].build( 0, 0, 0, 0, 0, M_PI );
-#else
           v_oMo[1].buildFrom( 0, 0, 0, 0, 0, M_PI );
-#endif
           for ( size_t i = 0; i < 2; i++ )
           {
             v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
@@ -643,13 +618,8 @@ main( int argc, char **argv )
 
         // Update visual features
         ccMc = ccMo * oMo * cMo.inverse();
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-        t.build( ccMc );
-        tu.build( ccMc );
-#else
         t.buildFrom( ccMc );
         tu.buildFrom( ccMc );
-#endif
 
         shared_data.unlock();
 

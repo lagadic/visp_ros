@@ -268,11 +268,7 @@ main( int argc, char **argv )
     {
       // Instead of setting eMc from /coppeliasim/franka/eMc topic, we can set its value to introduce noise for example
       vpHomogeneousMatrix eMc;
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-      eMc.build( 0.05, -0.05, 0, 0, 0, M_PI_4 );
-#else
       eMc.buildFrom( 0.05, -0.05, 0, 0, 0, M_PI_4 );
-#endif
       robot.set_eMc( eMc );
     }
     std::cout << "eMc:\n" << robot.get_eMc() << std::endl;
@@ -309,11 +305,7 @@ main( int argc, char **argv )
         {
           // Introduce security wrt tag positionning in order to avoid PI rotation
           std::vector< vpHomogeneousMatrix > v_oMo( 2 ), v_cdMc( 2 );
-#if VISP_VERSION_INT > VP_VERSION_INT(3, 6, 0)
-          v_oMo[1].build( 0, 0, 0, 0, 0, M_PI );
-#else
           v_oMo[1].buildFrom( 0, 0, 0, 0, 0, M_PI );
-#endif
           for ( size_t i = 0; i < 2; i++ )
           {
             v_cdMc[i] = cdMo * v_oMo[i] * cMo.inverse();
