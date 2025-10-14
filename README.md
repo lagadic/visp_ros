@@ -28,11 +28,12 @@ If you are using this simulator we would appreciate that you cite this  [paper](
 
 Either you can install dependencies from existing packages, either from source.
 
-**Install dependencies from packages**
+### 1.1.1. Install dependencies from packages
 
 Install `ros-<distro>-visp` and `ros-<distro>-vision_visp` packages that match your ros2 distribution (humble, rolling), as for example:
 
   ```
+  $ sudo apt-get install ros-humble-image-proc
   $ sudo apt-get install ros-humble-visp ros-humble-vision_visp
   ```
 
@@ -40,7 +41,7 @@ Note: It may occur that `vision_visp` package is not available for your ros2 dis
 
 Once done, or if the packages are not existing jump to section 1.2. 
 
-**Install dependencies from source**
+### 1.1.2. Install dependencies from source
 
 If you want to use the nodes that allow to control real robots such as Biclops PT head, Viper 650, Viper 850, Afma4, Afma6 or Franka robots, you need to build ViSP from source and install ViSP in `/opt/ros/<distro>` in order to overwrite any version that was already installed from packages. There are a couple of [tutorials](https://visp-doc.inria.fr/doxygen/visp-daily/tutorial-install-ubuntu.html) that may help. Below we recall the main instructions
 

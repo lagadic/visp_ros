@@ -53,14 +53,14 @@ public:
 
 public:
   int setup();
-  void setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr &msg );
+  void setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg );
   void spin();
   void publish();
 
 protected:
   rclcpp::Publisher< geometry_msgs::msg::PoseStamped >::SharedPtr m_pose_pub;
   rclcpp::Publisher< geometry_msgs::msg::TwistStamped >::SharedPtr m_vel_pub;
-  rclcpp::Subscription< geometry_msgs::msg::Twist >::SharedPtr m_cmd_camvel_sub;
+  rclcpp::Subscription< geometry_msgs::msg::TwistStamped >::SharedPtr m_cmd_camvel_sub;
 
   unsigned int m_queue_size;
   rclcpp::Time m_vel_time;
@@ -73,7 +73,7 @@ protected:
   vpHomogeneousMatrix m_wMc; // world to camera transformation
   vpColVector m_q;           // measured joint position
 
-  int m_tool_type = 0; // See https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType
+  int m_tool_type = static_cast<int>(vpAfma6::TOOL_INTEL_D435_CAMERA); // See https://visp-doc.inria.fr/doxygen/visp-daily/classvpAfma6.html structure vpAfma6ToolType
 };
 
 RosAfma6Node::RosAfma6Node()
@@ -91,7 +91,7 @@ RosAfma6Node::RosAfma6Node()
   m_vel_pub  = this->create_publisher< geometry_msgs::msg::TwistStamped >( "velocity", m_queue_size );
 
   // Create subscribers
-  m_cmd_camvel_sub = this->create_subscription< geometry_msgs::msg::Twist >(
+  m_cmd_camvel_sub = this->create_subscription< geometry_msgs::msg::TwistStamped >(
       "cmd_camvel", m_queue_size, std::bind( &RosAfma6Node::setCameraVel, this, std::placeholders::_1 ) );
 }
 
@@ -154,22 +154,22 @@ RosAfma6Node::publish()
 }
 
 void
-RosAfma6Node::setCameraVel( const geometry_msgs::msg::Twist::ConstSharedPtr &msg )
+RosAfma6Node::setCameraVel( const geometry_msgs::msg::TwistStamped::ConstSharedPtr &msg )
 {
   m_vel_time = rclcpp::Node::now();
 
   vpColVector vc( 6 ); // Vel in m/s and rad/s
 
-  vc[0] = msg->linear.x;
-  vc[1] = msg->linear.y;
-  vc[2] = msg->linear.z;
+  vc[0] = msg->twist.linear.x;
+  vc[1] = msg->twist.linear.y;
+  vc[2] = msg->twist.linear.z;
 
-  vc[3] = msg->angular.x;
-  vc[4] = msg->angular.y;
-  vc[5] = msg->angular.z;
+  vc[3] = msg->twist.angular.x;
+  vc[4] = msg->twist.angular.y;
+  vc[5] = msg->twist.angular.z;
 
-  // RCLCPP_INFO( this->get_logger(), "Afma6 new camera vel: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s", vc[0],
-  //              vc[1], vc[2], vc[3], vc[4], vc[5] );
+  RCLCPP_INFO( this->get_logger(), "Afma6 new camera vel: [%0.2f %0.2f %0.2f] m/s [%0.2f %0.2f %0.2f] rad/s", vc[0],
+                vc[1], vc[2], vc[3], vc[4], vc[5] );
   m_robot->setVelocity( vpRobot::CAMERA_FRAME, vc );
 }
 

@@ -80,8 +80,10 @@ ament_target_dependencies(${PROJECT_NAME}_common
   geometry_msgs
   image_geometry
   image_transport
+  joy
   nav_msgs
   rclcpp
+  sensor_msgs
   std_srvs
   visp_bridge
   VISP
@@ -105,6 +107,19 @@ ament_target_dependencies(${PROJECT_NAME}_afma6_node
   geometry_msgs
   rclcpp
   visp_bridge
+  VISP
+)
+
+# Node to control convert joy to twist messages
+add_executable(${PROJECT_NAME}_joy2twist_afma6_node nodes/joy2twist_afma6.cpp)
+target_link_libraries(${PROJECT_NAME}_joy2twist_afma6_node
+  "${cpp_typesupport_target}"
+)
+ament_target_dependencies(${PROJECT_NAME}_joy2twist_afma6_node
+  geometry_msgs
+  sensor_msgs
+  rclcpp
+  joy
   VISP
 )
 
@@ -205,6 +220,7 @@ install(
   ${PROJECT_NAME}_blob_tracker_node
   ${PROJECT_NAME}_viper650_node
   ${PROJECT_NAME}_viper850_node
+  ${PROJECT_NAME}_joy2twist_afma6_node
 
   tutorial-ros-grabber
 
