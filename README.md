@@ -81,7 +81,7 @@ If you want to use the nodes that allow to control real robots such as Biclops P
   $ mkdir -p $HOME/colcon_ws/src
   $ cd $HOME/colcon_ws/src
   $ source /opt/ros/<version>/setup.bash
-  $ git clone https://github.com/lagadic/vision_visp.git -b rolling
+  $ git clone https://github.com/lagadic/vision_visp.git -b humble
   ```
 
 ## 1.2. Get visp_ros source
