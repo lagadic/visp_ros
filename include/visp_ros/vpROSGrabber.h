@@ -49,7 +49,7 @@
 #include <visp3/core/vpImage.h>
 #include <visp3/core/vpRGBa.h>
 
-#include <image_geometry/pinhole_camera_model.hpp>
+#include <image_geometry/pinhole_camera_model.h>
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/compressed_image.hpp>
