@@ -51,6 +51,10 @@
 
 #include <visp_ros/vpRobotFrankaSim.h>
 
+#ifdef ENABLE_VISP_NAMESPACE
+using namespace VISP_NAMESPACE_NAME;
+#endif
+
 /*!
  * This class does the connection using ROS 2 between Franka robot simulator
  * implemented in vpRobotFrankaSim and CoppeliaSim simulator.
